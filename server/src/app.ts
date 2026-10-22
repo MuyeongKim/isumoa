@@ -8,10 +8,13 @@ import { registerAuth } from './auth/guard.ts';
 import type { Deps } from './deps.ts';
 import { errorHandler } from './lib/errors.ts';
 import { authRoutes } from './routes/auth.ts';
+import { certificateRoutes } from './routes/certificates.ts';
 import { departmentRoutes } from './routes/departments.ts';
 import { employeeRoutes } from './routes/employees.ts';
 import { overviewRoutes } from './routes/overview.ts';
+import { statusRoutes } from './routes/status.ts';
 import { trainingRoutes } from './routes/trainings.ts';
+import { uploadRoutes } from './routes/uploads.ts';
 import { userRoutes } from './routes/users.ts';
 
 /** 서버 앱을 만든다. 테스트에서는 메모리 DB를 넣어 그대로 쓴다 */
@@ -35,7 +38,8 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
     reply.header('Referrer-Policy', 'same-origin');
     reply.header(
       'Content-Security-Policy',
-      "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; frame-ancestors 'none'",
+      // 'wasm-unsafe-eval': PDF 처리(pdf.js)가 스캔 이미지 해독에 WebAssembly를 쓴다
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; frame-ancestors 'none'",
     );
   });
 
@@ -45,6 +49,9 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(userRoutes, deps);
   await app.register(trainingRoutes, deps);
   await app.register(employeeRoutes, deps);
+  await app.register(uploadRoutes, deps);
+  await app.register(certificateRoutes, deps);
+  await app.register(statusRoutes, deps);
 
   // 빌드된 화면이 있으면 같은 포트에서 제공한다 (개발 중에는 Vite가 따로 띄운다)
   const webDist = deps.config.webDistDir;

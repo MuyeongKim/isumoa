@@ -11,9 +11,11 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router';
-import { ROLE_LABELS } from '@shared/types.ts';
+import { NavLink, Outlet, useMatches } from 'react-router';
+import { ROLE_LABELS, type Overview } from '@shared/types.ts';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { useCurrentUser, useLogout, useMeta } from '@/lib/session';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
@@ -25,6 +27,8 @@ interface NavItem {
   to?: string;
   /** 다음 단계에서 열리는 메뉴 */
   soon?: boolean;
+  /** 메뉴 옆에 보여 줄 숫자 */
+  badge?: 'drafts';
 }
 
 const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
@@ -32,9 +36,9 @@ const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
     group: '업무',
     items: [
       { label: '대시보드', icon: LayoutDashboard, to: '/' },
-      { label: '이수증 올리기', icon: Upload, soon: true },
-      { label: '검수함', icon: Stamp, soon: true },
-      { label: '이수 현황', icon: Table2, soon: true },
+      { label: '이수증 올리기', icon: Upload, to: '/upload' },
+      { label: '검수함', icon: Stamp, to: '/review', badge: 'drafts' },
+      { label: '이수 현황', icon: Table2, to: '/status' },
       { label: '내보내기', icon: Download, soon: true },
     ],
   },
@@ -53,6 +57,13 @@ export function AppShell() {
   const { data: meta } = useMeta();
   const logout = useLogout();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const wide = useMatches().some((m) => (m.handle as { wide?: boolean } | undefined)?.wide);
+  const overview = useQuery({
+    queryKey: ['overview'],
+    queryFn: () => api.get<Overview>('/overview'),
+    enabled: !me.mustChangePassword,
+    refetchInterval: 30_000,
+  });
 
   return (
     <div className="min-h-screen md:grid md:grid-cols-[236px_minmax(0,1fr)]">
@@ -89,6 +100,11 @@ export function AppShell() {
                       >
                         <item.icon className="size-4 shrink-0" aria-hidden />
                         {item.label}
+                        {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
+                          <span className="ml-auto rounded-full bg-gold/90 px-1.5 text-[11.5px] leading-[18px] font-semibold text-navy tabular-nums">
+                            {overview.data!.drafts}
+                          </span>
+                        )}
                       </NavLink>
                     ) : (
                       <span
@@ -139,7 +155,7 @@ export function AppShell() {
       </aside>
 
       <main className="min-w-0 px-5 py-7 md:px-10 md:py-9">
-        <div className="mx-auto max-w-[1180px]">
+        <div className={cn('mx-auto', wide ? 'max-w-[1680px]' : 'max-w-[1180px]')}>
           <Outlet />
         </div>
       </main>

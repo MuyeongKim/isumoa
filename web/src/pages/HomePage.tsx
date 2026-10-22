@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import type { Department, Overview } from '@shared/types.ts';
+import type { Department, Overview, StatusReport } from '@shared/types.ts';
 import { PageHeader } from '@/components/PageHeader';
 import { ConfirmStamp } from '@/components/SealMark';
 import { api } from '@/lib/api';
@@ -121,9 +121,54 @@ function ClerkDepartments() {
           ))}
         </ul>
       )}
-      <p className="mt-4 text-[13px] text-ink-faint">
-        이수증 올리기와 검수는 다음 단계에서 열립니다. 그 전에 담당 부서 직원 명단이 맞는지 확인해 주세요.
+    </section>
+  );
+}
+
+function DraftsNotice({ drafts }: { drafts: number }) {
+  if (drafts === 0) return null;
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-warn/40 bg-warn-soft px-5 py-3">
+      <p className="text-[14px]">
+        검수할 이수증이 <span className="font-semibold tabular-nums">{formatNumber(drafts)}건</span> 있습니다.
       </p>
+      <Link to="/review" className="text-[13.5px] font-medium text-link hover:underline">
+        검수함으로 가기
+      </Link>
+    </div>
+  );
+}
+
+/** 교육별 이수율 (확정한 이수증 기준) */
+function TrainingRates({ year }: { year: number }) {
+  const { data } = useQuery({ queryKey: ['status', year, null], queryFn: () => api.get<StatusReport>(`/status?year=${year}`) });
+  if (!data || data.rows.length === 0) return null;
+  return (
+    <section className="mt-8">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[16px] font-semibold">교육별 이수율</h2>
+        <Link to="/status" className="text-[13.5px] text-link hover:underline">
+          직원별로 보기
+        </Link>
+      </div>
+      <ul className="mt-3 divide-y divide-line rounded-md border border-line bg-sheet">
+        {data.trainings.map((t) => {
+          const s = data.summary.find((x) => x.trainingId === t.id)!;
+          const rate = s.rate ?? 0;
+          return (
+            <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_minmax(120px,240px)_56px_88px] items-center gap-4 px-5 py-2.5">
+              <span className="truncate font-medium">{t.name}</span>
+              <span className="h-1.5 overflow-hidden rounded-full bg-paper" aria-hidden>
+                <span className="block h-full bg-ok" style={{ width: `${rate * 100}%` }} />
+              </span>
+              <span className="text-right font-semibold tabular-nums">{s.rate === null ? '-' : `${Math.round(rate * 100)}%`}</span>
+              <span className="text-right text-[13px] text-ink-soft tabular-nums">
+                {formatNumber(s.done)} / {formatNumber(s.target)}명
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -138,9 +183,16 @@ export function HomePage() {
     <>
       <PageHeader
         title={`${year}년 법정교육`}
-        description={`${meta?.orgName ?? ''} 법정교육 이수증을 모으고 확인하는 곳입니다. 이수증을 올리고 검수하면 교육별·부서별 이수율이 이 화면에 모입니다.`}
+        description={`${meta?.orgName ?? ''} 법정교육 이수증을 모으고 확인하는 곳입니다. 이수증을 올리고 검수해서 확정하면 이수율에 반영됩니다.`}
+        actions={
+          <Link to="/upload" className="inline-flex h-9 items-center rounded-md bg-navy px-4 text-[14px] font-medium text-white hover:bg-navy-hover">
+            이수증 올리기
+          </Link>
+        }
       />
       {overview && <SummaryTable overview={overview} isAdmin={me.role === 'admin'} />}
+      {overview && <DraftsNotice drafts={overview.drafts} />}
+      <TrainingRates year={year} />
       {overview && me.role === 'admin' && <AdminChecklist overview={overview} />}
       {me.role === 'clerk' && <ClerkDepartments />}
     </>

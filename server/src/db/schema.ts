@@ -1,5 +1,5 @@
 import type { Generated } from 'kysely';
-import type { EmployeeStatus, ReqType, Role } from '../../../shared/types.ts';
+import type { CertificateStatus, EmployeeStatus, ReqType, Role } from '../../../shared/types.ts';
 
 // DB 테이블 구조. 실제 테이블은 migrations/*.sql 파일이 만든다 — 열을 바꾸면 두 곳을 함께 고친다.
 // SQLite에는 boolean이 없어서 참/거짓은 0/1 정수로 저장한다.
@@ -106,6 +106,94 @@ export interface AuditLogTable {
   ip: string | null;
 }
 
+export interface BatchesTable {
+  id: Generated<number>;
+  year: number;
+  title: string | null;
+  created_by: number;
+  created_at: Generated<string>;
+}
+
+export interface FilesTable {
+  id: Generated<number>;
+  batch_id: number;
+  original_name: string;
+  stored_name: string;
+  mime: string;
+  size: number;
+  sha256: string;
+  page_count: number;
+  created_at: Generated<string>;
+}
+
+export type PageState = 'queued' | 'processing' | 'done' | 'error';
+
+export interface PagesTable {
+  id: Generated<number>;
+  file_id: number;
+  page_no: number;
+  width: number;
+  height: number;
+  text_layer: string | null;
+  ocr_text: string | null;
+  route: string | null;
+  state: Generated<PageState>;
+  error: string | null;
+  created_at: Generated<string>;
+}
+
+export interface CertificatesTable {
+  id: Generated<number>;
+  batch_id: number;
+  page_id: number;
+  status: Generated<CertificateStatus>;
+  employee_id: number | null;
+  person_name: string | null;
+  person_birth: string | null;
+  person_dept: string | null;
+  course_title: string | null;
+  provider: string | null;
+  cert_no: string | null;
+  completed_on: string | null;
+  hours: number | null;
+  hours_text: string | null;
+  year: number | null;
+  /** JSON: CertificateFlag[] */
+  flags: Generated<string>;
+  source: Generated<string>;
+  dept_snapshot: string | null;
+  exclude_reason: string | null;
+  confirmed_by: number | null;
+  confirmed_at: string | null;
+  created_at: Generated<string>;
+  updated_at: Generated<string>;
+}
+
+export interface CertificateTrainingsTable {
+  certificate_id: number;
+  training_id: number;
+  credited_hours: number | null;
+}
+
+export interface CourseMappingsTable {
+  title_key: string;
+  training_id: number;
+  confirmations: Generated<number>;
+  updated_at: Generated<string>;
+}
+
+export interface JobsTable {
+  id: Generated<number>;
+  kind: string;
+  page_id: number;
+  state: Generated<'queued' | 'running' | 'done' | 'failed'>;
+  attempts: Generated<number>;
+  run_after: Generated<string>;
+  last_error: string | null;
+  created_at: Generated<string>;
+  updated_at: Generated<string>;
+}
+
 export interface DB {
   departments: DepartmentsTable;
   users: UsersTable;
@@ -116,4 +204,11 @@ export interface DB {
   exemptions: ExemptionsTable;
   settings: SettingsTable;
   audit_log: AuditLogTable;
+  batches: BatchesTable;
+  files: FilesTable;
+  pages: PagesTable;
+  certificates: CertificatesTable;
+  certificate_trainings: CertificateTrainingsTable;
+  course_mappings: CourseMappingsTable;
+  jobs: JobsTable;
 }

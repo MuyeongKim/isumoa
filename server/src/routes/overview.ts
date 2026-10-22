@@ -11,7 +11,8 @@ const OrgBody = z.object({ name: z.string().trim().min(1, '기관명을 입력�
 export async function overviewRoutes(app: FastifyInstance, { db }: Deps) {
   // 첫 화면 숫자: 서무는 담당 부서 기준으로 센다
   app.get('/api/overview', { preHandler: requireUser }, async (req): Promise<Overview> => {
-    const scope = departmentScope(currentUser(req));
+    const user = currentUser(req);
+    const scope = departmentScope(user);
     const none = scope !== null && scope.length === 0;
 
     const departments = await db
@@ -38,7 +39,24 @@ export async function overviewRoutes(app: FastifyInstance, { db }: Deps) {
       .where('active', '=', 1)
       .executeTakeFirstOrThrow();
 
-    return { departments: departments.n, employees: employees.n, activeTrainings: trainings.n, clerks: clerks.n };
+    const drafts = await db
+      .selectFrom('certificates as c')
+      .innerJoin('batches as b', 'b.id', 'c.batch_id')
+      .leftJoin('employees as e', 'e.id', 'c.employee_id')
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .where('c.status', '=', 'draft')
+      .$if(scope !== null, (qb) =>
+        qb.where((eb) => eb.or([eb('b.created_by', '=', user.id), eb('e.department_id', 'in', none ? [-1] : scope!)])),
+      )
+      .executeTakeFirstOrThrow();
+
+    return {
+      departments: departments.n,
+      employees: employees.n,
+      activeTrainings: trainings.n,
+      clerks: clerks.n,
+      drafts: drafts.n,
+    };
   });
 
   app.get('/api/settings/org', { preHandler: requireAdmin }, async () => getSetting(db, 'org', { name: '' }));

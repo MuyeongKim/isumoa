@@ -15,9 +15,12 @@ import { EmployeeImportPage } from './pages/EmployeeImportPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { ReviewPage } from './pages/review/ReviewPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { SetupPage } from './pages/SetupPage';
+import { StatusPage } from './pages/StatusPage';
 import { TrainingsPage } from './pages/TrainingsPage';
+import { UploadPage } from './pages/UploadPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +55,10 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'upload', element: <UploadPage /> },
+      // wide: 화면 폭을 넓게 쓰는 페이지
+      { path: 'review', element: <ReviewPage />, handle: { wide: true } },
+      { path: 'status', element: <StatusPage />, handle: { wide: true } },
       { path: 'employees', element: <EmployeesPage /> },
       {
         path: 'employees/import',

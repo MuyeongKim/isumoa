@@ -20,7 +20,13 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // showModal은 첫 번째 버튼(닫기)에 초점을 준다. 대신 data-autofocus가 붙은 것이나 첫 입력칸에 준다
+      dialog
+        .querySelector<HTMLElement>('[data-autofocus], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled])')
+        ?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
