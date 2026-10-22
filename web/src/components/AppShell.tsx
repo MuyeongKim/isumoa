@@ -1,0 +1,154 @@
+import {
+  BookOpenCheck,
+  Download,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Stamp,
+  Table2,
+  Upload,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
+import { useState } from 'react';
+import { NavLink, Outlet } from 'react-router';
+import { ROLE_LABELS } from '@shared/types.ts';
+import { cn } from '@/lib/format';
+import { useCurrentUser, useLogout, useMeta } from '@/lib/session';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { SealMark } from './SealMark';
+
+interface NavItem {
+  label: string;
+  icon: LucideIcon;
+  to?: string;
+  /** 다음 단계에서 열리는 메뉴 */
+  soon?: boolean;
+}
+
+const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
+  {
+    group: '업무',
+    items: [
+      { label: '대시보드', icon: LayoutDashboard, to: '/' },
+      { label: '이수증 올리기', icon: Upload, soon: true },
+      { label: '검수함', icon: Stamp, soon: true },
+      { label: '이수 현황', icon: Table2, soon: true },
+      { label: '내보내기', icon: Download, soon: true },
+    ],
+  },
+  {
+    group: '기준 정보',
+    items: [
+      { label: '직원 명단', icon: Users, to: '/employees' },
+      { label: '교육 과정', icon: BookOpenCheck, to: '/trainings' },
+    ],
+  },
+  { group: '관리', adminOnly: true, items: [{ label: '설정', icon: Settings, to: '/settings' }] },
+];
+
+export function AppShell() {
+  const me = useCurrentUser();
+  const { data: meta } = useMeta();
+  const logout = useLogout();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen md:grid md:grid-cols-[236px_minmax(0,1fr)]">
+      <aside className="flex flex-col bg-navy text-white/80 md:sticky md:top-0 md:h-screen">
+        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+          <SealMark className="size-10" />
+          <div className="min-w-0">
+            <p className="truncate font-serif text-[15px] leading-tight font-semibold text-white">
+              {meta?.orgName || '기관명 미설정'}
+            </p>
+            <p className="mt-1 text-[12px] leading-tight text-gold">법정교육 이수증 종합 플랫폼</p>
+          </div>
+        </div>
+
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5" aria-label="주 메뉴">
+          {NAV.filter((g) => !g.adminOnly || me.role === 'admin').map((group) => (
+            <div key={group.group}>
+              <p className="px-3 pb-1.5 text-[12px] text-white/45">{group.group}</p>
+              <ul className="space-y-0.5">
+                {group.items.map((item) => (
+                  <li key={item.label}>
+                    {item.to ? (
+                      <NavLink
+                        to={item.to}
+                        end={item.to === '/'}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-2.5 rounded-md border-l-2 px-3 py-2 text-[14px] transition-colors',
+                            isActive
+                              ? 'border-gold bg-white/10 font-medium text-white'
+                              : 'border-transparent hover:bg-white/5 hover:text-white',
+                          )
+                        }
+                      >
+                        <item.icon className="size-4 shrink-0" aria-hidden />
+                        {item.label}
+                      </NavLink>
+                    ) : (
+                      <span
+                        className="flex cursor-default items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-[14px] text-white/35"
+                        title="다음 단계에서 열립니다"
+                      >
+                        <item.icon className="size-4 shrink-0" aria-hidden />
+                        {item.label}
+                        <span className="ml-auto text-[11px] text-white/35">준비 중</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        <div className="border-t border-white/10 px-5 py-4">
+          <p className="text-[14px] font-medium text-white">
+            {me.name}
+            <span className="ml-1.5 text-[12px] font-normal text-white/55">{ROLE_LABELS[me.role]}</span>
+          </p>
+          {me.role === 'clerk' && (
+            <p className="mt-0.5 truncate text-[12px] text-white/55">
+              {me.departments.length > 0 ? me.departments.map((d) => d.name).join(', ') : '담당 부서 없음'}
+            </p>
+          )}
+          <div className="mt-3 flex gap-1">
+            <button
+              type="button"
+              onClick={() => setPasswordOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              <KeyRound className="size-3.5" aria-hidden />
+              비밀번호 변경
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              <LogOut className="size-3.5" aria-hidden />
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main className="min-w-0 px-5 py-7 md:px-10 md:py-9">
+        <div className="mx-auto max-w-[1180px]">
+          <Outlet />
+        </div>
+      </main>
+
+      <ChangePasswordDialog
+        open={me.mustChangePassword || passwordOpen}
+        forced={me.mustChangePassword}
+        onClose={() => setPasswordOpen(false)}
+      />
+    </div>
+  );
+}
