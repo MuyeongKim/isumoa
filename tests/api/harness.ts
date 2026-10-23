@@ -5,7 +5,6 @@ import { createCanvas } from '@napi-rs/canvas';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import type { Kysely } from 'kysely';
 import { expect } from 'vitest';
-import { AiHealth } from '../../server/src/ai/health.ts';
 import { buildApp } from '../../server/src/app.ts';
 import { processPage } from '../../server/src/certs/processPage.ts';
 import { loadConfig, type AppConfig } from '../../server/src/config.ts';
@@ -13,7 +12,8 @@ import { runMigrations } from '../../server/src/db/migrate.ts';
 import type { DB } from '../../server/src/db/schema.ts';
 import { seedDefaults } from '../../server/src/db/seed.ts';
 import { openDatabase } from '../../server/src/db/sqlite.ts';
-import { claimNextJob, failJob, finishJob, MAX_ATTEMPTS } from '../../server/src/jobs/queue.ts';
+import { claimNextJob, failJob, finishJob } from '../../server/src/jobs/queue.ts';
+import type { OcrEngine } from '../../server/src/ocr/engine.ts';
 
 // API 테스트 공통: 메모리 DB로 앱을 띄우고, 관리자로 로그인하고, 이수증 쪽을 올려 처리하는 도우미.
 // OCR은 ocr.text에 넣어 둔 글자를 돌려주는 가짜를 쓴다 (실제 OCR은 시연에서 확인).
@@ -26,7 +26,6 @@ export interface Harness {
   db: Kysely<DB>;
   dataDir: string;
   config: AppConfig;
-  aiHealth: AiHealth;
   /** 가짜 OCR이 돌려줄 글자 */
   ocr: { text: string };
   send(method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, extra?: Record<string, string>): Promise<LightMyRequestResponse>;
@@ -57,9 +56,15 @@ export async function createHarness(overrides: Partial<AppConfig> = {}): Promise
   runMigrations(opened.raw);
   await seedDefaults(db);
   const config: AppConfig = { ...loadConfig({}), dataDir, webDistDir: '/nonexistent', ...overrides };
-  const aiHealth = new AiHealth();
-  const app = await buildApp({ db, config, version: 'test', aiHealth }, { logger: false });
-  const ocr = { text: '', recognize: async () => ocr.text, close: async () => {} };
+  const ocr: OcrEngine & { text: string } = {
+    name: 'fake',
+    label: '가짜 OCR (테스트)',
+    fallbackReason: null,
+    text: '',
+    recognize: async () => ocr.text,
+    close: async () => {},
+  };
+  const app = await buildApp({ db, config, version: 'test', ocr }, { logger: false });
   let cookie = '';
 
   const send: Harness['send'] = (method, url, payload, extra = {}) =>
@@ -73,7 +78,6 @@ export async function createHarness(overrides: Partial<AppConfig> = {}): Promise
     db,
     dataDir,
     config,
-    aiHealth,
     ocr,
     send,
     uploadFile(batchId, file, name, pageCount = 1) {
@@ -101,7 +105,7 @@ export async function createHarness(overrides: Partial<AppConfig> = {}): Promise
       const errors: string[] = [];
       for (let job = await claimNextJob(db); job; job = await claimNextJob(db)) {
         try {
-          await processPage({ db, dataDir, ocr, config, aiHealth }, job.page_id, { finalAttempt: job.attempts >= MAX_ATTEMPTS });
+          await processPage({ db, dataDir, ocr }, job.page_id);
           await finishJob(db, job.id);
         } catch (err) {
           errors.push(err instanceof Error ? err.message : String(err));

@@ -26,8 +26,7 @@ export function SystemTab() {
     ['DB 크기', gb(data.dbBytes)],
     ['디스크', `남은 공간 ${gb(data.freeBytes)} / 전체 ${gb(data.totalBytes)}`],
     ['마지막 백업', data.backup ? `${formatDateTime(data.backup.at)} ${data.backup.ok ? '성공' : `실패 (${data.backup.error})`}` : '없음'],
-    ['AI 인식', data.aiEnabled ? '켜짐' : '꺼짐'],
-    ['기관 밖 AI', data.allowExternalAi ? '설정에서 허용하면 쓸 수 있음' : '쓸 수 없게 막음 (config.json)'],
+    ['스캔본 OCR', `${data.ocrEngine} — 이 PC(서버) 안에서만 동작`],
   ];
 
   return (

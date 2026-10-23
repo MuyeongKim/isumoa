@@ -8,7 +8,6 @@ import { Field, FormError, Input } from '@/components/ui/Field';
 import { api, errorMessage } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { AccessLogTab } from './AccessLogTab';
-import { AiTab } from './AiTab';
 import { AuditTab } from './AuditTab';
 import { BackupTab } from './BackupTab';
 import { DepartmentsTab } from './DepartmentsTab';
@@ -18,7 +17,6 @@ import { UsersTab } from './UsersTab';
 const TABS = [
   { key: 'departments', label: '부서' },
   { key: 'users', label: '사용자 계정' },
-  { key: 'ai', label: 'AI 연결' },
   { key: 'org', label: '기관 정보' },
   { key: 'audit', label: '감사 로그' },
   { key: 'access', label: '접속기록' },
@@ -69,7 +67,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="설정" description="부서·계정·AI 연결·기관 정보와 보안·백업을 관리합니다. 바꾼 내용은 감사 로그에 남습니다." />
+      <PageHeader title="설정" description="부서·계정·기관 정보와 보안·백업을 관리합니다. 바꾼 내용은 감사 로그에 남습니다." />
       <div className="mb-6 flex gap-1 border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
@@ -89,7 +87,6 @@ export function SettingsPage() {
       </div>
       {tab === 'departments' && <DepartmentsTab />}
       {tab === 'users' && <UsersTab />}
-      {tab === 'ai' && <AiTab />}
       {tab === 'org' && <OrgTab />}
       {tab === 'audit' && <AuditTab />}
       {tab === 'access' && <AccessLogTab />}

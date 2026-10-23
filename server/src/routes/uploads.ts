@@ -40,7 +40,7 @@ function isJpeg(buf: Buffer | undefined): buf is Buffer {
 }
 
 /** RFC 5987: 한글 파일 이름으로 내려받기 */
-export async function uploadRoutes(app: FastifyInstance, { db, config, worker, aiHealth }: Deps) {
+export async function uploadRoutes(app: FastifyInstance, { db, config, worker }: Deps) {
   /** 묶음을 다룰 수 있는지: 관리자이거나 올린 사람 */
   async function ownedBatch(user: SessionUser, batchId: number) {
     const batch = await db.selectFrom('batches').selectAll().where('id', '=', batchId).executeTakeFirst();
@@ -356,13 +356,11 @@ export async function uploadRoutes(app: FastifyInstance, { db, config, worker, a
     const waiting = of('queued');
     const running = of('running');
     const average = worker?.averageMs() ?? null;
-    const parallel = worker?.concurrency() ?? 1;
     return {
       waiting,
       running,
       failed: of('failed'),
-      aiError: aiHealth?.error() ?? null,
-      etaSeconds: average !== null && waiting + running > 0 ? Math.round(((waiting + running) * average) / parallel / 1000) : null,
+      etaSeconds: average !== null && waiting + running > 0 ? Math.round(((waiting + running) * average) / 1000) : null,
     };
   });
 }

@@ -347,7 +347,7 @@ export function UploadPage() {
         title={`묶음 #${reprocessing?.batch.id ?? ''} 다시 읽기`}
         description={
           <>
-            검수 대기 이수증 {formatNumber(reprocessing?.batch.drafts ?? 0)}건을 지금 설정(AI 연결 포함)으로 다시 읽습니다. 확정·제외한 이수증은 그대로 둡니다.
+            검수 대기 이수증 {formatNumber(reprocessing?.batch.drafts ?? 0)}건을 다시 읽습니다. 확정·제외한 이수증은 그대로 둡니다.
             <br />
             검수 대기 중에 고쳐 둔 값은 새로 읽은 값으로 바뀝니다.
           </>

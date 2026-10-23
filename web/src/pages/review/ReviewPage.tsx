@@ -39,9 +39,6 @@ function trainingSummary(ids: number[], trainings: Training[]): string {
 const ROUTE_LABELS: Record<string, string> = {
   text: 'PDF 글자',
   ocr: 'OCR',
-  'ai-text': 'AI · PDF 글자',
-  'ai-ocr': 'AI · OCR 글자',
-  'ai-vision': 'AI · 이미지',
 };
 
 /** 확인할 점이 안내(파랑)뿐인 이수증 = 일괄 확정 대상 (다시 읽는 중인 것은 빼고) */

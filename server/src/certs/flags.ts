@@ -106,10 +106,6 @@ export function computeFlags(ctx: FlagContext): CertificateFlag[] {
   }
   if (ctx.route === 'ocr') {
     flags.push(info('ocr', '스캔본을 OCR로 읽었습니다. 이름과 날짜를 원본과 대조해 주세요.'));
-  } else if (ctx.route === 'ai-ocr') {
-    flags.push(info('ocr', '스캔본을 OCR로 읽고 AI가 정리했습니다. 이름과 날짜를 원본과 대조해 주세요.'));
-  } else if (ctx.route === 'ai-vision') {
-    flags.push(info('ai-vision', 'AI가 스캔 이미지를 직접 읽었습니다. 이름과 날짜를 원본과 대조해 주세요.'));
   }
   return flags;
 }

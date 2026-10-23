@@ -24,8 +24,6 @@ export interface AppConfig {
   sessionMaxHours: number;
   /** 리버스 프록시 뒤에서 운영할 때 실제 접속 IP를 기록하기 위해 true */
   trustProxy: boolean;
-  /** false면 기관 밖(인터넷) AI 서버를 아예 쓸 수 없게 막는다 (기관 보안 지침에 따라) */
-  allowExternalAi: boolean;
   /** 이 서버가 직접 HTTPS를 맡을 때 인증서 (파일 경로는 config.json 기준) */
   tls: TlsConfig | null;
   /** 백업을 둘 폴더. 데이터와 다른 디스크(또는 NAS)를 권한다 */
@@ -71,7 +69,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionIdleMinutes: Number(file.sessionIdleMinutes ?? 60),
     sessionMaxHours: Number(file.sessionMaxHours ?? 12),
     trustProxy: Boolean(file.trustProxy ?? false),
-    allowExternalAi: (env.ALLOW_EXTERNAL_AI ?? String(file.allowExternalAi ?? true)) === 'true',
     tls,
     backupDir: resolve(baseDir, env.BACKUP_DIR ?? file.backupDir ?? 'backups'),
     backupHour: Math.min(23, Math.max(0, Number(file.backupHour ?? 2))),

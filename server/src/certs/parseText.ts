@@ -48,6 +48,23 @@ const LABEL_RE = new RegExp(
 
 const LABEL_FIELD = new Map<string, Field>(LABELS.flatMap(([field, words]) => words.map((w) => [w, field] as const)));
 
+/**
+ * OCR이 항목 이름과 값을 붙여 읽은 줄을 띄운다: "성명송주주" → "성명 송주주", "생년월일1974-08-25" → "생년월일 1974-08-25".
+ * 이름은 뒤에 한글 2~4자와 줄 끝(또는 넓은 빈칸)이 올 때만, 날짜·시간 항목은 뒤에 숫자가 올 때만 (문장 속 낱말은 건드리지 않게).
+ */
+const labelsOf = (...fields: Field[]) =>
+  LABELS.filter(([f]) => fields.includes(f))
+    .flatMap(([, words]) => words)
+    .sort((a, b) => b.length - a.length)
+    .map(labelPattern)
+    .join('|');
+const GLUED_NAME_RE = new RegExp(`^(${labelsOf('name')})(?=[가-힣]{2,4}(\\s{2,}|$))`);
+const GLUED_NUMBER_RE = new RegExp(`^(${labelsOf('birth', 'completed', 'period', 'hours')})(?=\\d)`);
+
+function unglue(line: string): string {
+  return line.replace(GLUED_NAME_RE, '$1 ').replace(GLUED_NUMBER_RE, '$1 ');
+}
+
 const DATE_RE = /(\d{4})\s*(?:[-./]|년)\s*(\d{1,2})\s*(?:[-./]|월)\s*(\d{1,2})\s*(?:일|\.)?/g;
 
 function validDate(y: number, m: number, d: number): string | null {
@@ -131,7 +148,7 @@ export function parseHours(value: string): { hours: number | null; text: string;
 const PROVIDER_RE = /([가-힣A-Za-z0-9]{2,24}(?:원|센터|기관|연구소|학교|협회|공단|위원회|재단|아카데미))장(?![가-힣])/;
 
 export function parseCertificateText(raw: string): ParsedCertificate {
-  const lines = raw.split(/\r?\n/).map(cleanLine).filter((l) => l !== '');
+  const lines = raw.split(/\r?\n/).map(cleanLine).map(unglue).filter((l) => l !== '');
   const values = new Map<Field, string>();
   for (const line of lines) {
     for (const [field, value] of labelValues(line)) {

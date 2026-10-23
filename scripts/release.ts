@@ -120,8 +120,6 @@ const CONFIG = {
   sessionIdleMinutes: 60,
   sessionMaxHours: 12,
   trustProxy: false,
-  // false로 바꾸면 기관 밖(인터넷) AI 서버를 아예 쓸 수 없다 (설치가이드의 "AI 연결" 참고)
-  allowExternalAi: true,
   // HTTPS 인증서: { "certFile": "cert/server.crt", "keyFile": "cert/server.key" } (설치가이드의 "HTTPS" 참고)
   tls: null,
   // 백업 폴더는 데이터와 다른 디스크(또는 NAS)를 권한다. 매일 backupHour시(한국 시각)에 자동 백업
@@ -140,21 +138,21 @@ const START_BAT = [
   '',
 ].join('\r\n');
 
-// AI 인식 정확도 점검 (설치가이드의 "AI 정확도 점검" 참고). chcp 65001: 결과의 한글이 깨지지 않게
+// 판독 정확도 점검 (설치가이드의 "판독 정확도 점검" 참고). chcp 65001: 결과의 한글이 깨지지 않게
 const EVAL_BAT = [
   '@echo off',
   'chcp 65001 >nul',
   'cd /d "%~dp0"',
   'set "ECP_CONFIG=%~dp0config.json"',
-  '"%~dp0node\\node.exe" --disable-warning=ExperimentalWarning "%~dp0app\\scripts\\eval-ai.ts" %*',
+  '"%~dp0node\\node.exe" --disable-warning=ExperimentalWarning "%~dp0app\\scripts\\eval-ocr.ts" %*',
   '',
 ].join('\r\n');
 
 const EVAL_SH = `#!/bin/sh
-# AI 인식 정확도 점검 — 예: ./eval.sh --truth confirmed
+# 판독 정확도 점검 — 예: ./eval.sh --truth confirmed
 cd "$(dirname "$0")" || exit 1
 export ECP_CONFIG="$PWD/config.json"
-exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/eval-ai.ts "$@"
+exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/eval-ocr.ts "$@"
 `;
 
 const RESTORE_BAT = [
@@ -204,7 +202,7 @@ for (const dir of ['server', 'shared', 'vendor']) cpSync(join(ROOT, dir), join(a
 cpSync(join(ROOT, 'web', 'dist'), join(appDir, 'web', 'dist'), { recursive: true });
 for (const file of ['package.json', 'package-lock.json']) copyFileSync(join(ROOT, file), join(appDir, file));
 mkdirSync(join(appDir, 'scripts'), { recursive: true });
-for (const script of ['eval-ai.ts', 'restore.ts']) copyFileSync(join(ROOT, 'scripts', script), join(appDir, 'scripts', script));
+for (const script of ['eval-ocr.ts', 'restore.ts']) copyFileSync(join(ROOT, 'scripts', script), join(appDir, 'scripts', script));
 
 step('실행에 필요한 라이브러리만 설치 (개발 도구 제외)');
 run('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], appDir);

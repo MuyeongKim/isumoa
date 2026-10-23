@@ -18,11 +18,10 @@
     "samples": "node scripts/make-sample-roster.ts",
     "release": "node --disable-warning=ExperimentalWarning scripts/release.ts",
     "samples:certs": "node scripts/make-sample-certificates.ts",
-    "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ai.ts",
+    "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ocr.ts",
     "restore": "node --disable-warning=ExperimentalWarning scripts/restore.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.1.0",
     "@fastify/cookie": "^11.1.3",
     "@fastify/multipart": "^10.1.6",
     "@fastify/static": "^10.1.7",
@@ -31,6 +30,7 @@
     "exceljs": "^4.4.0",
     "fastify": "^5.12.7",
     "iconv-lite": "^0.7.3",
+    "kordoc": "4.24.1",
     "kysely": "^0.29.7",
     "pdf-lib": "^1.17.1",
     "tesseract.js": "^7.0.0",

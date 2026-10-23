@@ -9,7 +9,6 @@ import { registerAccessLog } from './auth/accessLog.ts';
 import { registerAuth } from './auth/guard.ts';
 import type { Deps } from './deps.ts';
 import { errorHandler } from './lib/errors.ts';
-import { aiRoutes } from './routes/ai.ts';
 import { auditRoutes } from './routes/audit.ts';
 import { authRoutes } from './routes/auth.ts';
 import { certificateRoutes } from './routes/certificates.ts';
@@ -64,7 +63,6 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(uploadRoutes, deps);
   await app.register(certificateRoutes, deps);
   await app.register(statusRoutes, deps);
-  await app.register(aiRoutes, deps);
   await app.register(exportRoutes, deps);
   await app.register(auditRoutes, deps);
   await app.register(securityRoutes, deps);

@@ -1,7 +1,5 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { AiHealth } from './ai/health.ts';
-import { loadAiSettings } from './ai/settings.ts';
 import { buildApp } from './app.ts';
 import { purgeExpiredSessions } from './auth/sessions.ts';
 import { processPage } from './certs/processPage.ts';
@@ -12,8 +10,8 @@ import { sealAuditLog } from './lib/logChain.ts';
 import { createLogStream } from './lib/logFile.ts';
 import { maskStoredRrn } from './lib/privacy.ts';
 import { openDatabase } from './db/sqlite.ts';
-import { MAX_ATTEMPTS, recoverInterruptedJobs, startWorker, type Worker } from './jobs/queue.ts';
-import { createTesseractOcr } from './ocr/tesseract.ts';
+import { recoverInterruptedJobs, startWorker, type Worker } from './jobs/queue.ts';
+import { createOcrEngine } from './ocr/engine.ts';
 import { startScheduler } from './ops/scheduler.ts';
 
 const version = (JSON.parse(readFileSync(join(APP_ROOT, 'package.json'), 'utf8')) as { version: string }).version;
@@ -36,18 +34,17 @@ const masked = await maskStoredRrn(db);
 
 // 일꾼은 앱보다 늦게 만들어지므로, 라우트에는 나중에 연결되는 손잡이를 넘긴다
 let worker: Worker | null = null;
-const aiHealth = new AiHealth();
+// 스캔본 OCR: kordoc(PP-OCRv5)을 먼저 띄워 보고, 안 되는 PC에서는 tesseract로 (ocr/engine.ts)
+const ocr = await createOcrEngine({ modelDir: join(APP_ROOT, 'vendor', 'ocr-models'), prefer: process.env.ECP_OCR === 'tesseract' ? 'tesseract' : 'kordoc' });
 const app = await buildApp(
   {
     db,
     config,
     version,
-    aiHealth,
+    ocr,
     worker: {
       notify: () => worker?.notify(),
       averageMs: () => worker?.averageMs() ?? null,
-      concurrency: () => worker?.concurrency() ?? 1,
-      setConcurrency: (n) => worker?.setConcurrency(n),
     },
   },
   { https, logger: config.logDir ? { level: 'info', stream: createLogStream(config.logDir) } : undefined },
@@ -58,15 +55,9 @@ if (masked > 0) app.log.info(`저장된 글자 ${masked}쪽에서 주민등록�
 
 const recovered = await recoverInterruptedJobs(db);
 if (recovered > 0) app.log.info(`중단됐던 쪽 ${recovered}개를 다시 처리합니다.`);
-const ocr = createTesseractOcr();
-const ai = await loadAiSettings(db);
-worker = startWorker({
-  db,
-  log: app.log,
-  concurrency: ai.enabled ? ai.concurrency : 1,
-  handle: (job) => processPage({ db, dataDir: config.dataDir, ocr, config, aiHealth }, job.page_id, { finalAttempt: job.attempts >= MAX_ATTEMPTS }),
-});
-app.log.info(ai.enabled ? `AI 인식: ${ai.model} (${ai.provider === 'anthropic' ? 'Claude API' : ai.baseUrl})` : 'AI 인식: 꺼짐 (규칙으로만 읽습니다)');
+worker = startWorker({ db, log: app.log, handle: (job) => processPage({ db, dataDir: config.dataDir, ocr }, job.page_id) });
+app.log.info(`스캔본 OCR: ${ocr.label}`);
+if (ocr.fallbackReason) app.log.warn(`kordoc OCR을 띄우지 못해 대신 tesseract로 읽습니다: ${ocr.fallbackReason}`);
 
 const purgeTimer = setInterval(() => {
   purgeExpiredSessions(db, config.sessionIdleMinutes).catch((err) => app.log.error(err));

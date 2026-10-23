@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { BackupStatus, SystemCheck } from '../../../shared/types.ts';
 import { requireAdmin } from '../auth/guard.ts';
-import { loadAiSettings } from '../ai/settings.ts';
 import type { Deps } from '../deps.ts';
 import { audit } from '../lib/audit.ts';
 import { HttpError } from '../lib/errors.ts';
@@ -31,7 +30,7 @@ async function sameDisk(a: string, b: string): Promise<boolean> {
   }
 }
 
-export async function systemRoutes(app: FastifyInstance, { db, config, version }: Deps) {
+export async function systemRoutes(app: FastifyInstance, { db, config, version, ocr }: Deps) {
   const startedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
 
   // 로그인 없이: 살아 있는지만 알려 준다 (서버 감시용)
@@ -41,7 +40,6 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version }
     const dbPath = join(config.dataDir, 'app.db');
     const disk = await statfs(config.dataDir).catch(() => null);
     const backups = await backupStatus(db, config);
-    const ai = await loadAiSettings(db);
     const warnings: string[] = [];
 
     const https = config.tls !== null;
@@ -59,6 +57,9 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version }
     if (backups.last?.ok && (await sameDisk(config.dataDir, config.backupDir))) {
       warnings.push('백업 폴더가 데이터와 같은 디스크에 있습니다. 디스크가 고장 나면 함께 잃으므로 config.json의 backupDir을 다른 디스크나 NAS로 바꿔 주세요.');
     }
+    if (ocr?.fallbackReason) {
+      warnings.push(`기본 OCR(kordoc)을 띄우지 못해 tesseract로 읽고 있습니다. 스캔본 정확도가 낮을 수 있습니다: ${ocr.fallbackReason}`);
+    }
     if (config.sessionIdleMinutes > 60) warnings.push(`자동 로그아웃 시간이 ${config.sessionIdleMinutes}분입니다. 60분 이하를 권합니다.`);
 
     return {
@@ -74,8 +75,7 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version }
       cookieSecure: config.cookieSecure,
       host: config.host,
       port: config.port,
-      allowExternalAi: config.allowExternalAi,
-      aiEnabled: ai.enabled,
+      ocrEngine: ocr?.label ?? '-',
       backup: backups.last,
       warnings,
     };
