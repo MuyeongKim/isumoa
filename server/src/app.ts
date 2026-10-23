@@ -7,6 +7,7 @@ import Fastify, { LogController, type FastifyServerOptions } from 'fastify';
 import { registerAuth } from './auth/guard.ts';
 import type { Deps } from './deps.ts';
 import { errorHandler } from './lib/errors.ts';
+import { aiRoutes } from './routes/ai.ts';
 import { authRoutes } from './routes/auth.ts';
 import { certificateRoutes } from './routes/certificates.ts';
 import { departmentRoutes } from './routes/departments.ts';
@@ -52,6 +53,7 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(uploadRoutes, deps);
   await app.register(certificateRoutes, deps);
   await app.register(statusRoutes, deps);
+  await app.register(aiRoutes, deps);
 
   // 빌드된 화면이 있으면 같은 포트에서 제공한다 (개발 중에는 Vite가 따로 띄운다)
   const webDist = deps.config.webDistDir;

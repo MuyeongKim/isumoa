@@ -115,7 +115,7 @@ function parseName(value: string): string | null {
   return singles.length >= 2 && singles.length <= 4 ? singles.join('') : null;
 }
 
-function parseHours(value: string): { hours: number | null; text: string; sessions: boolean } | null {
+export function parseHours(value: string): { hours: number | null; text: string; sessions: boolean } | null {
   const session = /(\d+(?:\.\d+)?)\s*차시/.exec(value);
   if (session) return { hours: null, text: session[0].replace(/\s+/g, ''), sessions: true };
   const hour = /(\d+(?:\.\d+)?)\s*(?:시간|hr|h|H)(?![가-힣])/.exec(value);

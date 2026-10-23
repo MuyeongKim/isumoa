@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { LoaderCircle, TriangleAlert } from 'lucide-react';
+import { BotOff, LoaderCircle, TriangleAlert } from 'lucide-react';
 import type { ProcessingStatus } from '@shared/types.ts';
 import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
@@ -26,13 +26,21 @@ export function ProcessingBanner() {
   const { data } = useProcessing();
   if (!data) return null;
   const active = data.waiting + data.running;
-  if (active === 0 && data.failed === 0) return null;
+  if (active === 0 && data.failed === 0 && !data.aiError) return null;
   return (
     <div className="mb-5 space-y-2">
       {active > 0 && (
         <p className="flex items-center gap-2 rounded-md border border-navy/20 bg-navy-soft px-4 py-2.5 text-[13.5px] text-navy">
           <LoaderCircle className="size-4 animate-spin" aria-hidden />
           이수증 {formatNumber(active)}쪽을 읽는 중입니다{eta(data.etaSeconds)}. 다른 화면으로 가도 계속 처리하고, 끝난 것부터 바로 검수할 수 있습니다.
+        </p>
+      )}
+      {data.aiError && (
+        <p className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-soft px-4 py-2.5 text-[13.5px] text-warn">
+          <BotOff className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            AI 서버를 쓰지 못해 규칙으로만 읽고 있습니다: {data.aiError} AI가 정상이 되면 올린 묶음 목록의 &lsquo;다시 읽기&rsquo;로 다시 읽을 수 있습니다.
+          </span>
         </p>
       )}
       {data.failed > 0 && (

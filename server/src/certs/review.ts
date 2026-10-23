@@ -11,7 +11,7 @@ import type {
 import type { DB } from '../db/schema.ts';
 import { toTraining } from '../routes/trainings.ts';
 import { matchEmployee, type MatchableEmployee } from './employeeMatcher.ts';
-import { computeFlags } from './flags.ts';
+import { computeFlags, withNotes } from './flags.ts';
 import { hasUsableText, parseCertificateText } from './parseText.ts';
 import { applicableTrainings } from './status.ts';
 import { classifyTrainings, type ClassifiableTraining } from './trainingClassifier.ts';
@@ -65,6 +65,11 @@ export function scopeOf(user: SessionUser): number[] | null {
   return user.role === 'admin' ? null : user.departments.map((d) => d.id);
 }
 
+/** 원본 쪽을 (다시) 읽는 중인지 */
+export function isReading(pageState: string): boolean {
+  return pageState === 'queued' || pageState === 'processing';
+}
+
 /** 쪽의 글자: PDF 글자층이 쓸 만하면 그것, 아니면 OCR 결과 */
 export function pageText(page: { text_layer: string | null; ocr_text: string | null }): string {
   return hasUsableText(page.text_layer) ? page.text_layer! : (page.ocr_text ?? page.text_layer ?? '');
@@ -83,6 +88,7 @@ async function loadCertificateRow(db: Kysely<DB>, id: number) {
       'p.text_layer',
       'p.ocr_text',
       'p.route',
+      'p.state as page_state',
       'f.original_name',
       'f.page_count',
       'b.year as batch_year',
@@ -156,7 +162,7 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
     duplicateIds = dupes.map((d) => d.id);
   }
 
-  return computeFlags({
+  const flags = computeFlags({
     status: row.status,
     personName: row.person_name,
     personBirth: row.person_birth,
@@ -184,6 +190,8 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
     scope,
     today: new Date().toISOString().slice(0, 10),
   });
+  // 인식할 때 남긴 확인할 점은 서무가 값을 고치기 전까지만 보인다
+  return row.source === 'manual' ? flags : withNotes(flags, JSON.parse(row.notes) as CertificateFlag[]);
 }
 
 /** 계산한 "확인할 점"을 저장한다 (목록에서 바로 보이도록) */
@@ -234,6 +242,7 @@ export async function listCertificates(db: Kysely<DB>, filter: ListFilter, viewe
       'c.flags',
       'p.page_no',
       'p.route',
+      'p.state as page_state',
       'f.original_name',
       'f.page_count',
       'e.name as employee_name',
@@ -283,6 +292,7 @@ export async function listCertificates(db: Kysely<DB>, filter: ListFilter, viewe
     hours: r.hours,
     flags: JSON.parse(r.flags) as CertificateFlag[],
     route: r.route,
+    reading: isReading(r.page_state),
   }));
 }
 
@@ -323,6 +333,7 @@ export async function getCertificateDetail(db: Kysely<DB>, row: CertificateRow, 
     hours: row.hours,
     flags,
     route: row.route,
+    reading: isReading(row.page_state),
     personBirth: row.person_birth,
     personDept: row.person_dept,
     courseTitle: row.course_title,

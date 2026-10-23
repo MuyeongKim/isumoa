@@ -106,10 +106,22 @@ export function computeFlags(ctx: FlagContext): CertificateFlag[] {
   }
   if (ctx.route === 'ocr') {
     flags.push(info('ocr', '스캔본을 OCR로 읽었습니다. 이름과 날짜를 원본과 대조해 주세요.'));
+  } else if (ctx.route === 'ai-ocr') {
+    flags.push(info('ocr', '스캔본을 OCR로 읽고 AI가 정리했습니다. 이름과 날짜를 원본과 대조해 주세요.'));
+  } else if (ctx.route === 'ai-vision') {
+    flags.push(info('ai-vision', 'AI가 스캔 이미지를 직접 읽었습니다. 이름과 날짜를 원본과 대조해 주세요.'));
   }
   return flags;
 }
 
 export function hasBlockingFlag(flags: CertificateFlag[]): boolean {
   return flags.some((f) => f.level === 'error');
+}
+
+/** 계산한 확인할 점에 인식할 때 남긴 확인할 점을 더한다 (같은 종류는 한 번만) */
+export function withNotes(flags: CertificateFlag[], notes: CertificateFlag[]): CertificateFlag[] {
+  const merged = [...flags];
+  for (const note of notes) if (!merged.some((f) => f.code === note.code)) merged.push(note);
+  const order = { error: 0, warning: 1, info: 2 };
+  return merged.sort((a, b) => order[a.level] - order[b.level]);
 }

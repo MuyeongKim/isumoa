@@ -42,7 +42,7 @@ function contentDisposition(fileName: string): string {
   return `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
-export async function uploadRoutes(app: FastifyInstance, { db, config, worker }: Deps) {
+export async function uploadRoutes(app: FastifyInstance, { db, config, worker, aiHealth }: Deps) {
   /** 묶음을 다룰 수 있는지: 관리자이거나 올린 사람 */
   async function ownedBatch(user: SessionUser, batchId: number) {
     const batch = await db.selectFrom('batches').selectAll().where('id', '=', batchId).executeTakeFirst();
@@ -358,11 +358,13 @@ export async function uploadRoutes(app: FastifyInstance, { db, config, worker }:
     const waiting = of('queued');
     const running = of('running');
     const average = worker?.averageMs() ?? null;
+    const parallel = worker?.concurrency() ?? 1;
     return {
       waiting,
       running,
       failed: of('failed'),
-      etaSeconds: average !== null && waiting + running > 0 ? Math.round(((waiting + running) * average) / 1000) : null,
+      aiError: aiHealth?.error() ?? null,
+      etaSeconds: average !== null && waiting + running > 0 ? Math.round(((waiting + running) * average) / parallel / 1000) : null,
     };
   });
 }

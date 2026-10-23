@@ -120,6 +120,8 @@ const CONFIG = {
   sessionIdleMinutes: 60,
   sessionMaxHours: 12,
   trustProxy: false,
+  // false로 바꾸면 기관 밖(인터넷) AI 서버를 아예 쓸 수 없다 (설치가이드의 "AI 연결" 참고)
+  allowExternalAi: true,
 };
 
 // .bat 파일은 윈도우 명령 창에서 한글이 깨지지 않도록 영문만 쓴다
@@ -131,6 +133,23 @@ const START_BAT = [
   'pause',
   '',
 ].join('\r\n');
+
+// AI 인식 정확도 점검 (설치가이드의 "AI 정확도 점검" 참고). chcp 65001: 결과의 한글이 깨지지 않게
+const EVAL_BAT = [
+  '@echo off',
+  'chcp 65001 >nul',
+  'cd /d "%~dp0"',
+  'set "ECP_CONFIG=%~dp0config.json"',
+  '"%~dp0node\\node.exe" --disable-warning=ExperimentalWarning "%~dp0app\\scripts\\eval-ai.ts" %*',
+  '',
+].join('\r\n');
+
+const EVAL_SH = `#!/bin/sh
+# AI 인식 정확도 점검 — 예: ./eval.sh --truth confirmed
+cd "$(dirname "$0")" || exit 1
+export ECP_CONFIG="$PWD/config.json"
+exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/eval-ai.ts "$@"
+`;
 
 const START_SH = `#!/bin/sh
 # 법정교육 이수증 종합 플랫폼 실행
@@ -162,6 +181,8 @@ step('프로그램 파일 복사');
 for (const dir of ['server', 'shared', 'vendor']) cpSync(join(ROOT, dir), join(appDir, dir), { recursive: true });
 cpSync(join(ROOT, 'web', 'dist'), join(appDir, 'web', 'dist'), { recursive: true });
 for (const file of ['package.json', 'package-lock.json']) copyFileSync(join(ROOT, file), join(appDir, file));
+mkdirSync(join(appDir, 'scripts'), { recursive: true });
+copyFileSync(join(ROOT, 'scripts', 'eval-ai.ts'), join(appDir, 'scripts', 'eval-ai.ts'));
 
 step('실행에 필요한 라이브러리만 설치 (개발 도구 제외)');
 run('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], appDir);
@@ -176,6 +197,9 @@ writeFileSync(join(outDir, 'config.json'), JSON.stringify(CONFIG, null, 2) + '\n
 writeFileSync(join(outDir, 'start.bat'), START_BAT);
 writeFileSync(join(outDir, 'start.sh'), START_SH);
 chmodSync(join(outDir, 'start.sh'), 0o755);
+writeFileSync(join(outDir, 'eval.bat'), EVAL_BAT);
+writeFileSync(join(outDir, 'eval.sh'), EVAL_SH);
+chmodSync(join(outDir, 'eval.sh'), 0o755);
 for (const doc of ['설치가이드.md', 'IT-확인요청서.md']) {
   if (existsSync(join(ROOT, 'docs', doc))) copyFileSync(join(ROOT, 'docs', doc), join(outDir, doc));
 }

@@ -1,80 +1,20 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createCanvas } from '@napi-rs/canvas';
-import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { Kysely } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { CertificateDetail, CertificateListItem, StatusReport } from '../../shared/types.ts';
-import { buildApp } from '../../server/src/app.ts';
-import { processPage } from '../../server/src/certs/processPage.ts';
-import { loadConfig } from '../../server/src/config.ts';
-import { runMigrations } from '../../server/src/db/migrate.ts';
 import type { DB } from '../../server/src/db/schema.ts';
-import { seedDefaults } from '../../server/src/db/seed.ts';
-import { openDatabase } from '../../server/src/db/sqlite.ts';
-import { claimNextJob, failJob, recoverInterruptedJobs } from '../../server/src/jobs/queue.ts';
+import { claimNextJob, failJob, recoverInterruptedJobs, startWorker } from '../../server/src/jobs/queue.ts';
+import { createHarness, PDF, type Harness } from './harness.ts';
 
-// 이수증 올리기 → 처리 → 검수 → 확정 → 이수 현황까지 서버 흐름을 확인한다.
-// OCR은 미리 정한 글자를 돌려주는 가짜를 쓴다 (실제 OCR은 시연에서 확인).
+// 이수증 올리기 → 처리 → 검수 → 확정 → 이수 현황까지 서버 흐름을 확인한다 (AI 꺼짐: 규칙으로만 읽음).
 
+let h: Harness;
 let app: FastifyInstance;
 let db: Kysely<DB>;
-let dataDir: string;
-let cookie = '';
-let ocrText = '';
-const ocr = { recognize: async () => ocrText, close: async () => {} };
-
-const JPEG = createCanvas(40, 56).encode('jpeg') as unknown as Promise<Buffer>;
-const PDF = Buffer.from('%PDF-1.4\n% test\n');
-
-function multipart(parts: { name: string; value: string | Buffer; filename?: string; type?: string }[]) {
-  const boundary = '----test' + Math.random().toString(16).slice(2);
-  const chunks: Buffer[] = [];
-  for (const p of parts) {
-    const disposition = `form-data; name="${p.name}"${p.filename ? `; filename="${p.filename}"` : ''}`;
-    chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: ${disposition}\r\n${p.type ? `Content-Type: ${p.type}\r\n` : ''}\r\n`));
-    chunks.push(Buffer.isBuffer(p.value) ? p.value : Buffer.from(p.value));
-    chunks.push(Buffer.from('\r\n'));
-  }
-  chunks.push(Buffer.from(`--${boundary}--\r\n`));
-  return { payload: Buffer.concat(chunks), headers: { 'content-type': `multipart/form-data; boundary=${boundary}` } };
-}
-
-function send(method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, extra: Record<string, string> = {}) {
-  return app.inject({ method, url, payload: payload as object, headers: { 'x-requested-with': 'fetch', cookie, ...extra } });
-}
-
-async function uploadFile(batchId: number, file: Buffer, name: string, pageCount = 1) {
-  const body = multipart([
-    { name: 'pageCount', value: String(pageCount) },
-    { name: 'file', value: file, filename: name, type: 'application/pdf' },
-  ]);
-  return send('POST', `/api/batches/${batchId}/files`, body.payload, body.headers);
-}
-
-async function uploadPage(fileId: number, pageNo: number, text: string): Promise<number> {
-  const jpeg = await JPEG;
-  const body = multipart([
-    { name: 'pageNo', value: String(pageNo) },
-    { name: 'width', value: '40' },
-    { name: 'height', value: '56' },
-    { name: 'text', value: text },
-    { name: 'image', value: jpeg, filename: 'p.jpg', type: 'image/jpeg' },
-    { name: 'thumb', value: jpeg, filename: 't.jpg', type: 'image/jpeg' },
-  ]);
-  const res = await send('POST', `/api/files/${fileId}/pages`, body.payload, body.headers);
-  expect(res.statusCode).toBe(200);
-  return res.json().pageId;
-}
-
-/** 대기열에 쌓인 쪽을 모두 처리한다 (실제 서버에서는 일꾼이 한다) */
-async function drainQueue() {
-  for (let job = await claimNextJob(db); job; job = await claimNextJob(db)) {
-    await processPage({ db, dataDir, ocr }, job.page_id);
-    await db.updateTable('jobs').set({ state: 'done' }).where('id', '=', job.id).execute();
-  }
-}
+const send: Harness['send'] = (...args) => h.send(...args);
+const uploadFile: Harness['uploadFile'] = (...args) => h.uploadFile(...args);
+const uploadPage: Harness['uploadPage'] = (...args) => h.uploadPage(...args);
+const drainQueue = () => h.drainQueue();
 
 const TEXT_CERT = [
   '수 료 증',
@@ -90,16 +30,8 @@ const TEXT_CERT = [
 ].join('\n');
 
 beforeAll(async () => {
-  dataDir = mkdtempSync(join(tmpdir(), 'ecp-test-'));
-  const opened = openDatabase(':memory:');
-  db = opened.db;
-  runMigrations(opened.raw);
-  await seedDefaults(db);
-  app = await buildApp({ db, config: { ...loadConfig({}), dataDir, webDistDir: '/nonexistent' }, version: 'test' }, { logger: false });
-
-  const setup = await send('POST', '/api/setup', { orgName: '가람시', loginId: 'admin', name: '관리자', password: 'Garam1234!' });
-  const sid = setup.cookies.find((c) => c.name === 'ecp_sid')!;
-  cookie = `ecp_sid=${sid.value}`;
+  h = await createHarness();
+  ({ app, db } = h);
   const dept = await db.insertInto('departments').values({ name: '총무과' }).returning('id').executeTakeFirstOrThrow();
   await db
     .insertInto('employees')
@@ -111,8 +43,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await app.close();
-  rmSync(dataDir, { recursive: true, force: true });
+  await h.close();
 });
 
 let batchId: number;
@@ -149,7 +80,7 @@ describe('이수증 올리기와 처리', () => {
   });
 
   it('스캔본은 OCR로 읽고, 잘못 읽은 이름은 비슷한 이름으로 찾아 경고를 단다', async () => {
-    ocrText = '교 육 이 수 증\n성 명   오후영\n교육명 : 2026년 공직자 청렴교육\n교육일 : 2026.05.20 (2시간)\n가상청렴연수원장';
+    h.ocr.text = '교 육 이 수 증\n성 명   오후영\n교육명 : 2026년 공직자 청렴교육\n교육일 : 2026.05.20 (2시간)\n가상청렴연수원장';
     const file = (await uploadFile(batchId, Buffer.concat([PDF, Buffer.from('b')]), '스캔.pdf')).json();
     await uploadPage(file.fileId, 1, '');
     await drainQueue();
@@ -238,5 +169,33 @@ describe('처리 대기열', () => {
     const retried = await db.selectFrom('jobs').selectAll().where('id', '=', job.id).executeTakeFirstOrThrow();
     expect(retried).toMatchObject({ state: 'queued', last_error: 'OCR 실패' });
     expect(await failJob(db, { ...again, attempts: 3 }, '또 실패')).toBe('failed');
+  });
+
+  it('동시 처리 수만큼 쪽을 함께 처리하고, 줄이면 바로 반영한다', async () => {
+    await db.updateTable('jobs').set({ state: 'done' }).execute();
+    const page = await db.selectFrom('pages').select('id').executeTakeFirstOrThrow();
+    for (let i = 0; i < 6; i++) await db.insertInto('jobs').values({ kind: 'process-page', page_id: page.id }).execute();
+
+    let running = 0;
+    let peak = 0;
+    const log = { error: () => {}, warn: () => {} } as unknown as Parameters<typeof startWorker>[0]['log'];
+    const worker = startWorker({
+      db,
+      log,
+      pollMs: 20,
+      concurrency: 3,
+      handle: async () => {
+        peak = Math.max(peak, ++running);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        running--;
+      },
+    });
+    while ((await db.selectFrom('jobs').select('id').where('state', '!=', 'done').execute()).length > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(peak).toBe(3);
+    worker.setConcurrency(1);
+    expect(worker.concurrency()).toBe(1);
+    await worker.stop();
   });
 });

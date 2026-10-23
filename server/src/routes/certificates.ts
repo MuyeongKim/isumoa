@@ -1,7 +1,13 @@
 import type { FastifyInstance } from 'fastify';
 import type { Kysely } from 'kysely';
 import { z } from 'zod';
-import { CERTIFICATE_STATUSES, type CertificateDetail, type CertificateListItem } from '../../../shared/types.ts';
+import {
+  CERTIFICATE_STATUSES,
+  type BulkConfirmResult,
+  type CertificateDetail,
+  type CertificateFlag,
+  type CertificateListItem,
+} from '../../../shared/types.ts';
 import { currentUser, requireUser } from '../auth/guard.ts';
 import { hasBlockingFlag } from '../certs/flags.ts';
 import {
@@ -9,6 +15,7 @@ import {
   evaluateFlags,
   getCertificateDetail,
   getCertificateRow,
+  isReading,
   listCertificates,
   scopeOf,
   type CertificateRow,
@@ -62,6 +69,48 @@ const CertificateBody = z.object({
 type CertificateBody = z.infer<typeof CertificateBody>;
 
 const ExcludeBody = z.object({ reason: z.string().trim().min(1, '제외 사유를 골라 주세요.').max(200) });
+
+const BulkConfirmBody = z.object({ ids: z.array(z.number().int().positive()).min(1).max(500) });
+
+/** 확정으로 바꾸고, 다음에 같은 과정명이 오면 같은 교육으로 정하도록 기억한다 (가장 최근 확정이 기준) */
+async function markConfirmed(trx: Kysely<DB>, saved: CertificateRow, flags: CertificateFlag[], trainingIds: number[], userId: number) {
+  const dept = await trx
+    .selectFrom('employees as e')
+    .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .select('d.name')
+    .where('e.id', '=', saved.employee_id!)
+    .executeTakeFirst();
+  await trx
+    .updateTable('certificates')
+    .set({
+      status: 'confirmed',
+      flags: JSON.stringify(flags),
+      dept_snapshot: dept?.name ?? null,
+      confirmed_by: userId,
+      confirmed_at: nowIso(),
+      updated_at: nowIso(),
+    })
+    .where('id', '=', saved.id)
+    .execute();
+
+  if (!saved.course_title) return;
+  const key = courseTitleKey(saved.course_title);
+  const ids = [...new Set(trainingIds)];
+  if (!key || ids.length === 0) return;
+  await trx.deleteFrom('course_mappings').where('title_key', '=', key).where('training_id', 'not in', ids).execute();
+  for (const trainingId of ids) {
+    await trx
+      .insertInto('course_mappings')
+      .values({ title_key: key, training_id: trainingId })
+      .onConflict((oc) =>
+        oc.columns(['title_key', 'training_id']).doUpdateSet((eb) => ({
+          confirmations: eb('course_mappings.confirmations', '+', 1),
+          updated_at: nowIso(),
+        })),
+      )
+      .execute();
+  }
+}
 
 export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
   async function loadVisible(id: number, user: Parameters<typeof canViewCertificate>[2]): Promise<CertificateRow> {
@@ -154,48 +203,46 @@ export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
       if (hasBlockingFlag(flags)) {
         throw new HttpError(422, flags.find((f) => f.level === 'error')!.message, 'BLOCKING_FLAGS');
       }
-      const dept = await trx
-        .selectFrom('employees as e')
-        .leftJoin('departments as d', 'd.id', 'e.department_id')
-        .select('d.name')
-        .where('e.id', '=', saved.employee_id!)
-        .executeTakeFirst();
-      await trx
-        .updateTable('certificates')
-        .set({
-          status: 'confirmed',
-          flags: JSON.stringify(flags),
-          dept_snapshot: dept?.name ?? null,
-          confirmed_by: user.id,
-          confirmed_at: nowIso(),
-          updated_at: nowIso(),
-        })
-        .where('id', '=', id)
-        .execute();
-
-      // 다음에 같은 과정명이 오면 같은 교육으로 정하도록 기억한다 (가장 최근 확정이 기준)
-      if (saved.course_title) {
-        const key = courseTitleKey(saved.course_title);
-        const ids = [...new Set(body.credits.map((c) => c.trainingId))];
-        if (key && ids.length > 0) {
-          await trx.deleteFrom('course_mappings').where('title_key', '=', key).where('training_id', 'not in', ids).execute();
-          for (const trainingId of ids) {
-            await trx
-              .insertInto('course_mappings')
-              .values({ title_key: key, training_id: trainingId })
-              .onConflict((oc) =>
-                oc.columns(['title_key', 'training_id']).doUpdateSet((eb) => ({
-                  confirmations: eb('course_mappings.confirmations', '+', 1),
-                  updated_at: nowIso(),
-                })),
-              )
-              .execute();
-          }
-        }
-      }
+      await markConfirmed(trx, saved, flags, body.credits.map((c) => c.trainingId), user.id);
     });
     await audit(db, req, 'certificate.confirm', { type: 'certificate', id });
     return getCertificateDetail(db, (await getCertificateRow(db, id))!, user);
+  });
+
+  // "정상 n건 일괄 확정": 확인할 점(오류·경고)이 하나도 없는 검수 대기 이수증만 확정한다.
+  // 화면이 보낸 목록이라도 서버에서 지금 값으로 다시 확인한다.
+  app.post('/api/certificates/bulk-confirm', { preHandler: requireUser }, async (req): Promise<BulkConfirmResult> => {
+    const { ids } = BulkConfirmBody.parse(req.body);
+    const user = currentUser(req);
+    const scope = scopeOf(user);
+    const result: BulkConfirmResult = { confirmed: 0, skipped: [] };
+    for (const id of [...new Set(ids)]) {
+      const row = await getCertificateRow(db, id);
+      if (!row || !(await canViewCertificate(db, row, user))) {
+        result.skipped.push({ id, reason: '볼 수 없는 이수증입니다.' });
+        continue;
+      }
+      if (row.status !== 'draft') {
+        result.skipped.push({ id, reason: '검수 대기 상태가 아닙니다.' });
+        continue;
+      }
+      if (isReading(row.page_state)) {
+        result.skipped.push({ id, reason: '원본 쪽을 다시 읽는 중입니다.' });
+        continue;
+      }
+      const confirmed = await db.transaction().execute(async (trx) => {
+        const flags = await evaluateFlags(trx, row, scope);
+        const problem = flags.find((f) => f.level !== 'info');
+        if (problem) return problem.message;
+        const credits = await trx.selectFrom('certificate_trainings').select('training_id').where('certificate_id', '=', id).execute();
+        await markConfirmed(trx, row, flags, credits.map((c) => c.training_id), user.id);
+        return null;
+      });
+      if (confirmed === null) result.confirmed++;
+      else result.skipped.push({ id, reason: confirmed });
+    }
+    await audit(db, req, 'certificate.bulk-confirm', undefined, { confirmed: result.confirmed, skipped: result.skipped.length });
+    return result;
   });
 
   app.post('/api/certificates/:id/exclude', { preHandler: requireUser }, async (req): Promise<CertificateDetail> => {

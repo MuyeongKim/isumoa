@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   CERTIFICATE_STATUS_LABELS,
   type BatchSummary,
+  type BulkConfirmResult,
   type CertificateDetail,
   type CertificateInput,
   type CertificateListItem,
@@ -12,8 +13,10 @@ import {
   type Employee,
   type Training,
 } from '@shared/types.ts';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader } from '@/components/PageHeader';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
+import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
 import { api, errorMessage } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/format';
@@ -30,6 +33,20 @@ function trainingSummary(ids: number[], trainings: Training[]): string {
   const names = trainings.filter((t) => ids.includes(t.id)).map((t) => shortTrainingName(t.name));
   if (names.length === 0) return '교육 미정';
   return names.length > 2 ? `${names.slice(0, 2).join(', ')} 외 ${names.length - 2}` : names.join(', ');
+}
+
+/** 값을 읽은 방법 */
+const ROUTE_LABELS: Record<string, string> = {
+  text: 'PDF 글자',
+  ocr: 'OCR',
+  'ai-text': 'AI · PDF 글자',
+  'ai-ocr': 'AI · OCR 글자',
+  'ai-vision': 'AI · 이미지',
+};
+
+/** 확인할 점이 안내(파랑)뿐인 이수증 = 일괄 확정 대상 (다시 읽는 중인 것은 빼고) */
+function isClean(c: CertificateListItem): boolean {
+  return c.status === 'draft' && !c.reading && c.flags.every((f) => f.level === 'info');
 }
 
 function FlagDot({ item }: { item: CertificateListItem }) {
@@ -51,6 +68,7 @@ export function ReviewPage() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [excluding, setExcluding] = useState(false);
+  const [bulk, setBulk] = useState<{ busy: boolean } | null>(null);
 
   const processing = useProcessing();
   const stillReading = (processing.data?.waiting ?? 0) + (processing.data?.running ?? 0) > 0;
@@ -72,6 +90,7 @@ export function ReviewPage() {
     () => all.filter((c) => c.status === status && (!onlyFlagged || c.flags.some((f) => f.level !== 'info'))),
     [all, status, onlyFlagged],
   );
+  const clean = useMemo(() => all.filter(isClean), [all]);
   const requested = Number(params.get('id')) || null;
   const currentId = requested && all.some((c) => c.id === requested) ? requested : (visible[0]?.id ?? null);
 
@@ -160,6 +179,26 @@ export function ReviewPage() {
     });
   }
 
+  async function bulkConfirm() {
+    setBulk({ busy: true });
+    try {
+      const result = await api.post<BulkConfirmResult>('/certificates/bulk-confirm', { ids: clean.map((c) => c.id) });
+      await queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      await queryClient.invalidateQueries({ queryKey: ['certificate'] });
+      void queryClient.invalidateQueries({ queryKey: ['batches'] });
+      void queryClient.invalidateQueries({ queryKey: ['status'] });
+      void queryClient.invalidateQueries({ queryKey: ['overview'] });
+      toast.success(
+        `${formatNumber(result.confirmed)}건을 확정했습니다.${result.skipped.length ? ` ${formatNumber(result.skipped.length)}건은 그사이 확인할 점이 생겨 남겨 두었습니다.` : ''}`,
+      );
+      select(null);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBulk(null);
+    }
+  }
+
   // 단축키: ↑↓ 이동, Ctrl+Enter 확정, X 제외
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -230,6 +269,11 @@ export function ReviewPage() {
           <input type="checkbox" className="size-4 accent-navy" checked={onlyFlagged} onChange={(e) => setOnlyFlagged(e.target.checked)} />
           확인할 점이 있는 것만
         </label>
+        {status === 'draft' && clean.length > 0 && (
+          <Button className="ml-auto" onClick={() => setBulk({ busy: false })}>
+            정상 {formatNumber(clean.length)}건 일괄 확정
+          </Button>
+        )}
       </div>
 
       {list.isSuccess && all.length === 0 ? (
@@ -264,7 +308,7 @@ export function ReviewPage() {
                     </span>
                     <span className="block truncate text-[12px] text-ink-soft">{trainingSummary(c.trainingIds, trainings.data ?? [])}</span>
                     <span className="block truncate text-[12px] text-ink-faint">
-                      {c.completedOn ?? '이수일 없음'} · {c.pageCount > 1 ? `${c.pageNo}/${c.pageCount}쪽` : c.fileName}
+                      {c.reading ? '다시 읽는 중…' : `${c.completedOn ?? '이수일 없음'} · ${c.pageCount > 1 ? `${c.pageNo}/${c.pageCount}쪽` : c.fileName}`}
                     </span>
                   </span>
                 </button>
@@ -278,7 +322,7 @@ export function ReviewPage() {
               <PageViewer
                 pageId={current.pageId}
                 pageText={current.pageText}
-                caption={`${current.fileName}${current.pageCount > 1 ? ` · ${current.pageNo}/${current.pageCount}쪽` : ''}${current.route === 'ocr' ? ' · OCR' : ''}`}
+                caption={`${current.fileName}${current.pageCount > 1 ? ` · ${current.pageNo}/${current.pageCount}쪽` : ''}${current.route ? ` · ${ROUTE_LABELS[current.route] ?? current.route}` : ''}`}
               />
               <CertificateForm
                 key={`${current.id}-${current.status}`}
@@ -298,6 +342,22 @@ export function ReviewPage() {
         </div>
       )}
       <ExcludeDialog open={excluding} onClose={() => setExcluding(false)} onExclude={exclude} />
+      <ConfirmDialog
+        open={bulk !== null}
+        title={`정상 ${formatNumber(clean.length)}건 일괄 확정`}
+        description={
+          <>
+            고칠 점(빨강)과 확인할 점(주황)이 하나도 없는 검수 대기 이수증 {formatNumber(clean.length)}건을 한 번에 확정합니다
+            {batchId ? ` (묶음 #${batchId})` : ' (모든 묶음)'}.
+            <br />
+            스캔본은 이름·날짜를 원본과 대조하라는 안내(파랑)가 붙어 있을 수 있습니다. 확정한 뒤에도 &lsquo;검수 대기로 되돌리기&rsquo;로 고칠 수 있습니다.
+          </>
+        }
+        confirmLabel={`${formatNumber(clean.length)}건 확정`}
+        busy={bulk?.busy}
+        onConfirm={() => void bulkConfirm()}
+        onClose={() => setBulk(null)}
+      />
     </>
   );
 }

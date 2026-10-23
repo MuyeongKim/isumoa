@@ -7,7 +7,7 @@ import { nowIso } from '../db/sqlite.ts';
 // 실패하면 10초, 1분 뒤에 다시 시도하고, 세 번째도 실패하면 "오류"로 남긴다.
 
 const RETRY_DELAYS_SECONDS = [10, 60];
-const MAX_ATTEMPTS = RETRY_DELAYS_SECONDS.length + 1;
+export const MAX_ATTEMPTS = RETRY_DELAYS_SECONDS.length + 1;
 
 export interface Job {
   id: number;
@@ -65,6 +65,10 @@ export interface Worker {
   notify(): void;
   /** 최근 처리한 쪽의 평균 시간(밀리초) */
   averageMs(): number | null;
+  /** 동시에 처리하는 쪽 수 */
+  concurrency(): number;
+  /** AI 서버가 여러 요청을 함께 받을 수 있으면 늘린다 (설정 화면에서 바꾸면 바로 반영) */
+  setConcurrency(n: number): void;
   stop(): Promise<void>;
 }
 
@@ -73,25 +77,33 @@ export function startWorker(options: {
   handle: (job: Job) => Promise<void>;
   log: FastifyBaseLogger;
   pollMs?: number;
+  concurrency?: number;
 }): Worker {
   const { db, handle, log, pollMs = 2000 } = options;
   const durations: number[] = [];
+  const sleepers = new Set<() => void>();
+  const loops: Promise<void>[] = [];
   let stopped = false;
-  let wake: (() => void) | null = null;
+  let target = Math.max(1, options.concurrency ?? 1);
+  let running = 0;
 
   const sleep = () =>
     new Promise<void>((resolve) => {
-      const timer = setTimeout(done, pollMs);
-      function done() {
+      const done = () => {
         clearTimeout(timer);
-        wake = null;
+        sleepers.delete(done);
         resolve();
-      }
-      wake = done;
+      };
+      const timer = setTimeout(done, pollMs);
+      sleepers.add(done);
     });
+  const wakeAll = () => {
+    for (const wake of [...sleepers]) wake();
+  };
 
   async function loop() {
     while (!stopped) {
+      if (running > target) break; // 동시 처리 수를 줄였으면 남는 일꾼은 끝낸다
       let job: Job | undefined;
       try {
         job = await claimNextJob(db);
@@ -114,16 +126,30 @@ export function startWorker(options: {
         log.warn({ jobId: job.id, pageId: job.page_id, attempts: job.attempts, outcome }, `쪽 처리 실패: ${message}`);
       }
     }
+    running--;
   }
 
-  const running = loop();
+  const spawn = () => {
+    while (!stopped && running < target) {
+      running++;
+      loops.push(loop());
+    }
+  };
+  spawn();
+
   return {
-    notify: () => wake?.(),
+    notify: wakeAll,
     averageMs: () => (durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : null),
+    concurrency: () => target,
+    setConcurrency(n) {
+      target = Math.max(1, Math.min(8, Math.round(n)));
+      spawn();
+      wakeAll();
+    },
     async stop() {
       stopped = true;
-      wake?.();
-      await running;
+      wakeAll();
+      await Promise.all(loops);
     },
   };
 }

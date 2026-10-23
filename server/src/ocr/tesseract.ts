@@ -23,17 +23,25 @@ const KOR_DATA = join(dirname(require.resolve('@tesseract.js-data/kor/package.js
 export function createTesseractOcr(): OcrEngine {
   let worker: Promise<Tesseract.Worker> | null = null;
   const getWorker = () => (worker ??= Tesseract.createWorker('kor', Tesseract.OEM.LSTM_ONLY, { langPath: KOR_DATA, cacheMethod: 'none' }));
+  // OCR 일꾼은 하나라서 여러 쪽을 함께 처리할 때는 차례로 읽는다 (읽기 방식 설정이 섞이지 않게)
+  let queue: Promise<unknown> = Promise.resolve();
+
+  async function read(imagePath: string): Promise<string> {
+    const w = await getWorker();
+    const texts: string[] = [];
+    for (const mode of [Tesseract.PSM.SINGLE_COLUMN, Tesseract.PSM.SINGLE_BLOCK]) {
+      await w.setParameters({ tessedit_pageseg_mode: mode, preserve_interword_spaces: '1' });
+      const { data } = await w.recognize(imagePath);
+      texts.push(data.text.trim());
+    }
+    return texts.join('\n\n');
+  }
 
   return {
-    async recognize(imagePath) {
-      const w = await getWorker();
-      const texts: string[] = [];
-      for (const mode of [Tesseract.PSM.SINGLE_COLUMN, Tesseract.PSM.SINGLE_BLOCK]) {
-        await w.setParameters({ tessedit_pageseg_mode: mode, preserve_interword_spaces: '1' });
-        const { data } = await w.recognize(imagePath);
-        texts.push(data.text.trim());
-      }
-      return texts.join('\n\n');
+    recognize(imagePath) {
+      const result = queue.then(() => read(imagePath));
+      queue = result.catch(() => undefined);
+      return result;
     },
     async close() {
       if (!worker) return;

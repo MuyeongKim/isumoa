@@ -222,6 +222,8 @@ export interface ProcessingStatus {
   waiting: number;
   running: number;
   failed: number;
+  /** 최근 AI 서버 연결 실패 (규칙으로만 읽는 중) */
+  aiError: string | null;
   /** 남은 쪽을 처리하는 데 걸릴 것으로 보이는 시간(초) */
   etaSeconds: number | null;
 }
@@ -253,6 +255,8 @@ export interface CertificateListItem {
   hours: number | null;
   flags: CertificateFlag[];
   route: string | null;
+  /** 원본 쪽을 (다시) 읽는 중 — 끝나면 이 이수증은 새로 읽은 것으로 바뀐다 */
+  reading: boolean;
 }
 
 export interface CertificateCredit {
@@ -332,4 +336,62 @@ export interface StatusReport {
   trainings: Training[];
   rows: StatusRow[];
   summary: StatusTrainingSummary[];
+}
+
+// ── AI 연결 ─────────────────────────────────────────────────────
+
+/** openai-compatible: 기관 AI 서버·Ollama·vLLM·OpenAI 등 / anthropic: Claude API */
+export const AI_PROVIDERS = ['openai-compatible', 'anthropic'] as const;
+export type AiProvider = (typeof AI_PROVIDERS)[number];
+
+export const AI_EFFORTS = ['low', 'medium', 'high'] as const;
+export type AiEffort = (typeof AI_EFFORTS)[number];
+
+export type AiJsonMode = 'json_schema' | 'json_object' | 'prompt';
+
+/** 연결 테스트 결과 */
+export interface AiProbeResult {
+  ok: boolean;
+  testedAt: string;
+  /** JSON으로 답하게 하는 방법 중 이 서버가 받아들인 것 */
+  jsonMode: AiJsonMode | null;
+  /** 이미지를 직접 읽을 수 있는지 (시험 이수증 이미지의 이름을 맞게 읽었는지) */
+  vision: boolean | null;
+  /** 생각 과정(<think>)이 답에 섞이거나 답이 잘렸는지 */
+  thinkingLeak: boolean;
+  latencyMs: number | null;
+  /** 시험 이수증에서 읽은 값 */
+  sample: { personName: string | null; courseTitle: string | null; completionDate: string | null } | null;
+  notes: string[];
+  error: string | null;
+}
+
+/** 화면에 보여 주는 AI 설정 (API 키는 돌려주지 않는다) */
+export interface AiSettingsView {
+  enabled: boolean;
+  provider: AiProvider;
+  baseUrl: string;
+  model: string;
+  hasApiKey: boolean;
+  vision: 'auto' | 'on' | 'off';
+  concurrency: number;
+  timeoutSeconds: number;
+  extraBody: string;
+  effort: AiEffort;
+  allowExternal: boolean;
+  /** 설치 설정(config.json)에서 외부 AI를 막았는지 */
+  externalBlocked: boolean;
+  /** 지금 주소가 기관 밖(인터넷) 서버인지 */
+  isExternal: boolean;
+  probe: AiProbeResult | null;
+}
+
+/** 저장·연결 테스트 때 보내는 값. apiKey: 생략하면 그대로, 빈 문자열이면 지움 */
+export interface AiSettingsInput extends Omit<AiSettingsView, 'hasApiKey' | 'externalBlocked' | 'isExternal' | 'probe'> {
+  apiKey?: string;
+}
+
+export interface BulkConfirmResult {
+  confirmed: number;
+  skipped: { id: number; reason: string }[];
 }

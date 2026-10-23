@@ -139,6 +139,11 @@ export interface PagesTable {
   route: string | null;
   state: Generated<PageState>;
   error: string | null;
+  ai_raw: string | null;
+  ai_model: string | null;
+  ai_ms: number | null;
+  ai_error: string | null;
+  prompt_version: string | null;
   created_at: Generated<string>;
 }
 
@@ -162,6 +167,10 @@ export interface CertificatesTable {
   flags: Generated<string>;
   source: Generated<string>;
   dept_snapshot: string | null;
+  /** JSON: AI가 고른 교육 코드 */
+  ai_codes: Generated<string>;
+  /** JSON: CertificateFlag[] — 인식할 때 남긴 확인할 점 (source가 manual이 되면 쓰지 않음) */
+  notes: Generated<string>;
   exclude_reason: string | null;
   confirmed_by: number | null;
   confirmed_at: string | null;
