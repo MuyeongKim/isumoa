@@ -8,10 +8,12 @@ import { registerAuth } from './auth/guard.ts';
 import type { Deps } from './deps.ts';
 import { errorHandler } from './lib/errors.ts';
 import { aiRoutes } from './routes/ai.ts';
+import { auditRoutes } from './routes/audit.ts';
 import { authRoutes } from './routes/auth.ts';
 import { certificateRoutes } from './routes/certificates.ts';
 import { departmentRoutes } from './routes/departments.ts';
 import { employeeRoutes } from './routes/employees.ts';
+import { exportRoutes } from './routes/exports.ts';
 import { overviewRoutes } from './routes/overview.ts';
 import { statusRoutes } from './routes/status.ts';
 import { trainingRoutes } from './routes/trainings.ts';
@@ -54,6 +56,8 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(certificateRoutes, deps);
   await app.register(statusRoutes, deps);
   await app.register(aiRoutes, deps);
+  await app.register(exportRoutes, deps);
+  await app.register(auditRoutes, deps);
 
   // 빌드된 화면이 있으면 같은 포트에서 제공한다 (개발 중에는 Vite가 따로 띄운다)
   const webDist = deps.config.webDistDir;

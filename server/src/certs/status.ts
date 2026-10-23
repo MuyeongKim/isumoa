@@ -15,6 +15,7 @@ export interface StatusEmployee {
   id: number;
   empNo: string | null;
   name: string;
+  departmentId: number | null;
   departmentName: string | null;
   status: EmployeeStatus;
 }
@@ -78,7 +79,7 @@ export function computeStatus(input: {
           ? { ...base, state: 'exempt', note: exemption }
           : { ...base, ...judge(t, hours, credits.length, credits.some((c) => c.creditedHours === null)) };
       }
-      return { employeeId: e.id, empNo: e.empNo, name: e.name, departmentName: e.departmentName, cells };
+      return { employeeId: e.id, empNo: e.empNo, name: e.name, departmentId: e.departmentId, departmentName: e.departmentName, cells };
     });
 
   const summary: StatusTrainingSummary[] = input.trainings.map((t) => {

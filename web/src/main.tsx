@@ -13,6 +13,7 @@ import { AdminOnly, RequireAuth } from './components/RequireAuth';
 import { ApiError } from './lib/api';
 import { EmployeeImportPage } from './pages/EmployeeImportPage';
 import { EmployeesPage } from './pages/EmployeesPage';
+import { ExportPage } from './pages/ExportPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { ReviewPage } from './pages/review/ReviewPage';
@@ -59,6 +60,7 @@ const router = createBrowserRouter([
       // wide: 화면 폭을 넓게 쓰는 페이지
       { path: 'review', element: <ReviewPage />, handle: { wide: true } },
       { path: 'status', element: <StatusPage />, handle: { wide: true } },
+      { path: 'export', element: <ExportPage /> },
       { path: 'employees', element: <EmployeesPage /> },
       {
         path: 'employees/import',

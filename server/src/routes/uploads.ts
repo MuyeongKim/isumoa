@@ -14,6 +14,7 @@ import { audit } from '../lib/audit.ts';
 import { badRequest, HttpError, notFound } from '../lib/errors.ts';
 import { cleanOrNull } from '../lib/text.ts';
 import { detectUploadType, filesDir, originalPath, pageImagePath, pagesDir } from '../storage.ts';
+import { contentDisposition } from '../lib/http.ts';
 
 // 이수증 올리기: 묶음 만들기 → 원본 파일 올리기 → 화면이 쪼갠 쪽 이미지를 한 쪽씩 올리기.
 // 쪽이 올라오면 처리 대기열에 넣는다. 같은 파일을 다시 올리면 빠진 쪽부터 이어 올리게 알려 준다.
@@ -38,10 +39,6 @@ function isJpeg(buf: Buffer | undefined): buf is Buffer {
 }
 
 /** RFC 5987: 한글 파일 이름으로 내려받기 */
-function contentDisposition(fileName: string): string {
-  return `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
-}
-
 export async function uploadRoutes(app: FastifyInstance, { db, config, worker, aiHealth }: Deps) {
   /** 묶음을 다룰 수 있는지: 관리자이거나 올린 사람 */
   async function ownedBatch(user: SessionUser, batchId: number) {

@@ -316,6 +316,7 @@ export interface StatusRow {
   employeeId: number;
   empNo: string | null;
   name: string;
+  departmentId: number | null;
   departmentName: string | null;
   cells: Record<number, StatusCell>;
 }
@@ -336,6 +337,68 @@ export interface StatusReport {
   trainings: Training[];
   rows: StatusRow[];
   summary: StatusTrainingSummary[];
+}
+
+// ── 대시보드 ────────────────────────────────────────────────────
+
+export interface DashboardDepartment {
+  departmentId: number | null;
+  name: string;
+  employees: number;
+  /** 대상 교육을 모두 이수한 직원 (모든 교육이 대상 제외인 직원은 이수·미이수 어디에도 넣지 않음) */
+  complete: number;
+  /** 미이수·부분이수 교육이 하나라도 있는 직원 */
+  missing: number;
+  /** 직원 × 교육 칸 기준 이수율 (대상 제외 칸은 빼고 셈) */
+  rate: number | null;
+}
+
+export interface Dashboard {
+  year: number;
+  /** 직원 × 교육 칸 기준 */
+  overall: { target: number; done: number; partial: number; rate: number | null };
+  /** total: 교육 대상 직원 (모든 교육이 대상 제외인 직원은 뺌) */
+  employees: { total: number; complete: number; missing: number };
+  /** 그해 검수 대기 이수증 */
+  drafts: number;
+  trainings: Training[];
+  summary: StatusTrainingSummary[];
+  departments: DashboardDepartment[];
+}
+
+// ── 내보내기 ────────────────────────────────────────────────────
+
+export const ZIP_LAYOUTS = ['training', 'department'] as const;
+export type ZipLayout = (typeof ZIP_LAYOUTS)[number];
+
+export interface ExportSummary {
+  year: number;
+  /** 확정한 이수증 수 (이 범위) */
+  certificates: number;
+  /** 아직 검수 대기라 내보내기에 들어가지 않는 이수증 */
+  drafts: number;
+  trainings: { trainingId: number; name: string; certificates: number }[];
+}
+
+// ── 감사 로그 ───────────────────────────────────────────────────
+
+export interface AuditEntry {
+  id: number;
+  at: string;
+  userLogin: string | null;
+  userName: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  detail: Record<string, unknown> | null;
+  ip: string | null;
+}
+
+export interface AuditPage {
+  entries: AuditEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 // ── AI 연결 ─────────────────────────────────────────────────────

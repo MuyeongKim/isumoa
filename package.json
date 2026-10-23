@@ -26,9 +26,12 @@
     "@fastify/multipart": "^10.1.6",
     "@fastify/static": "^10.1.7",
     "@tesseract.js-data/kor": "^1.0.0",
+    "archiver": "^8.0.0",
+    "exceljs": "^4.4.0",
     "fastify": "^5.12.7",
     "iconv-lite": "^0.7.3",
     "kysely": "^0.29.7",
+    "pdf-lib": "^1.17.1",
     "tesseract.js": "^7.0.0",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz",
     "zod": "^4.6.7"
@@ -44,10 +47,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "archiver": "^8.0.0",
     "concurrently": "^10.0.6",
     "lucide-react": "^1.61.0",
-    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
     "pretendard": "^1.3.9",
     "react": "^19.3.1",
@@ -59,5 +60,10 @@
     "vite": "^8.3.5",
     "vite-plugin-static-copy": "^4.1.1",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

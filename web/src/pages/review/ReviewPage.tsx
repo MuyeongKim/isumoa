@@ -141,6 +141,7 @@ export function ReviewPage() {
       await queryClient.invalidateQueries({ queryKey: ['certificates'] });
       void queryClient.invalidateQueries({ queryKey: ['batches'] });
       void queryClient.invalidateQueries({ queryKey: ['status'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
       done(result);
     } catch (err) {
@@ -187,6 +188,7 @@ export function ReviewPage() {
       await queryClient.invalidateQueries({ queryKey: ['certificate'] });
       void queryClient.invalidateQueries({ queryKey: ['batches'] });
       void queryClient.invalidateQueries({ queryKey: ['status'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
       toast.success(
         `${formatNumber(result.confirmed)}건을 확정했습니다.${result.skipped.length ? ` ${formatNumber(result.skipped.length)}건은 그사이 확인할 점이 생겨 남겨 두었습니다.` : ''}`,

@@ -193,7 +193,7 @@ describe('이수 판정', () => {
     sortOrder: id,
     note: null,
   });
-  const employee = (id: number, status: 'active' | 'leave' | 'retired' = 'active') => ({ id, empNo: null, name: `직원${id}`, departmentName: '총무과', status });
+  const employee = (id: number, status: 'active' | 'leave' | 'retired' = 'active') => ({ id, empNo: null, name: `직원${id}`, departmentId: 1, departmentName: '총무과', status });
 
   it('시간 기준은 인정 시간을 더하고, 횟수 기준은 장 수를 센다', () => {
     const report = computeStatus({

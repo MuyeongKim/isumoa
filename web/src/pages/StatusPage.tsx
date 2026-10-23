@@ -97,7 +97,7 @@ export function StatusPage() {
   const thisYear = new Date().getFullYear();
   const year = Number(params.get('year')) || thisYear;
   const departmentId = Number(params.get('departmentId')) || null;
-  const [onlyMissing, setOnlyMissing] = useState(false);
+  const onlyMissing = params.get('missing') === '1';
   const [opened, setOpened] = useState<{ row: StatusRow; training: Training } | null>(null);
 
   const departments = useQuery({ queryKey: ['departments'], queryFn: () => api.get<Department[]>('/departments') });
@@ -202,7 +202,7 @@ export function StatusPage() {
               ))}
             </div>
             <label className="flex items-center gap-2 text-[13.5px] text-ink-soft">
-              <input type="checkbox" className="size-4 accent-navy" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+              <input type="checkbox" className="size-4 accent-navy" checked={onlyMissing} onChange={(e) => setParam('missing', e.target.checked ? '1' : null)} />
               미이수·부분이수가 있는 직원만
             </label>
           </div>

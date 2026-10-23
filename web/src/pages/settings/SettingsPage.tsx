@@ -8,6 +8,7 @@ import { Field, FormError, Input } from '@/components/ui/Field';
 import { api, errorMessage } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { AiTab } from './AiTab';
+import { AuditTab } from './AuditTab';
 import { DepartmentsTab } from './DepartmentsTab';
 import { UsersTab } from './UsersTab';
 
@@ -16,6 +17,7 @@ const TABS = [
   { key: 'users', label: '사용자 계정' },
   { key: 'ai', label: 'AI 연결' },
   { key: 'org', label: '기관 정보' },
+  { key: 'audit', label: '감사 로그' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
 
@@ -83,6 +85,7 @@ export function SettingsPage() {
       {tab === 'users' && <UsersTab />}
       {tab === 'ai' && <AiTab />}
       {tab === 'org' && <OrgTab />}
+      {tab === 'audit' && <AuditTab />}
     </>
   );
 }

@@ -24,9 +24,7 @@ import { SealMark } from './SealMark';
 interface NavItem {
   label: string;
   icon: LucideIcon;
-  to?: string;
-  /** 다음 단계에서 열리는 메뉴 */
-  soon?: boolean;
+  to: string;
   /** 메뉴 옆에 보여 줄 숫자 */
   badge?: 'drafts';
 }
@@ -39,7 +37,7 @@ const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
       { label: '이수증 올리기', icon: Upload, to: '/upload' },
       { label: '검수함', icon: Stamp, to: '/review', badge: 'drafts' },
       { label: '이수 현황', icon: Table2, to: '/status' },
-      { label: '내보내기', icon: Download, soon: true },
+      { label: '내보내기', icon: Download, to: '/export' },
     ],
   },
   {
@@ -85,37 +83,26 @@ export function AppShell() {
               <ul className="space-y-0.5">
                 {group.items.map((item) => (
                   <li key={item.label}>
-                    {item.to ? (
-                      <NavLink
-                        to={item.to}
-                        end={item.to === '/'}
-                        className={({ isActive }) =>
-                          cn(
-                            'flex items-center gap-2.5 rounded-md border-l-2 px-3 py-2 text-[14px] transition-colors',
-                            isActive
-                              ? 'border-gold bg-white/10 font-medium text-white'
-                              : 'border-transparent hover:bg-white/5 hover:text-white',
-                          )
-                        }
-                      >
-                        <item.icon className="size-4 shrink-0" aria-hidden />
-                        {item.label}
-                        {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
-                          <span className="ml-auto rounded-full bg-gold/90 px-1.5 text-[11.5px] leading-[18px] font-semibold text-navy tabular-nums">
-                            {overview.data!.drafts}
-                          </span>
-                        )}
-                      </NavLink>
-                    ) : (
-                      <span
-                        className="flex cursor-default items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-[14px] text-white/35"
-                        title="다음 단계에서 열립니다"
-                      >
-                        <item.icon className="size-4 shrink-0" aria-hidden />
-                        {item.label}
-                        <span className="ml-auto text-[11px] text-white/35">준비 중</span>
-                      </span>
-                    )}
+                    <NavLink
+                      to={item.to}
+                      end={item.to === '/'}
+                      className={({ isActive }) =>
+                        cn(
+                          'flex items-center gap-2.5 rounded-md border-l-2 px-3 py-2 text-[14px] transition-colors',
+                          isActive
+                            ? 'border-gold bg-white/10 font-medium text-white'
+                            : 'border-transparent hover:bg-white/5 hover:text-white',
+                        )
+                      }
+                    >
+                      <item.icon className="size-4 shrink-0" aria-hidden />
+                      {item.label}
+                      {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
+                        <span className="ml-auto rounded-full bg-gold/90 px-1.5 text-[11.5px] leading-[18px] font-semibold text-navy tabular-nums">
+                          {overview.data!.drafts}
+                        </span>
+                      )}
+                    </NavLink>
                   </li>
                 ))}
               </ul>
