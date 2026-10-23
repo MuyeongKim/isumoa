@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { buildApp } from './app.ts';
 import { purgeExpiredSessions } from './auth/sessions.ts';
 import { processPage } from './certs/processPage.ts';
@@ -34,6 +35,10 @@ const masked = await maskStoredRrn(db);
 
 // 일꾼은 앱보다 늦게 만들어지므로, 라우트에는 나중에 연결되는 손잡이를 넘긴다
 let worker: Worker | null = null;
+// PC 설치판: 설치·제거 프로그램이 이 서버를 끌 때 쓰는 열쇠 (이 PC 사용자 폴더에만 둔다)
+const shutdownToken = config.desktop ? randomBytes(24).toString('hex') : undefined;
+const tokenFile = join(dirname(config.configPath ?? config.dataDir), 'run', 'shutdown.token');
+
 // 스캔본 OCR: kordoc(PP-OCRv5)을 먼저 띄워 보고, 안 되는 PC에서는 tesseract로 (ocr/engine.ts)
 const ocr = await createOcrEngine({ modelDir: join(APP_ROOT, 'vendor', 'ocr-models'), prefer: process.env.ECP_OCR === 'tesseract' ? 'tesseract' : 'kordoc' });
 const app = await buildApp(
@@ -42,6 +47,8 @@ const app = await buildApp(
     config,
     version,
     ocr,
+    shutdownToken,
+    requestShutdown: (reason) => void shutdown(reason),
     worker: {
       notify: () => worker?.notify(),
       averageMs: () => worker?.averageMs() ?? null,
@@ -65,9 +72,13 @@ const purgeTimer = setInterval(() => {
 purgeTimer.unref();
 const scheduler = startScheduler({ db, config, log: app.log });
 
-async function shutdown(signal: string) {
-  app.log.info(`${signal} 신호를 받아 종료합니다.`);
+let stopping = false;
+async function shutdown(reason: string) {
+  if (stopping) return;
+  stopping = true;
+  app.log.info(`종료합니다 (${reason}).`);
   scheduler.stop();
+  if (shutdownToken) rmSync(tokenFile, { force: true });
   await app.close();
   await worker?.stop();
   await ocr.close();
@@ -78,6 +89,11 @@ process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 await app.listen({ host: config.host, port: config.port });
+// 열쇠는 포트를 잡은 뒤에 쓴다 — 두 번째로 켠 서버가 실패하면서 켜져 있는 서버의 열쇠를 덮어쓰지 않게
+if (shutdownToken) {
+  mkdirSync(dirname(tokenFile), { recursive: true });
+  writeFileSync(tokenFile, shutdownToken, { mode: 0o600 });
+}
 const shownHost = config.host === '0.0.0.0' ? '이 서버의 IP 주소' : config.host;
 app.log.info(`법정교육 이수증 종합 플랫폼 v${version} 실행 중 → ${https ? 'https' : 'http'}://${shownHost}:${config.port}`);
 app.log.info(`데이터 폴더: ${config.dataDir} · 백업 폴더: ${config.backupDir} (매일 ${config.backupHour}시)`);

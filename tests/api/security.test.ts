@@ -196,3 +196,30 @@ describe('시스템 점검', () => {
     expect(health.json()).toEqual({ ok: true, version: 'test' });
   });
 });
+
+describe('PC 설치판 끄기', () => {
+  it('서버판에서는 끄는 주소가 없다', async () => {
+    expect((await h.send('POST', '/api/system/shutdown')).statusCode).toBe(404);
+    expect((await h.send('POST', '/api/system/quit', {}, { 'x-shutdown-token': 'x' })).statusCode).toBe(404);
+  });
+
+  it('관리자는 화면에서 끄고, 설치 프로그램은 열쇠 파일 값으로만 끈다', async () => {
+    const reasons: string[] = [];
+    const pc = await createHarness({ desktop: true }, { shutdownToken: 'a'.repeat(48), requestShutdown: (r) => reasons.push(r) });
+    try {
+      const quit = (token: string) =>
+        pc.app.inject({ method: 'POST', url: '/api/system/quit', payload: {}, headers: { 'x-requested-with': 'fetch', 'x-shutdown-token': token } });
+      expect((await quit('b'.repeat(48))).statusCode).toBe(403);
+      expect((await quit('short')).statusCode).toBe(403);
+      expect((await quit('a'.repeat(48))).statusCode).toBe(200);
+      expect((await pc.send('POST', '/api/system/shutdown')).statusCode).toBe(200);
+      await new Promise((r) => setTimeout(r, 400));
+      expect(reasons).toEqual(['설치·제거 프로그램 요청', '화면에서 프로그램 끄기']);
+      const audit = await pc.db.selectFrom('audit_log').select('action').where('action', '=', 'system.shutdown').execute();
+      expect(audit).toHaveLength(1);
+      expect((await pc.send('GET', '/api/meta')).json().desktop).toBe(true);
+    } finally {
+      await pc.close();
+    }
+  });
+});

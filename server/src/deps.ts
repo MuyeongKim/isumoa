@@ -11,6 +11,10 @@ export interface Deps {
   version: string;
   /** 쪽 처리 대기열 일꾼 (테스트에서는 없을 수 있음) */
   worker?: Pick<Worker, 'notify' | 'averageMs'>;
+  /** 서버를 끈다 (PC 설치판의 "프로그램 끄기") */
+  requestShutdown?: (reason: string) => void;
+  /** PC 설치판에서 설치·제거 프로그램이 서버를 끌 때 내야 하는 열쇠 (run/shutdown.token 파일과 같은 값) */
+  shutdownToken?: string;
   /** 쓰고 있는 OCR 엔진 (시스템 점검에 보여 줌) */
   ocr?: Pick<OcrEngine, 'label' | 'fallbackReason'>;
 }

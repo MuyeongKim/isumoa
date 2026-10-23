@@ -8,6 +8,7 @@ import { expect } from 'vitest';
 import { buildApp } from '../../server/src/app.ts';
 import { processPage } from '../../server/src/certs/processPage.ts';
 import { loadConfig, type AppConfig } from '../../server/src/config.ts';
+import type { Deps } from '../../server/src/deps.ts';
 import { runMigrations } from '../../server/src/db/migrate.ts';
 import type { DB } from '../../server/src/db/schema.ts';
 import { seedDefaults } from '../../server/src/db/seed.ts';
@@ -49,7 +50,7 @@ function multipart(parts: { name: string; value: string | Buffer; filename?: str
   return { payload: Buffer.concat(chunks), headers: { 'content-type': `multipart/form-data; boundary=${boundary}` } };
 }
 
-export async function createHarness(overrides: Partial<AppConfig> = {}): Promise<Harness> {
+export async function createHarness(overrides: Partial<AppConfig> = {}, extra: Partial<Deps> = {}): Promise<Harness> {
   const dataDir = mkdtempSync(join(tmpdir(), 'ecp-test-'));
   const opened = openDatabase(':memory:');
   const db = opened.db;
@@ -64,7 +65,7 @@ export async function createHarness(overrides: Partial<AppConfig> = {}): Promise
     recognize: async () => ocr.text,
     close: async () => {},
   };
-  const app = await buildApp({ db, config, version: 'test', ocr }, { logger: false });
+  const app = await buildApp({ db, config, version: 'test', ocr, ...extra }, { logger: false });
   let cookie = '';
 
   const send: Harness['send'] = (method, url, payload, extra = {}) =>

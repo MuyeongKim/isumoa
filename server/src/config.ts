@@ -32,6 +32,8 @@ export interface AppConfig {
   backupHour: number;
   /** 로그 파일 폴더 (없으면 화면에만 출력). 서비스로 실행할 때 필요 */
   logDir: string | null;
+  /** PC 설치판: 이 PC에서 혼자 쓰는 모드 ("프로그램 끄기" 단추, 설치·제거 프로그램이 끌 수 있는 열쇠 파일) */
+  desktop: boolean;
   /** 읽은 config.json 위치 (없으면 null) */
   configPath: string | null;
   /** 빌드된 화면 파일 위치 (없으면 API만 제공) */
@@ -53,7 +55,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   let file: ConfigFile = {};
   let baseDir = APP_ROOT;
   if (configPath && existsSync(configPath)) {
-    file = JSON.parse(readFileSync(configPath, 'utf8')) as ConfigFile;
+    // 메모장으로 고친 파일의 BOM은 떼고 읽는다
+    file = JSON.parse(readFileSync(configPath, 'utf8').replace(/^\uFEFF/, '')) as ConfigFile;
     baseDir = dirname(configPath);
   }
   const path = (p: string | undefined) => (p ? resolve(baseDir, p) : undefined);
@@ -73,6 +76,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     backupDir: resolve(baseDir, env.BACKUP_DIR ?? file.backupDir ?? 'backups'),
     backupHour: Math.min(23, Math.max(0, Number(file.backupHour ?? 2))),
     logDir: path(env.LOG_DIR ?? file.logDir ?? undefined) ?? null,
+    desktop: Boolean(file.desktop ?? false),
     configPath: configPath && existsSync(configPath) ? configPath : null,
     webDistDir: join(APP_ROOT, 'web', 'dist'),
   };

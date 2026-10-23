@@ -66,7 +66,7 @@ export async function authRoutes(app: FastifyInstance, { db, config, version }: 
 
   app.get('/api/meta', async (): Promise<AppMeta> => {
     const org = await getSetting(db, 'org', { name: '' });
-    return { orgName: org.name, needsSetup: (await userCount()) === 0, version };
+    return { orgName: org.name, needsSetup: (await userCount()) === 0, version, desktop: config.desktop };
   });
 
   // 처음 실행: 관리자 계정이 하나도 없을 때만 동작한다

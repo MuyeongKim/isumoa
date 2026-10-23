@@ -4,6 +4,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  Power,
   Settings,
   Stamp,
   Table2,
@@ -19,6 +20,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { useCurrentUser, useLogout, useMeta } from '@/lib/session';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { SealMark } from './SealMark';
 
 interface NavItem {
@@ -54,6 +56,18 @@ export function AppShell() {
   const me = useCurrentUser();
   const { data: meta } = useMeta();
   const logout = useLogout();
+  const [quitOpen, setQuitOpen] = useState(false);
+  const [quitState, setQuitState] = useState<'idle' | 'busy' | 'done'>('idle');
+
+  // PC 설치판: 서버를 끄고, 이 창에는 끈 뒤의 안내를 띄운다
+  async function quit() {
+    setQuitState('busy');
+    try {
+      await api.post('/system/shutdown');
+    } finally {
+      setQuitState('done');
+    }
+  }
   const [passwordOpen, setPasswordOpen] = useState(false);
   const wide = useMatches().some((m) => (m.handle as { wide?: boolean } | undefined)?.wide);
   const overview = useQuery({
@@ -138,6 +152,16 @@ export function AppShell() {
               로그아웃
             </button>
           </div>
+          {meta?.desktop && me.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => setQuitOpen(true)}
+              className="mt-1 inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              <Power className="size-3.5" aria-hidden />
+              프로그램 끄기
+            </button>
+          )}
         </div>
       </aside>
 
@@ -147,6 +171,23 @@ export function AppShell() {
         </div>
       </main>
 
+      <ConfirmDialog
+        open={quitOpen && quitState !== 'done'}
+        title="프로그램 끄기"
+        description="처리 중인 이수증이 있으면 마친 뒤 프로그램을 끕니다. 다시 쓰려면 바탕화면의 '법정교육 이수증'을 누르세요."
+        confirmLabel="끄기"
+        busy={quitState === 'busy'}
+        onConfirm={() => void quit()}
+        onClose={() => setQuitOpen(false)}
+      />
+      {quitState === 'done' && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-paper p-6 text-center">
+          <div>
+            <p className="font-serif text-[22px] font-semibold">프로그램을 껐습니다</p>
+            <p className="mt-2 text-ink-soft">이 창을 닫아도 됩니다. 다시 쓰려면 바탕화면의 &lsquo;법정교육 이수증&rsquo;을 누르세요.</p>
+          </div>
+        </div>
+      )}
       <ChangePasswordDialog
         open={me.mustChangePassword || passwordOpen}
         forced={me.mustChangePassword}

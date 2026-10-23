@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { stat, statfs } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
@@ -30,7 +31,7 @@ async function sameDisk(a: string, b: string): Promise<boolean> {
   }
 }
 
-export async function systemRoutes(app: FastifyInstance, { db, config, version, ocr }: Deps) {
+export async function systemRoutes(app: FastifyInstance, { db, config, version, ocr, requestShutdown, shutdownToken }: Deps) {
   const startedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
 
   // 로그인 없이: 살아 있는지만 알려 준다 (서버 감시용)
@@ -55,7 +56,11 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version, 
     else if (!backups.last.ok) warnings.push(`마지막 백업이 실패했습니다: ${backups.last.error}`);
     else if (Date.now() - Date.parse(backups.last.at) > 2 * 86_400_000) warnings.push('마지막 백업이 이틀 넘게 지났습니다. 서버 시각과 백업 폴더를 확인해 주세요.');
     if (backups.last?.ok && (await sameDisk(config.dataDir, config.backupDir))) {
-      warnings.push('백업 폴더가 데이터와 같은 디스크에 있습니다. 디스크가 고장 나면 함께 잃으므로 config.json의 backupDir을 다른 디스크나 NAS로 바꿔 주세요.');
+      warnings.push(
+        config.desktop
+          ? `백업이 이 PC 안(${config.backupDir})에만 있습니다. PC가 고장 나면 함께 잃으므로 가끔 이 폴더를 USB나 부서 공유 폴더에 복사해 두세요.`
+          : '백업 폴더가 데이터와 같은 디스크에 있습니다. 디스크가 고장 나면 함께 잃으므로 config.json의 backupDir을 다른 디스크나 NAS로 바꿔 주세요.',
+      );
     }
     if (ocr?.fallbackReason) {
       warnings.push(`기본 OCR(kordoc)을 띄우지 못해 tesseract로 읽고 있습니다. 스캔본 정확도가 낮을 수 있습니다: ${ocr.fallbackReason}`);
@@ -79,6 +84,25 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version, 
       backup: backups.last,
       warnings,
     };
+  });
+
+  // PC 설치판: 관리자가 화면에서 프로그램을 끈다 (처리 중인 쪽을 마치고 꺼짐)
+  app.post('/api/system/shutdown', { preHandler: requireAdmin }, async (req, reply) => {
+    if (!config.desktop || !requestShutdown) throw new HttpError(404, 'PC 설치판에서만 쓸 수 있습니다.');
+    await audit(db, req, 'system.shutdown');
+    setTimeout(() => requestShutdown('화면에서 프로그램 끄기'), 300);
+    return reply.send({ ok: true });
+  });
+
+  // PC 설치판: 설치(업그레이드)·제거 프로그램이 켜져 있는 서버를 끈다.
+  // 이 PC 사용자 폴더의 열쇠 파일(run/shutdown.token) 값을 아는 프로그램만 끌 수 있다.
+  app.post('/api/system/quit', async (req, reply) => {
+    if (!config.desktop || !requestShutdown || !shutdownToken) throw new HttpError(404, '요청한 주소를 찾을 수 없습니다.');
+    const given = Buffer.from(String(req.headers['x-shutdown-token'] ?? ''));
+    const expected = Buffer.from(shutdownToken);
+    if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw new HttpError(403, '허용되지 않은 요청입니다.');
+    setTimeout(() => requestShutdown('설치·제거 프로그램 요청'), 300);
+    return reply.send({ ok: true });
   });
 
   app.get('/api/backups', { preHandler: requireAdmin }, async (): Promise<BackupStatus> => backupStatus(db, config));
