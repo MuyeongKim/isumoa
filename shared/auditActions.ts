@@ -8,6 +8,7 @@ export const AUDIT_CATEGORIES = {
   certificate: '이수증',
   export: '내보내기',
   settings: '설정·교육 과정',
+  security: '보안·백업·파기',
 } as const;
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;
 
@@ -42,6 +43,12 @@ export const AUDIT_ACTIONS: Record<string, { label: string; category: AuditCateg
   'settings.ai.test': { label: 'AI 연결 테스트', category: 'settings' },
   'training.create': { label: '교육 과정 추가', category: 'settings' },
   'training.update': { label: '교육 과정 바꾸기', category: 'settings' },
+  'settings.retention': { label: '보관기간 바꾸기', category: 'security' },
+  'retention.purge': { label: '보관기간 지난 자료 파기', category: 'security' },
+  'logs.prune': { label: '보관기간 지난 기록 정리', category: 'security' },
+  'logs.verify': { label: '기록 위·변조 확인', category: 'security' },
+  'accesslog.review': { label: '접속기록 월 점검', category: 'security' },
+  'backup.run': { label: '백업', category: 'security' },
 };
 
 export function actionsOf(category: AuditCategory): string[] {

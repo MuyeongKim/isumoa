@@ -21,11 +21,15 @@ const ExportQuery = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
   departmentId: z.coerce.number().int().positive().optional(),
 });
-const ZipQuery = ExportQuery.extend({
+// 개인정보가 든 자료를 내려받을 때는 사유를 받는다 (접속기록 월 점검 때 확인)
+const DownloadQuery = ExportQuery.extend({
+  reason: z.string({ error: '내려받는 사유를 골라 주세요.' }).trim().min(2, '내려받는 사유를 골라 주세요.').max(100),
+});
+const ZipQuery = DownloadQuery.extend({
   layout: z.enum(ZIP_LAYOUTS).default('training'),
   trainingId: z.coerce.number().int().positive().optional(),
 });
-const PdfQuery = ExportQuery.extend({ trainingId: z.coerce.number().int().positive() });
+const PdfQuery = DownloadQuery.extend({ trainingId: z.coerce.number().int().positive() });
 
 function today(): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()).replaceAll('-', '');
@@ -64,7 +68,7 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
   });
 
   app.get('/api/exports/status.xlsx', { preHandler: requireUser }, async (req, reply) => {
-    const { year, departmentId } = ExportQuery.parse(req.query);
+    const { year, departmentId, reason } = DownloadQuery.parse(req.query);
     const { user, scope, label, filePart } = await resolveScope(req, departmentId);
     const report = await loadStatusReport(db, { year, scope, departmentId });
     const records = await loadRecords(db, { year, scope, departmentId });
@@ -78,19 +82,19 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
       report,
       records,
     });
-    await audit(db, req, 'export.excel', undefined, { year, scope: label, employees: report.rows.length, certificates: records.length });
+    await audit(db, req, 'export.excel', undefined, { year, scope: label, employees: report.rows.length, certificates: records.length, reason });
     reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     reply.header('Content-Disposition', contentDisposition(`${year}년_법정교육_이수현황${filePart}_${today()}.xlsx`, 'status.xlsx'));
     return reply.send(buffer);
   });
 
   app.get('/api/exports/certificates.zip', { preHandler: requireUser }, async (req, reply) => {
-    const { year, departmentId, layout, trainingId } = ZipQuery.parse(req.query);
+    const { year, departmentId, layout, trainingId, reason } = ZipQuery.parse(req.query);
     const { scope, label, filePart } = await resolveScope(req, departmentId);
     const records = await loadRecords(db, { year, scope, departmentId, trainingId });
     if (records.length === 0) throw badRequest('내보낼 확정 이수증이 없습니다.');
     const trainingPart = trainingId ? `_${safeName(records[0].trainingName)}` : '';
-    await audit(db, req, 'export.zip', undefined, { year, scope: label, layout, trainingId: trainingId ?? null, files: records.length });
+    await audit(db, req, 'export.zip', undefined, { year, scope: label, layout, trainingId: trainingId ?? null, files: records.length, reason });
     reply.header('Content-Type', 'application/zip');
     reply.header(
       'Content-Disposition',
@@ -100,13 +104,13 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
   });
 
   app.get('/api/exports/merged.pdf', { preHandler: requireUser }, async (req, reply) => {
-    const { year, departmentId, trainingId } = PdfQuery.parse(req.query);
+    const { year, departmentId, trainingId, reason } = PdfQuery.parse(req.query);
     const { scope, label, filePart } = await resolveScope(req, departmentId);
     const records = await loadRecords(db, { year, scope, departmentId, trainingId });
     if (records.length === 0) throw badRequest('합칠 확정 이수증이 없습니다.');
     const training = records[0].trainingName;
     const pdf = await buildMergedPdf(records, `${year}년 ${training} 이수증 합본 (${label})`, config.dataDir);
-    await audit(db, req, 'export.pdf', undefined, { year, scope: label, training, certificates: new Set(records.map((r) => r.certificateId)).size });
+    await audit(db, req, 'export.pdf', undefined, { year, scope: label, training, certificates: new Set(records.map((r) => r.certificateId)).size, reason });
     reply.header('Content-Type', 'application/pdf');
     reply.header('Content-Disposition', contentDisposition(`${year}년_${safeName(training)}_이수증합본${filePart}.pdf`, 'merged.pdf'));
     return reply.send(Buffer.from(pdf));

@@ -122,6 +122,12 @@ const CONFIG = {
   trustProxy: false,
   // false로 바꾸면 기관 밖(인터넷) AI 서버를 아예 쓸 수 없다 (설치가이드의 "AI 연결" 참고)
   allowExternalAi: true,
+  // HTTPS 인증서: { "certFile": "cert/server.crt", "keyFile": "cert/server.key" } (설치가이드의 "HTTPS" 참고)
+  tls: null,
+  // 백업 폴더는 데이터와 다른 디스크(또는 NAS)를 권한다. 매일 backupHour시(한국 시각)에 자동 백업
+  backupDir: 'backups',
+  backupHour: 2,
+  logDir: 'logs',
 };
 
 // .bat 파일은 윈도우 명령 창에서 한글이 깨지지 않도록 영문만 쓴다
@@ -149,6 +155,22 @@ const EVAL_SH = `#!/bin/sh
 cd "$(dirname "$0")" || exit 1
 export ECP_CONFIG="$PWD/config.json"
 exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/eval-ai.ts "$@"
+`;
+
+const RESTORE_BAT = [
+  '@echo off',
+  'chcp 65001 >nul',
+  'cd /d "%~dp0"',
+  'set "ECP_CONFIG=%~dp0config.json"',
+  '"%~dp0node\\node.exe" --disable-warning=ExperimentalWarning "%~dp0app\\scripts\\restore.ts" %*',
+  '',
+].join('\r\n');
+
+const RESTORE_SH = `#!/bin/sh
+# 백업 복원·복원 연습 — 예: ./restore.sh --check
+cd "$(dirname "$0")" || exit 1
+export ECP_CONFIG="$PWD/config.json"
+exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/restore.ts "$@"
 `;
 
 const START_SH = `#!/bin/sh
@@ -182,7 +204,7 @@ for (const dir of ['server', 'shared', 'vendor']) cpSync(join(ROOT, dir), join(a
 cpSync(join(ROOT, 'web', 'dist'), join(appDir, 'web', 'dist'), { recursive: true });
 for (const file of ['package.json', 'package-lock.json']) copyFileSync(join(ROOT, file), join(appDir, file));
 mkdirSync(join(appDir, 'scripts'), { recursive: true });
-copyFileSync(join(ROOT, 'scripts', 'eval-ai.ts'), join(appDir, 'scripts', 'eval-ai.ts'));
+for (const script of ['eval-ai.ts', 'restore.ts']) copyFileSync(join(ROOT, 'scripts', script), join(appDir, 'scripts', script));
 
 step('실행에 필요한 라이브러리만 설치 (개발 도구 제외)');
 run('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], appDir);
@@ -200,7 +222,21 @@ chmodSync(join(outDir, 'start.sh'), 0o755);
 writeFileSync(join(outDir, 'eval.bat'), EVAL_BAT);
 writeFileSync(join(outDir, 'eval.sh'), EVAL_SH);
 chmodSync(join(outDir, 'eval.sh'), 0o755);
-for (const doc of ['설치가이드.md', 'IT-확인요청서.md']) {
+writeFileSync(join(outDir, 'restore.bat'), RESTORE_BAT);
+writeFileSync(join(outDir, 'restore.sh'), RESTORE_SH);
+chmodSync(join(outDir, 'restore.sh'), 0o755);
+// 서비스 등록: Windows는 작업 스케줄러(따로 받을 프로그램 없음), Linux는 systemd
+const serviceDir = join(outDir, 'service');
+mkdirSync(serviceDir, { recursive: true });
+for (const os of ['windows', 'linux']) {
+  for (const file of readdirSync(join(ROOT, 'deploy', os))) {
+    const text = readFileSync(join(ROOT, 'deploy', os, file), 'utf8');
+    // .bat은 Windows 줄바꿈이어야 cmd가 제대로 읽는다
+    writeFileSync(join(serviceDir, file), file.endsWith('.bat') ? text.replace(/\r?\n/g, '\r\n') : text);
+    if (file.endsWith('.sh')) chmodSync(join(serviceDir, file), 0o755);
+  }
+}
+for (const doc of ['설치가이드.md', '운영가이드.md', 'IT-확인요청서.md']) {
   if (existsSync(join(ROOT, 'docs', doc))) copyFileSync(join(ROOT, 'docs', doc), join(outDir, doc));
 }
 

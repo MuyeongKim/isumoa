@@ -15,6 +15,7 @@ import { badRequest, HttpError, notFound } from '../lib/errors.ts';
 import { cleanOrNull } from '../lib/text.ts';
 import { detectUploadType, filesDir, originalPath, pageImagePath, pagesDir } from '../storage.ts';
 import { contentDisposition } from '../lib/http.ts';
+import { maskRrn } from '../lib/privacy.ts';
 
 // 이수증 올리기: 묶음 만들기 → 원본 파일 올리기 → 화면이 쪼갠 쪽 이미지를 한 쪽씩 올리기.
 // 쪽이 올라오면 처리 대기열에 넣는다. 같은 파일을 다시 올리면 빠진 쪽부터 이어 올리게 알려 준다.
@@ -292,7 +293,7 @@ export async function uploadRoutes(app: FastifyInstance, { db, config, worker, a
           page_no: meta.pageNo,
           width: meta.width,
           height: meta.height,
-          text_layer: meta.text.normalize('NFC') || null,
+          text_layer: maskRrn(meta.text.normalize('NFC')) || null,
         })
         .returning('id')
         .executeTakeFirstOrThrow();

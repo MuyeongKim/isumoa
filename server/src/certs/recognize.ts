@@ -8,6 +8,7 @@ import { PROMPT_VERSION } from '../ai/prompt.ts';
 import { externalUseProblem, loadAiSettings, useVision, type AiSettings } from '../ai/settings.ts';
 import type { AppConfig } from '../config.ts';
 import type { DB } from '../db/schema.ts';
+import { maskRrn } from '../lib/privacy.ts';
 import { nameKey } from '../lib/text.ts';
 import type { OcrEngine } from '../ocr/tesseract.ts';
 import { pageImagePath } from '../storage.ts';
@@ -86,7 +87,7 @@ export async function recognizePage(
     text = page.text_layer!;
   } else {
     // 앞에서 OCR까지 하고 꺼졌다면 그 결과를 다시 쓴다
-    text = page.ocr_text ?? (await deps.ocr.recognize(pageImagePath(deps.dataDir, page.file_id, page.page_no, 'image')));
+    text = page.ocr_text ?? maskRrn(await deps.ocr.recognize(pageImagePath(deps.dataDir, page.file_id, page.page_no, 'image')));
     if (page.ocr_text === null) await db.updateTable('pages').set({ ocr_text: text }).where('id', '=', page.id).execute();
   }
 
@@ -138,7 +139,7 @@ export async function recognizePage(
       image: vision ? readFileSync(pageImagePath(deps.dataDir, page.file_id, page.page_no, 'image')) : null,
     });
     deps.aiHealth.recordSuccess();
-    Object.assign(aiRecord, { raw: result.raw, model: result.model, ms: result.ms });
+    Object.assign(aiRecord, { raw: maskRrn(result.raw), model: result.model, ms: result.ms });
     extraction = result.extraction;
   } catch (err) {
     const message = aiFailureMessage(err);
@@ -146,7 +147,7 @@ export async function recognizePage(
       if (err.retryable || err.kind === 'auth' || err.kind === 'bad-request') deps.aiHealth.recordFailure(message);
       if (err.retryable && !options.finalAttempt) throw err;
     }
-    if (err instanceof ExtractionError) Object.assign(aiRecord, { raw: err.raw, model: err.model });
+    if (err instanceof ExtractionError) Object.assign(aiRecord, { raw: maskRrn(err.raw), model: err.model });
     return fallback(message);
   }
 

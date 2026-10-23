@@ -7,6 +7,7 @@ import { createHarness, PDF, type Harness } from './harness.ts';
 
 // 대시보드·내보내기(엑셀·ZIP·합본 PDF)·감사 로그. 받은 파일을 실제로 열어 내용까지 확인한다.
 
+const REASON = encodeURIComponent('감사·점검 제출');
 let h: Harness;
 let clerkCookie = '';
 let financeId: number;
@@ -122,8 +123,14 @@ describe('내보내기', () => {
     expect(s.trainings.find((t) => t.name === '성희롱 예방교육')?.certificates).toBe(1);
   });
 
-  it('이수 현황 엑셀: 시트 4개, 직원별 판정, 근거 이수증 목록', async () => {
+  it('내려받을 때는 사유가 있어야 한다', async () => {
     const res = await h.send('GET', '/api/exports/status.xlsx?year=2026');
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.message).toContain('사유');
+  });
+
+  it('이수 현황 엑셀: 시트 4개, 직원별 판정, 근거 이수증 목록', async () => {
+    const res = await h.send('GET', `/api/exports/status.xlsx?year=2026&reason=${REASON}`);
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-disposition']).toContain(encodeURIComponent('2026년_법정교육_이수현황'));
     const wb = XLSX.read(res.rawPayload);
@@ -145,7 +152,7 @@ describe('내보내기', () => {
   });
 
   it('이수증 ZIP: 교육별 폴더, Windows에서 쓸 수 있는 한글 이름(UTF-8 표시), 열리는 PDF', async () => {
-    const res = await h.send('GET', '/api/exports/certificates.zip?year=2026&layout=training');
+    const res = await h.send('GET', `/api/exports/certificates.zip?year=2026&layout=training&reason=${REASON}`);
     expect(res.statusCode).toBe(200);
     const entries = readZip(res.rawPayload);
     expect(entries.map((e) => e.name).sort()).toEqual(
@@ -161,29 +168,29 @@ describe('내보내기', () => {
     expect(entries.every((e) => e.utf8)).toBe(true);
     for (const e of entries) expect((await PDFDocument.load(e.data)).getPageCount()).toBe(1);
 
-    const byDept = readZip((await h.send('GET', '/api/exports/certificates.zip?year=2026&layout=department')).rawPayload);
+    const byDept = readZip((await h.send('GET', `/api/exports/certificates.zip?year=2026&layout=department&reason=${REASON}`)).rawPayload);
     expect(new Set(byDept.map((e) => e.name.split('/')[0]))).toEqual(new Set(['총무과', '재무과']));
   });
 
   it('교육별 합본 PDF: 그 교육의 이수증을 부서·성명 순서로 모은다', async () => {
     const s = (await h.send('GET', '/api/exports/summary?year=2026')).json() as ExportSummary;
     const integrity = s.trainings.find((t) => t.name === '청렴교육(부패방지교육)')!;
-    const res = await h.send('GET', `/api/exports/merged.pdf?year=2026&trainingId=${integrity.trainingId}`);
+    const res = await h.send('GET', `/api/exports/merged.pdf?year=2026&trainingId=${integrity.trainingId}&reason=${REASON}`);
     expect(res.statusCode).toBe(200);
     const doc = await PDFDocument.load(res.rawPayload);
     expect(doc.getPageCount()).toBe(2);
     expect(doc.getTitle()).toContain('청렴교육');
 
     const empty = s.trainings.find((t) => t.certificates === 0)!;
-    expect((await h.send('GET', `/api/exports/merged.pdf?year=2026&trainingId=${empty.trainingId}`)).statusCode).toBe(400);
+    expect((await h.send('GET', `/api/exports/merged.pdf?year=2026&trainingId=${empty.trainingId}&reason=${REASON}`)).statusCode).toBe(400);
   });
 
   it('서무는 담당 부서 것만 받고, 다른 부서를 고르면 거절한다', async () => {
     const s = (await get('/api/exports/summary?year=2026', clerkCookie)).json() as ExportSummary;
     expect(s.certificates).toBe(2);
-    const zip = readZip((await get('/api/exports/certificates.zip?year=2026&layout=department', clerkCookie)).rawPayload);
+    const zip = readZip((await get(`/api/exports/certificates.zip?year=2026&layout=department&reason=${REASON}`, clerkCookie)).rawPayload);
     expect(zip.every((e) => e.name.startsWith('총무과/'))).toBe(true);
-    expect((await get(`/api/exports/status.xlsx?year=2026&departmentId=${financeId}`, clerkCookie)).statusCode).toBe(403);
+    expect((await get(`/api/exports/status.xlsx?year=2026&departmentId=${financeId}&reason=${REASON}`, clerkCookie)).statusCode).toBe(403);
   });
 });
 
@@ -192,7 +199,7 @@ describe('감사 로그', () => {
     const page = (await h.send('GET', '/api/audit?category=export')).json() as AuditPage;
     expect(page.entries.map((e) => e.action)).toEqual(expect.arrayContaining(['export.excel', 'export.zip', 'export.pdf']));
     expect(page.entries.find((e) => e.userLogin === 'clerk1')).toMatchObject({ userName: '총무서무', action: 'export.zip' });
-    expect(page.entries.find((e) => e.action === 'export.excel')?.detail).toMatchObject({ year: 2026, scope: '전체 부서' });
+    expect(page.entries.find((e) => e.action === 'export.excel')?.detail).toMatchObject({ year: 2026, scope: '전체 부서', reason: '감사·점검 제출' });
 
     const byUser = (await h.send('GET', '/api/audit?user=clerk1')).json() as AuditPage;
     expect(byUser.entries.every((e) => e.userLogin === 'clerk1')).toBe(true);

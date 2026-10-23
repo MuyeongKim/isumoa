@@ -104,6 +104,22 @@ export interface AuditLogTable {
   target_id: string | null;
   detail: string | null;
   ip: string | null;
+  prev_hash: string | null;
+  hash: string | null;
+}
+
+export interface AccessLogTable {
+  id: Generated<number>;
+  at: string;
+  user_id: number | null;
+  user_login: string | null;
+  method: string;
+  path: string;
+  status: number;
+  ip: string | null;
+  ms: number | null;
+  prev_hash: string;
+  hash: string;
 }
 
 export interface BatchesTable {
@@ -213,6 +229,7 @@ export interface DB {
   exemptions: ExemptionsTable;
   settings: SettingsTable;
   audit_log: AuditLogTable;
+  access_log: AccessLogTable;
   batches: BatchesTable;
   files: FilesTable;
   pages: PagesTable;

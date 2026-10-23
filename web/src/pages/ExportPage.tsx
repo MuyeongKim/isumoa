@@ -4,13 +4,17 @@ import { useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { Department, ExportSummary, ZipLayout } from '@shared/types.ts';
 import { LoadingRows, PageHeader } from '@/components/PageHeader';
-import { Select } from '@/components/ui/Field';
+import { Input, Select } from '@/components/ui/Field';
 import { api } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
 
 // 내보내기: 확정한 이수증으로 이수 현황 엑셀, 이수증 ZIP, 교육별 합본 PDF를 받는다.
 // 내려받기는 보통 링크(GET)라서 브라우저의 내려받기 표시가 그대로 뜬다.
+// 개인정보가 든 자료라 사유를 먼저 고르게 하고, 사유는 감사 로그에 남는다.
+
+const REASONS = ['연간 이수 현황 보고', '감사·점검 제출', '부서 미이수자 독려', '증빙 자료 보관'];
+const OTHER = '기타';
 
 function DownloadLink({ href, disabled, children, primary }: { href: string; disabled?: boolean; children: ReactNode; primary?: boolean }) {
   const style = cn(
@@ -56,9 +60,14 @@ export function ExportPage() {
   const departmentId = Number(params.get('departmentId')) || null;
   const [layout, setLayout] = useState<ZipLayout>('training');
   const [zipTraining, setZipTraining] = useState<number | null>(null);
+  const [reasonChoice, setReasonChoice] = useState('');
+  const [reasonText, setReasonText] = useState('');
+  const reason = reasonChoice === OTHER ? reasonText.trim() : reasonChoice;
+  const noReason = reason.length < 2;
 
   const departments = useQuery({ queryKey: ['departments'], queryFn: () => api.get<Department[]>('/departments') });
   const scopeQuery = `year=${year}${departmentId ? `&departmentId=${departmentId}` : ''}`;
+  const downloadQuery = `${scopeQuery}&reason=${encodeURIComponent(reason)}`;
   const summary = useQuery({
     queryKey: ['exports', year, departmentId],
     queryFn: () => api.get<ExportSummary>(`/exports/summary?${scopeQuery}`),
@@ -115,6 +124,26 @@ export function ExportPage() {
             </p>
           )}
 
+          <section className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-sheet px-5 py-4">
+            <label className="text-[13px]">
+              <span className="mb-1 block font-medium">
+                내려받는 사유<span className="ml-0.5 text-seal">*</span>
+              </span>
+              <Select className="w-56" value={reasonChoice} onChange={(e) => setReasonChoice(e.target.value)}>
+                <option value="">사유를 고르세요</option>
+                {[...REASONS, OTHER].map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            {reasonChoice === OTHER && (
+              <Input className="w-72" value={reasonText} onChange={(e) => setReasonText(e.target.value)} placeholder="사유를 적어 주세요" maxLength={100} aria-label="기타 사유" />
+            )}
+            <p className="text-[12.5px] text-ink-faint">직원 개인정보가 든 자료라 사유를 함께 기록합니다. 관리자가 매달 접속기록을 점검할 때 확인합니다.</p>
+          </section>
+
           <Card
             icon={<FileSpreadsheet className="size-5" aria-hidden />}
             title="이수 현황 엑셀"
@@ -135,7 +164,7 @@ export function ExportPage() {
               </ul>
             }
           >
-            <DownloadLink primary href={`/api/exports/status.xlsx?${scopeQuery}`}>
+            <DownloadLink primary href={`/api/exports/status.xlsx?${downloadQuery}`} disabled={noReason}>
               엑셀 받기
             </DownloadLink>
           </Card>
@@ -173,8 +202,8 @@ export function ExportPage() {
                 ))}
               </Select>
               <DownloadLink
-                href={`/api/exports/certificates.zip?${scopeQuery}&layout=${layout}${zipTraining ? `&trainingId=${zipTraining}` : ''}`}
-                disabled={zipFiles === 0}
+                href={`/api/exports/certificates.zip?${downloadQuery}&layout=${layout}${zipTraining ? `&trainingId=${zipTraining}` : ''}`}
+                disabled={zipFiles === 0 || noReason}
               >
                 ZIP 받기 ({formatNumber(zipFiles)}개 파일)
               </DownloadLink>
@@ -192,14 +221,14 @@ export function ExportPage() {
                   <span className="min-w-0 flex-1 truncate font-medium">{t.name}</span>
                   <span className="w-20 text-right text-[13px] text-ink-soft tabular-nums">{formatNumber(t.certificates)}장</span>
                   <a
-                    href={`/api/exports/merged.pdf?${scopeQuery}&trainingId=${t.trainingId}`}
+                    href={`/api/exports/merged.pdf?${downloadQuery}&trainingId=${t.trainingId}`}
                     download
-                    aria-disabled={t.certificates === 0}
+                    aria-disabled={t.certificates === 0 || noReason}
                     className={cn(
-                      'w-20 text-right text-[13.5px] text-link hover:underline',
-                      t.certificates === 0 && 'pointer-events-none text-ink-faint no-underline',
+                      'w-20 text-right text-[13.5px]',
+                      t.certificates === 0 || noReason ? 'pointer-events-none text-ink-faint' : 'text-link hover:underline',
                     )}
-                    tabIndex={t.certificates === 0 ? -1 : undefined}
+                    tabIndex={t.certificates === 0 || noReason ? -1 : undefined}
                   >
                     PDF 받기
                   </a>

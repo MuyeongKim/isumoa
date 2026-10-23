@@ -10,7 +10,7 @@
 | 2 | 이수증 올리기(PDF 쪽 나누기), 처리 대기열, OCR, 검수함, 이수 판정·현황 | 완료 |
 | 3 | AI 인식(로컬·기관 AI 서버, Claude API), 교육 분류·직원 매칭, 일괄 확정, 정확도 점검 | 완료 |
 | 4 | 대시보드(전체·교육별·부서별 이수율), 엑셀·이수증 ZIP·교육별 합본 PDF 내보내기, 감사 로그 화면 | 완료 |
-| 5 | 보안 강화, 서비스 등록, 백업·복원, 설치·운영 가이드 | 예정 |
+| 5 | 접속기록(위·변조 확인·월 점검), 내려받기 사유, HTTPS, 주민번호 가림, 보관기간·파기, 백업·복원, 서비스 등록, 시스템 점검, 설치·운영 가이드 | 완료 |
 
 ## 개발 환경에서 실행
 
@@ -65,6 +65,7 @@ npm run dev
 | `npm run samples` | 가상 인사 명단 파일 만들기 |
 | `npm run samples:certs` | 가상 이수증 PDF·스캔본 만들기 (개발용 그림 라이브러리 사용) |
 | `npm run eval -- --truth samples/certs/정답.json` | AI 인식 정확도 점검 (`--truth confirmed`: 확정한 결과를 정답으로, `--rules`: AI 없이, `--model …`: 다른 모델로) |
+| `npm run restore -- --check` | 백업 복원 연습 (`--list` 목록, `--apply --yes` 실제 복원 — 서버를 멈춘 뒤) |
 | `npm run release` | 내부망 설치본 zip 만들기 (`-- --target win-x64 --download-node` 처럼 다른 OS용도 가능) |
 
 ## 폴더 구조
@@ -81,14 +82,16 @@ server/    서버 (Fastify)
   src/certs/        이수증 읽기(규칙·AI 합치기), 직원 찾기, 교육 분류, 확인할 점, 이수 판정
   src/ai/           AI 연결 — OpenAI 호환·Claude API 호출, 지시문, 답 검사, 연결 테스트
   src/reports/      이수 현황 계산(대시보드·엑셀 공용), 엑셀, 이수증 ZIP·합본 PDF, 파일 이름
+  src/ops/          백업, 보관기간·파기, 매일 하는 예약 작업
   assets/           연결 테스트용 가상 이수증
   src/jobs/         쪽 처리 대기열 (꺼졌다 켜져도 이어서 처리)
   src/ocr/          스캔본 글자 읽기 (tesseract.js, 한국어 데이터 포함)
   src/auth/         로그인·세션·권한
 shared/    화면과 서버가 함께 쓰는 타입과 규칙
-scripts/   가상 명단·이수증 만들기, AI 정확도 점검(eval-ai.ts), 설치본 만들기
+scripts/   가상 명단·이수증 만들기, AI 정확도 점검(eval-ai.ts), 백업 복원(restore.ts), 설치본 만들기
+deploy/    서비스 등록 파일 (Windows 작업 스케줄러, Linux systemd)
 tests/     테스트 (fakes/: 장애를 일부러 낼 수 있는 가짜 AI 서버)
-docs/      설치 가이드, 정보화 담당 확인 요청서
+docs/      설치 가이드, 운영 가이드, 정보화 담당 확인 요청서
 vendor/    SheetJS (엑셀 읽기) 공식 배포 파일
 ```
 

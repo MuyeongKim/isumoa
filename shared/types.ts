@@ -401,6 +401,127 @@ export interface AuditPage {
   pageSize: number;
 }
 
+// ── 보관·파기·백업·점검 ─────────────────────────────────────────
+
+export interface RetentionSettings {
+  /** 이수증 자료(원본·쪽 이미지·이수 기록) 보관 연수. 다음 해 1월 1일부터 센다 */
+  documentYears: number;
+  /** 접속기록 보관 연수 (최소 2년) */
+  accessLogYears: number;
+  /** 감사 로그(계정·권한 변경 이력 포함) 보관 연수 (최소 3년) */
+  auditLogYears: number;
+  /** DB 백업본을 몇 개까지 둘지 (하루 1번이면 일수) */
+  backupKeep: number;
+}
+
+export interface PurgeCandidate {
+  year: number;
+  batches: number;
+  files: number;
+  bytes: number;
+  pages: number;
+  certificates: number;
+  exemptions: number;
+  /** 함께 지우는 퇴직자 (다른 해 이수 기록이 없는 사람) */
+  retiredEmployees: number;
+}
+
+export interface RetentionView {
+  settings: RetentionSettings;
+  minimum: RetentionSettings;
+  /** 파기할 수 있는 연도 */
+  candidates: PurgeCandidate[];
+  thisYear: number;
+}
+
+export interface AccessLogEntry {
+  id: number;
+  at: string;
+  userLogin: string | null;
+  userName: string | null;
+  method: string;
+  path: string;
+  status: number;
+  ip: string | null;
+}
+
+export interface AccessLogPage {
+  entries: AccessLogEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 접속기록 월 점검 */
+export interface AccessReview {
+  month: string;
+  users: {
+    userLogin: string;
+    userName: string | null;
+    requests: number;
+    views: number;
+    changes: number;
+    downloads: number;
+    /** 평일 07~21시 밖(야간·주말) 요청 */
+    afterHours: number;
+    failedLogins: number;
+  }[];
+  /** 그달 내려받기와 사유 */
+  downloads: { at: string; userLogin: string | null; userName: string | null; action: string; reason: string | null; scope: string | null }[];
+  reviewed: { at: string; by: string | null; note: string | null } | null;
+}
+
+export interface ChainCheckView {
+  ok: boolean;
+  checked: number;
+  firstId: number | null;
+  lastId: number | null;
+  trimmed: boolean;
+  brokenAt: number | null;
+  problem: string | null;
+}
+
+export interface LogIntegrity {
+  checkedAt: string;
+  audit: ChainCheckView;
+  access: ChainCheckView;
+}
+
+export interface BackupSnapshot {
+  file: string;
+  at: string;
+  bytes: number;
+}
+
+export interface BackupStatus {
+  dir: string;
+  /** 매일 이 시각(한국 시각)에 자동 백업 */
+  hour: number;
+  last: { at: string; ok: boolean; file: string | null; copiedFiles: number; removedFiles: number; ms: number; error: string | null } | null;
+  snapshots: BackupSnapshot[];
+  running: boolean;
+}
+
+export interface SystemCheck {
+  version: string;
+  node: string;
+  platform: string;
+  startedAt: string;
+  dataDir: string;
+  dbBytes: number;
+  freeBytes: number | null;
+  totalBytes: number | null;
+  https: boolean;
+  cookieSecure: boolean;
+  host: string;
+  port: number;
+  allowExternalAi: boolean;
+  aiEnabled: boolean;
+  backup: BackupStatus['last'];
+  /** 운영 전에 고칠 점 */
+  warnings: string[];
+}
+
 // ── AI 연결 ─────────────────────────────────────────────────────
 
 /** openai-compatible: 기관 AI 서버·Ollama·vLLM·OpenAI 등 / anthropic: Claude API */

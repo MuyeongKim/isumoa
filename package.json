@@ -18,7 +18,8 @@
     "samples": "node scripts/make-sample-roster.ts",
     "release": "node --disable-warning=ExperimentalWarning scripts/release.ts",
     "samples:certs": "node scripts/make-sample-certificates.ts",
-    "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ai.ts"
+    "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ai.ts",
+    "restore": "node --disable-warning=ExperimentalWarning scripts/restore.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.1.0",
