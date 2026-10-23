@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useMatches } from 'react-router';
 import { ROLE_LABELS, type Overview } from '@shared/types.ts';
 import { api } from '@/lib/api';
+import { withBase } from '@/lib/base';
 import { cn } from '@/lib/format';
 import { useCurrentUser, useLogout, useMeta } from '@/lib/session';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
@@ -134,7 +135,7 @@ export function AppShell() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-0.5">
-            <a href="/manual.html" target="_blank" rel="noopener" className={footerButton}>
+            <a href={withBase('/manual.html')} target="_blank" rel="noopener" className={footerButton}>
               <BookOpen className="size-3.5" aria-hidden />
               사용설명서
             </a>

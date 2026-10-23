@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import MarkdownIt from 'markdown-it';
-import type { Plugin } from 'vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import { MARK } from './src/brand/glyphs.ts';
 
 // 사용설명서(docs/사용설명서.md)를 프로그램 안의 /manual.html 로 만든다.
@@ -50,7 +50,8 @@ export function slug(text: string): string {
     .replace(/\s/g, '-');
 }
 
-function render(markdown: string): { html: string; toc: { id: string; text: string }[] } {
+/** base: 하위 경로에 올릴 때의 기준 경로 (예: /kmy/edu-cert). 기본(루트)이면 빈 글자 */
+function render(markdown: string, base: string): { html: string; toc: { id: string; text: string }[] } {
   const md = new MarkdownIt({ html: false, linkify: false, typographer: false });
   const toc: { id: string; text: string }[] = [];
 
@@ -64,7 +65,7 @@ function render(markdown: string): { html: string; toc: { id: string; text: stri
     const token = tokens[i];
     const src = token.attrGet('src') ?? '';
     const alt = token.content;
-    return `<figure><img src="/manual/${src}" alt="${md.utils.escapeHtml(alt)}"${sizeAttrs(src)} loading="lazy"><figcaption>${md.utils.escapeHtml(alt)}</figcaption></figure>`;
+    return `<figure><img src="${base}/manual/${src}" alt="${md.utils.escapeHtml(alt)}"${sizeAttrs(src)} loading="lazy"><figcaption>${md.utils.escapeHtml(alt)}</figcaption></figure>`;
   };
   // 다른 문서(.md)로 가는 링크는 프로그램 안에 없으므로 글자만 남긴다
   const plain: boolean[] = [];
@@ -81,21 +82,25 @@ function render(markdown: string): { html: string; toc: { id: string; text: stri
 }
 
 export function manualPage(): Plugin {
+  let base = '';
   return {
     name: 'ecp-manual',
+    configResolved(config: ResolvedConfig) {
+      base = config.base.replace(/\/+$/, '');
+    },
     transformIndexHtml: {
       order: 'pre',
       handler(html, ctx) {
         if (!ctx.filename.endsWith('manual.html')) return html;
-        const { html: body, toc } = render(readFileSync(SOURCE, 'utf8'));
+        const { html: body, toc } = render(readFileSync(SOURCE, 'utf8'), base);
         const nav = toc.map((t) => `<li><a href="#${t.id}">${t.text.replace(/^\d+\.\s*/, '')}</a></li>`).join('');
         return html.replace('<!--MANUAL-->', `
 <div class="layout">
   <aside class="toc">
-    <a class="brand" href="/"><svg viewBox="0 0 100 100" width="36" height="36" role="img" aria-label="이수모아 로고"><rect width="100" height="100" rx="${MARK.compact.radius}" fill="#d23b2c"/><path d="${MARK.compact.glyphs.join('')}" fill="#fff"/></svg><span>이수모아</span></a>
+    <a class="brand" href="${base}/"><svg viewBox="0 0 100 100" width="36" height="36" role="img" aria-label="이수모아 로고"><rect width="100" height="100" rx="${MARK.compact.radius}" fill="#d23b2c"/><path d="${MARK.compact.glyphs.join('')}" fill="#fff"/></svg><span>이수모아</span></a>
     <p class="toc-title">사용설명서</p>
     <nav aria-label="차례"><ol>${nav}</ol></nav>
-    <div class="toc-foot"><button type="button" id="print">인쇄·PDF로 저장</button><a href="/">프로그램으로 돌아가기</a></div>
+    <div class="toc-foot"><button type="button" id="print">인쇄·PDF로 저장</button><a href="${base}/">프로그램으로 돌아가기</a></div>
   </aside>
   <main class="doc">${body}</main>
 </div>`);

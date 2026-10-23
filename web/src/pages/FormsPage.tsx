@@ -29,6 +29,7 @@ import { Field, FormError, Input, Select } from '@/components/ui/Field';
 import { Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
 import { api, errorMessage } from '@/lib/api';
+import { withBase } from '@/lib/base';
 import { cn, formatDateTime } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
 
@@ -524,7 +525,7 @@ export function FormsPage() {
                   <Td className="whitespace-nowrap text-ink-soft">{formatDateTime(f.updatedAt)}</Td>
                   <Td>
                     <div className="flex justify-end gap-1 whitespace-nowrap">
-                      <a href={`/api/forms/${f.id}/file`} className={buttonClass('ghost', 'sm')} title="올린 빈 양식 받기">
+                      <a href={withBase(`/api/forms/${f.id}/file`)} className={buttonClass('ghost', 'sm')} title="올린 빈 양식 받기">
                         <Download className="size-4" aria-hidden />빈 양식
                       </a>
                       {f.canEdit && (

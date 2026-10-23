@@ -12,6 +12,7 @@ import { Toaster } from 'sonner';
 import { AppShell } from './components/AppShell';
 import { AdminOnly, RequireAuth } from './components/RequireAuth';
 import { ApiError } from './lib/api';
+import { BASE } from './lib/base';
 import { EmployeeImportPage } from './pages/EmployeeImportPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { ExportPage } from './pages/ExportPage';
@@ -85,7 +86,7 @@ const router = createBrowserRouter([
       { path: '*', element: <NotFound /> },
     ],
   },
-]);
+], { basename: BASE || undefined });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

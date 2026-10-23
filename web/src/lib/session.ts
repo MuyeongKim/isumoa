@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppMeta, SessionUser } from '@shared/types.ts';
 import { api, ApiError } from './api.ts';
+import { withBase } from './base.ts';
 
 export function useMeta() {
   return useQuery({ queryKey: ['meta'], queryFn: () => api.get<AppMeta>('/meta'), staleTime: 60_000 });
@@ -34,6 +35,6 @@ export function useLogout() {
   return async () => {
     await api.post('/auth/logout').catch(() => undefined);
     queryClient.clear();
-    window.location.href = '/login';
+    window.location.href = withBase('/login');
   };
 }

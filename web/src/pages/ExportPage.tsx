@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import type { Department, ExportSummary, FormTemplate, ZipLayout } from '@shared/types.ts';
 import { LoadingRows, PageHeader } from '@/components/PageHeader';
 import { buttonClass } from '@/components/ui/Button';
+import { withBase } from '@/lib/base';
 import { Input, Select } from '@/components/ui/Field';
 import { api } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/format';
@@ -103,7 +104,7 @@ function FormCard({ departmentId, downloadQuery, noReason, canSplit }: { departm
           )}
           <DownloadLink
             primary
-            href={`/api/exports/form?${downloadQuery}&formId=${formId}${onlyMissing ? '&onlyMissing=1' : ''}${split && canSplit ? '&split=1' : ''}`}
+            href={withBase(`/api/exports/form?${downloadQuery}&formId=${formId}${onlyMissing ? '&onlyMissing=1' : ''}${split && canSplit ? '&split=1' : ''}`)}
             disabled={noReason || formId === null}
           >
             양식에 채워 받기
@@ -226,7 +227,7 @@ export function ExportPage() {
               </ul>
             }
           >
-            <DownloadLink primary href={`/api/exports/status.xlsx?${downloadQuery}`} disabled={noReason}>
+            <DownloadLink primary href={withBase(`/api/exports/status.xlsx?${downloadQuery}`)} disabled={noReason}>
               엑셀 받기
             </DownloadLink>
           </Card>
@@ -271,7 +272,7 @@ export function ExportPage() {
                 ))}
               </Select>
               <DownloadLink
-                href={`/api/exports/certificates.zip?${downloadQuery}&layout=${layout}${zipTraining ? `&trainingId=${zipTraining}` : ''}`}
+                href={withBase(`/api/exports/certificates.zip?${downloadQuery}&layout=${layout}${zipTraining ? `&trainingId=${zipTraining}` : ''}`)}
                 disabled={zipFiles === 0 || noReason}
               >
                 ZIP 받기 ({formatNumber(zipFiles)}개 파일)
@@ -290,7 +291,7 @@ export function ExportPage() {
                   <span className="min-w-0 flex-1 truncate font-medium">{t.name}</span>
                   <span className="w-20 text-right text-[13px] text-ink-soft tabular-nums">{formatNumber(t.certificates)}장</span>
                   <a
-                    href={`/api/exports/merged.pdf?${downloadQuery}&trainingId=${t.trainingId}`}
+                    href={withBase(`/api/exports/merged.pdf?${downloadQuery}&trainingId=${t.trainingId}`)}
                     download
                     aria-disabled={t.certificates === 0 || noReason}
                     className={cn(

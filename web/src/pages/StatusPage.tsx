@@ -16,6 +16,7 @@ import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
 import { StateMark } from '@/components/StateMark';
 import { Dialog } from '@/components/ui/Dialog';
 import { Input, Select } from '@/components/ui/Field';
+import { withBase } from '@/lib/base';
 import { api } from '@/lib/api';
 import { cn, formatNumber, requirementText } from '@/lib/format';
 import { matchesName } from '@/lib/hangul';
@@ -69,7 +70,7 @@ function CellDialog({
         <ul className="space-y-2">
           {(certificates.data ?? []).map((c) => (
             <li key={c.id} className="flex items-center gap-3 rounded-md border border-line px-3 py-2">
-              <img src={`/api/pages/${c.pageId}/thumb`} alt="" className="h-14 w-10 rounded-sm border border-line object-cover object-top" />
+              <img src={withBase(`/api/pages/${c.pageId}/thumb`)} alt="" className="h-14 w-10 rounded-sm border border-line object-cover object-top" />
               <div className="min-w-0 flex-1 text-[13.5px]">
                 <p className="font-medium">{c.completedOn}</p>
                 <p className="truncate text-ink-soft">

@@ -1,5 +1,6 @@
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { withBase } from '../lib/base.ts';
 
 // 서무 PC의 브라우저에서 PDF를 쪽마다 이미지로 그리고 글자층을 뽑는다.
 // 서버에서 하지 않는 이유: OS별로 컴파일해야 하는 그림 라이브러리 없이 설치본을 유지하려고.
@@ -24,10 +25,10 @@ export async function openPdf(file: File): Promise<{ doc: PDFDocumentProxy; clos
   const data = new Uint8Array(await file.arrayBuffer());
   const task = getDocument({
     data,
-    cMapUrl: '/pdfjs/cmaps/',
+    cMapUrl: withBase('/pdfjs/cmaps/'),
     cMapPacked: true,
-    standardFontDataUrl: '/pdfjs/standard_fonts/',
-    wasmUrl: '/pdfjs/wasm/',
+    standardFontDataUrl: withBase('/pdfjs/standard_fonts/'),
+    wasmUrl: withBase('/pdfjs/wasm/'),
   });
   return { doc: await task.promise, close: () => task.destroy() };
 }

@@ -16,6 +16,7 @@ import {
 import { shortTrainingName } from '@shared/trainingNames.ts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader } from '@/components/PageHeader';
+import { withBase } from '@/lib/base';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
@@ -299,7 +300,7 @@ export function ReviewPage() {
                     c.id === currentId ? 'bg-navy-soft ring-1 ring-navy/20' : 'hover:bg-paper',
                   )}
                 >
-                  <img src={`/api/pages/${c.pageId}/thumb`} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-[5px] border border-line object-cover object-top" />
+                  <img src={withBase(`/api/pages/${c.pageId}/thumb`)} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-[5px] border border-line object-cover object-top" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 text-[14px] font-semibold">
                       <FlagDot item={c} />

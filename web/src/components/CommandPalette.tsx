@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { EMPLOYEE_STATUS_LABELS, type Employee } from '@shared/types.ts';
 import { api } from '@/lib/api';
+import { withBase } from '@/lib/base';
 import { cn } from '@/lib/format';
 import { choseong, matchesName } from '@/lib/hangul';
 import { useCurrentUser } from '@/lib/session';
@@ -77,7 +78,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   function go(item: Item | undefined) {
     if (!item) return;
     onClose();
-    if (item.to.endsWith('.html')) window.open(item.to, '_blank', 'noopener');
+    if (item.to.endsWith('.html')) window.open(withBase(item.to), '_blank', 'noopener');
     else void navigate(item.to, { viewTransition: true });
   }
 
