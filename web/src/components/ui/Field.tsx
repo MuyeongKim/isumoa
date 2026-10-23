@@ -2,8 +2,8 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { cn } from '@/lib/format';
 
 const control =
-  'rounded-md border border-line-strong bg-sheet px-3 text-[14px] text-ink placeholder:text-ink-faint/70 ' +
-  'focus:border-link focus:outline-none focus:ring-2 focus:ring-link/20 disabled:bg-paper disabled:text-ink-faint';
+  'rounded-lg border border-line-strong bg-sheet px-3 text-[14.5px] text-ink transition-[border-color,box-shadow] placeholder:text-ink-faint/70 ' +
+  'hover:border-ink-faint/60 focus:border-navy focus:outline-none focus:ring-4 focus:ring-navy/12 disabled:bg-paper disabled:text-ink-faint';
 
 /** 너비를 따로 주지 않았으면 칸을 가득 채운다 */
 function width(className?: string): string {
@@ -11,12 +11,12 @@ function width(className?: string): string {
 }
 
 export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn(control, 'h-9', width(className), className)} {...rest} />;
+  return <input className={cn(control, 'h-10', width(className), className)} {...rest} />;
 }
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(control, 'h-9 pr-8', width(className), className)} {...rest}>
+    <select className={cn(control, 'h-10 pr-8', width(className), className)} {...rest}>
       {children}
     </select>
   );
@@ -39,7 +39,7 @@ interface FieldProps {
 export function Field({ label, htmlFor, required, hint, error, className, children }: FieldProps) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      <label htmlFor={htmlFor} className="block text-[13px] font-medium text-ink">
+      <label htmlFor={htmlFor} className="block text-[13.5px] font-semibold text-ink">
         {label}
         {required && (
           <span className="ml-0.5 text-seal" aria-hidden>
@@ -61,7 +61,7 @@ export function Field({ label, htmlFor, required, hint, error, className, childr
 export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <p role="alert" className="rounded-md border border-seal/30 bg-seal-soft px-3 py-2 text-[13px] text-seal">
+    <p role="alert" className="animate-pop-in rounded-lg border border-seal/25 bg-seal-soft px-3.5 py-2.5 text-[13.5px] text-seal">
       {message}
     </p>
   );

@@ -123,7 +123,7 @@ export function AuditTab() {
     <div className="space-y-4">
       <form onSubmit={search} className="flex flex-wrap items-end gap-2">
         <label className="text-[13px]">
-          <span className="mb-1 block font-medium">기간</span>
+          <span className="mb-1.5 block font-semibold">기간</span>
           <span className="flex items-center gap-1.5">
             <Input type="date" className="w-40" value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value })} aria-label="시작일" />
             ~
@@ -131,7 +131,7 @@ export function AuditTab() {
           </span>
         </label>
         <label className="text-[13px]">
-          <span className="mb-1 block font-medium">작업</span>
+          <span className="mb-1.5 block font-semibold">작업</span>
           <Select className="w-40" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value as Filter['category'] })}>
             <option value="">전체</option>
             {(Object.keys(AUDIT_CATEGORIES) as AuditCategory[]).map((c) => (
@@ -142,7 +142,7 @@ export function AuditTab() {
           </Select>
         </label>
         <label className="text-[13px]">
-          <span className="mb-1 block font-medium">사용자</span>
+          <span className="mb-1.5 block font-semibold">사용자</span>
           <Input className="w-40" value={draft.user} onChange={(e) => setDraft({ ...draft, user: e.target.value })} placeholder="아이디 또는 이름" />
         </label>
         <Button type="submit" variant="primary">

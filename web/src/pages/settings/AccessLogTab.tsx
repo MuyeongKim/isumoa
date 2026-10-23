@@ -61,7 +61,7 @@ function MonthlyReview() {
   }
 
   return (
-    <section className="rounded-md border border-line bg-sheet p-5">
+    <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-[16px] font-semibold">월 점검</h2>
@@ -132,7 +132,7 @@ function MonthlyReview() {
           </div>
 
           {data.reviewed ? (
-            <p className="flex items-center gap-2 rounded-md border border-ok/30 bg-ok-soft px-4 py-2 text-[13.5px] text-ok">
+            <p className="flex items-center gap-2 rounded-xl border border-ok/30 bg-ok-soft px-4 py-2 text-[13.5px] text-ok">
               <CircleCheck className="size-4" aria-hidden />
               {SECONDS.format(new Date(data.reviewed.at))}에 {data.reviewed.by}이(가) 점검했습니다{data.reviewed.note ? ` — ${data.reviewed.note}` : ''}.
             </p>
@@ -180,7 +180,7 @@ function Integrity() {
   }
 
   return (
-    <section className="rounded-md border border-line bg-sheet p-5">
+    <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[72ch]">
           <h2 className="flex items-center gap-2 text-[16px] font-semibold">

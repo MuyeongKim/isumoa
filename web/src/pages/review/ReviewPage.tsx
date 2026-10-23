@@ -16,7 +16,7 @@ import {
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader } from '@/components/PageHeader';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClass } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
 import { api, errorMessage } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/format';
@@ -247,7 +247,7 @@ export function ReviewPage() {
       <ProcessingBanner />
 
       <div className="mb-3 flex flex-wrap items-center gap-4">
-        <div className="flex gap-1 border-b border-line" role="tablist">
+        <div className="flex rounded-xl bg-ink/[0.05] p-1" role="tablist">
           {(['draft', 'confirmed', 'excluded'] as const).map((s) => (
             <button
               key={s}
@@ -256,11 +256,12 @@ export function ReviewPage() {
               aria-selected={status === s}
               onClick={() => setParam({ status: s, id: null })}
               className={cn(
-                '-mb-px border-b-2 px-3 py-1.5 text-[14px]',
-                status === s ? 'border-navy font-semibold' : 'border-transparent text-ink-soft hover:text-ink',
+                'rounded-lg px-3.5 py-1.5 text-[14px] font-semibold whitespace-nowrap transition-colors',
+                status === s ? 'bg-sheet text-ink shadow-[0_1px_2px_rgb(22_27_38/0.12)]' : 'text-ink-soft hover:text-ink',
               )}
             >
-              {CERTIFICATE_STATUS_LABELS[s]} <span className="tabular-nums text-ink-faint">{formatNumber(counts[s] ?? 0)}</span>
+              {CERTIFICATE_STATUS_LABELS[s]}{' '}
+              <span className={cn('tabular-nums', status === s && s === 'draft' ? 'text-navy' : 'text-ink-faint')}>{formatNumber(counts[s] ?? 0)}</span>
             </button>
           ))}
         </div>
@@ -280,14 +281,14 @@ export function ReviewPage() {
           title="검수할 이수증이 없습니다"
           description="이수증을 올리면 쪽마다 읽어서 이곳에 넣습니다."
           action={
-            <Link to="/upload" className="inline-flex h-9 items-center rounded-md bg-navy px-4 text-[14px] font-medium text-white hover:bg-navy-hover">
+            <Link to="/upload" viewTransition className={buttonClass('primary')}>
               이수증 올리기
             </Link>
           }
         />
       ) : (
         <div className="grid h-[calc(100vh-250px)] min-h-[560px] grid-cols-[minmax(200px,250px)_minmax(0,1fr)_minmax(340px,400px)] gap-4">
-          <ul className="min-h-0 overflow-y-auto rounded-md border border-line bg-sheet" aria-label="이수증 목록">
+          <ul className="min-h-0 space-y-0.5 overflow-y-auto rounded-xl border border-line bg-sheet p-1.5" aria-label="이수증 목록">
             {visible.map((c) => (
               <li key={c.id}>
                 <button
@@ -295,17 +296,17 @@ export function ReviewPage() {
                   onClick={() => select(c.id)}
                   aria-current={c.id === currentId}
                   className={cn(
-                    'flex w-full gap-2.5 border-b border-line px-2.5 py-2 text-left',
-                    c.id === currentId ? 'bg-navy-soft' : 'hover:bg-paper',
+                    'flex w-full gap-2.5 rounded-lg px-2 py-2 text-left transition-colors',
+                    c.id === currentId ? 'bg-navy-soft ring-1 ring-navy/20' : 'hover:bg-paper',
                   )}
                 >
-                  <img src={`/api/pages/${c.pageId}/thumb`} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-sm border border-line object-cover object-top" />
+                  <img src={`/api/pages/${c.pageId}/thumb`} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-[5px] border border-line object-cover object-top" />
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5 text-[13.5px] font-medium">
+                    <span className="flex items-center gap-1.5 text-[14px] font-semibold">
                       <FlagDot item={c} />
                       <span className="truncate">{c.employee?.name ?? c.personName ?? '이름 없음'}</span>
                     </span>
-                    <span className="block truncate text-[12px] text-ink-soft">{trainingSummary(c.trainingIds, trainings.data ?? [])}</span>
+                    <span className="block truncate text-[12.5px] text-ink-soft">{trainingSummary(c.trainingIds, trainings.data ?? [])}</span>
                     <span className="block truncate text-[12px] text-ink-faint">
                       {c.reading ? '다시 읽는 중…' : `${c.completedOn ?? '이수일 없음'} · ${c.pageCount > 1 ? `${c.pageNo}/${c.pageCount}쪽` : c.fileName}`}
                     </span>
@@ -334,7 +335,7 @@ export function ReviewPage() {
               />
             </>
           ) : (
-            <div className="col-span-2 grid place-items-center rounded-md border border-dashed border-line-strong text-[13px] text-ink-faint">
+            <div className="col-span-2 grid place-items-center rounded-xl border border-dashed border-line-strong text-[13px] text-ink-faint">
               {currentId === null ? '왼쪽 목록에서 이수증을 고르세요.' : '불러오는 중…'}
             </div>
           )}

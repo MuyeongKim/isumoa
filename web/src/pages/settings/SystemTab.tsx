@@ -32,24 +32,24 @@ export function SystemTab() {
   return (
     <div className="max-w-4xl space-y-4">
       {data.warnings.length === 0 ? (
-        <p className="flex items-center gap-2 rounded-md border border-ok/30 bg-ok-soft px-4 py-3 text-[14px] text-ok">
+        <p className="flex items-center gap-2 rounded-xl border border-ok/30 bg-ok-soft px-4 py-3 text-[14px] text-ok">
           <CircleCheck className="size-4" aria-hidden />
           고칠 점이 없습니다.
         </p>
       ) : (
         <ul className="space-y-2">
           {data.warnings.map((w) => (
-            <li key={w} className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-soft px-4 py-2.5 text-[13.5px] text-ink">
+            <li key={w} className="flex items-start gap-2 rounded-xl border border-warn/30 bg-warn-soft px-4 py-2.5 text-[13.5px] text-ink">
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
               {w}
             </li>
           ))}
         </ul>
       )}
-      <dl className="grid grid-cols-[140px_minmax(0,1fr)] overflow-hidden rounded-md border border-line bg-sheet text-[13.5px]">
+      <dl className="grid grid-cols-[140px_minmax(0,1fr)] overflow-hidden rounded-xl border border-line bg-sheet text-[13.5px]">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
-            <dt className="border-b border-line bg-navy-soft/50 px-4 py-2 font-medium text-ink-soft">{k}</dt>
+            <dt className="border-b border-line bg-head px-4 py-2 font-medium text-ink-soft">{k}</dt>
             <dd className="border-b border-line px-4 py-2 break-all">{v}</dd>
           </div>
         ))}

@@ -1,12 +1,12 @@
 import type { HTMLAttributes, ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react';
 import { cn } from '@/lib/format';
 
-// 공문서 표처럼: 머리행은 옅은 바탕, 행 사이는 가는 선
+// 머리행은 옅은 바탕에 작은 글씨, 행 사이는 가는 선. 마우스를 올린 행은 옅게 칠한다
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('overflow-x-auto rounded-md border border-line bg-sheet', className)}>
-      <table className="w-full border-collapse text-left text-[13.5px]">{children}</table>
+    <div className={cn('overflow-x-auto rounded-xl border border-line bg-sheet shadow-surface', className)}>
+      <table className="w-full border-collapse text-left text-[14px]">{children}</table>
     </div>
   );
 }
@@ -15,7 +15,7 @@ export function Th({ className, children, ...rest }: ThHTMLAttributes<HTMLTableC
   return (
     <th
       className={cn(
-        'border-b border-line bg-navy-soft/70 px-3 py-2 text-[12.5px] font-semibold whitespace-nowrap text-ink-soft',
+        'border-b border-line bg-head px-3 py-2.5 text-[12.5px] font-semibold whitespace-nowrap text-ink-faint',
         className,
       )}
       {...rest}
@@ -27,7 +27,7 @@ export function Th({ className, children, ...rest }: ThHTMLAttributes<HTMLTableC
 
 export function Td({ className, children, ...rest }: TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={cn('border-b border-line px-3 py-2 align-middle', className)} {...rest}>
+    <td className={cn('border-b border-line px-3 py-2.5 align-middle', className)} {...rest}>
       {children}
     </td>
   );
@@ -35,7 +35,7 @@ export function Td({ className, children, ...rest }: TdHTMLAttributes<HTMLTableC
 
 export function Tr({ className, children, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={cn('last:[&>td]:border-b-0', className)} {...rest}>
+    <tr className={cn('transition-colors last:[&>td]:border-b-0 hover:bg-paper/60', className)} {...rest}>
       {children}
     </tr>
   );
@@ -60,7 +60,7 @@ export function Pager({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            className="rounded px-2 py-1 hover:bg-navy-soft disabled:text-ink-faint/60 disabled:hover:bg-transparent"
+            className="rounded-md px-2.5 py-1 hover:bg-ink/[0.05] disabled:text-ink-faint/60 disabled:hover:bg-transparent"
             disabled={page <= 1}
             onClick={() => onPage(page - 1)}
           >
@@ -71,7 +71,7 @@ export function Pager({
           </span>
           <button
             type="button"
-            className="rounded px-2 py-1 hover:bg-navy-soft disabled:text-ink-faint/60 disabled:hover:bg-transparent"
+            className="rounded-md px-2.5 py-1 hover:bg-ink/[0.05] disabled:text-ink-faint/60 disabled:hover:bg-transparent"
             disabled={page >= pageCount}
             onClick={() => onPage(page + 1)}
           >

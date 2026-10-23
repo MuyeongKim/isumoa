@@ -119,7 +119,7 @@ export function CertificateForm({
     <form id="certificate-form" onSubmit={submit} className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
         {readOnly && (
-          <div className="flex items-center gap-3 rounded-md border border-line bg-sheet px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-line bg-sheet px-4 py-3">
             {detail.status === 'confirmed' ? (
               <>
                 <ConfirmStamp className="size-11 text-[12px]" />
@@ -150,7 +150,7 @@ export function CertificateForm({
             인정할 교육<span className="ml-0.5 text-seal">*</span>
           </legend>
           <p className="mt-0.5 text-[12.5px] text-ink-faint">통합과정이면 여러 개를 고르세요. 교육시간을 나눠 인정합니다.</p>
-          <ul className="mt-2 divide-y divide-line rounded-md border border-line bg-sheet">
+          <ul className="mt-2 divide-y divide-line rounded-xl border border-line bg-sheet">
             {options.map((t) => {
               const checked = credits[t.id] !== undefined;
               return (

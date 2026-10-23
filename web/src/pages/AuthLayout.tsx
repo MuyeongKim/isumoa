@@ -1,19 +1,39 @@
 import type { ReactNode } from 'react';
 import { SealMark } from '@/components/SealMark';
 
-/** 로그인·초기 설정 화면: 왼쪽은 결재판 표지, 오른쪽은 서류 */
+// 왼쪽 판의 칸 무늬: 대시보드 직원 지도처럼 칸이 하나씩 채워지는 모습 (꽉 참 / 반 / 빈 칸)
+const CELLS = Array.from({ length: 48 }, (_, i) => {
+  const v = (i * 37 + 11) % 10;
+  return v < 5 ? 'full' : v < 7 ? 'half' : 'empty';
+});
+
+/** 로그인·초기 설정 화면: 왼쪽은 기관 표지, 오른쪽은 입력 */
 export function AuthLayout({ orgName, children }: { orgName: string; children: ReactNode }) {
   return (
     <div className="grid min-h-screen place-items-center px-4 py-10">
-      <div className="grid w-full max-w-[820px] overflow-hidden rounded-lg border border-line bg-sheet shadow-[0_24px_60px_-28px_rgb(20_28_46/0.45)] md:grid-cols-[300px_1fr]">
-        <div className="flex flex-col justify-between gap-10 bg-navy px-8 py-9 text-white">
-          <SealMark className="size-14" />
-          <div>
-            <p className="font-serif text-[22px] leading-snug font-semibold">{orgName || '기관 법정교육'}</p>
-            <p className="mt-2 text-[13px] leading-relaxed text-gold">법정교육 이수증 종합 플랫폼</p>
+      <div className="grid w-full max-w-[880px] overflow-hidden rounded-3xl border border-line bg-sheet shadow-float md:grid-cols-[340px_1fr]">
+        <div className="relative flex flex-col justify-between gap-12 overflow-hidden bg-navy px-9 py-10 text-white">
+          <SealMark className="size-12" />
+          <div className="relative z-10">
+            <p className="text-[26px] leading-tight font-bold tracking-[-0.03em]">{orgName || '기관 법정교육'}</p>
+            <p className="mt-2 text-[14px] text-white/70">법정교육 이수증을 모으고, 확인하고, 현황을 봅니다</p>
           </div>
+          <ul className="grid w-fit grid-cols-8 gap-1.5" aria-hidden>
+            {CELLS.map((kind, i) => (
+              <li
+                key={i}
+                className={
+                  kind === 'full'
+                    ? 'size-4 rounded-[4px] bg-white/85'
+                    : kind === 'half'
+                      ? 'size-4 rounded-[4px] bg-[linear-gradient(135deg,rgb(255_255_255/0.7)_50%,rgb(255_255_255/0.15)_50%)]'
+                      : 'size-4 rounded-[4px] ring-1 ring-white/35 ring-inset'
+                }
+              />
+            ))}
+          </ul>
         </div>
-        <div className="px-8 py-9 md:px-10">{children}</div>
+        <div className="px-8 py-10 md:px-12">{children}</div>
       </div>
     </div>
   );

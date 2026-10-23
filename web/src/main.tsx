@@ -1,4 +1,5 @@
-import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
+import 'wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.css';
+// 직인 안의 글자에만 쓴다
 import '@fontsource/noto-serif-kr/600.css';
 import './index.css';
 
@@ -36,7 +37,7 @@ const queryClient = new QueryClient({
 function NotFound() {
   return (
     <div className="py-20 text-center">
-      <p className="font-serif text-[20px] font-semibold">찾는 화면이 없습니다</p>
+      <p className="text-[22px] font-bold tracking-[-0.03em]">찾는 화면이 없습니다</p>
       <Link to="/" className="mt-3 inline-block text-link hover:underline">
         대시보드로 가기
       </Link>

@@ -20,13 +20,13 @@ export function Switch({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50',
         checked ? 'bg-navy' : 'bg-line-strong',
       )}
     >
       <span
         className={cn(
-          'inline-block size-4 rounded-full bg-white shadow transition-transform',
+          'inline-block size-5 rounded-full bg-white shadow-[0_1px_3px_rgb(22_27_38/0.3)] transition-transform duration-200 ease-[var(--ease-out-quint)]',
           checked ? 'translate-x-[18px]' : 'translate-x-0.5',
         )}
       />

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileUp } from 'lucide-react';
-import { useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import type { BatchSummary } from '@shared/types.ts';
@@ -123,6 +123,39 @@ export function UploadPage() {
     void start([...e.dataTransfer.files]);
   }
 
+  // 파일을 이 화면 어디로 끌어와도 받는다: 끌어오는 동안 화면 전체가 받는 곳으로 바뀐다
+  const dragDepth = useRef(0);
+  useEffect(() => {
+    const hasFiles = (e: globalThis.DragEvent) => e.dataTransfer?.types.includes('Files') ?? false;
+    function enter(e: globalThis.DragEvent) {
+      if (!hasFiles(e)) return;
+      dragDepth.current++;
+      setDragging(true);
+    }
+    function leave(e: globalThis.DragEvent) {
+      if (!hasFiles(e)) return;
+      dragDepth.current = Math.max(0, dragDepth.current - 1);
+      if (dragDepth.current === 0) setDragging(false);
+    }
+    function over(e: globalThis.DragEvent) {
+      if (hasFiles(e)) e.preventDefault();
+    }
+    function reset() {
+      dragDepth.current = 0;
+      setDragging(false);
+    }
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('dragover', over);
+    window.addEventListener('drop', reset);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('drop', reset);
+    };
+  }, []);
+
   async function reprocess(batch: BatchSummary) {
     setReprocessing((r) => (r ? { ...r, busy: true } : r));
     try {
@@ -153,11 +186,11 @@ export function UploadPage() {
       />
       <ProcessingBanner />
 
-      <section className="rounded-md border border-line bg-sheet px-5 py-4">
+      <section className="rounded-2xl border border-line bg-sheet px-6 py-5 shadow-surface">
         {batchId === null ? (
           <div className="flex flex-wrap items-end gap-4">
-            <label className="block text-[13px]">
-              <span className="mb-1 block font-medium">대상 연도</span>
+            <label className="block text-[13.5px]">
+              <span className="mb-1.5 block font-semibold">대상 연도</span>
               <Select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-32">
                 {[thisYear, thisYear - 1].map((y) => (
                   <option key={y} value={y}>
@@ -166,8 +199,8 @@ export function UploadPage() {
                 ))}
               </Select>
             </label>
-            <label className="block min-w-0 flex-1 text-[13px]">
-              <span className="mb-1 block font-medium">메모 (선택)</span>
+            <label className="block min-w-0 flex-1 text-[13.5px]">
+              <span className="mb-1.5 block font-semibold">메모 (선택)</span>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 상반기 폭력예방교육 제출분" maxLength={100} />
             </label>
             <p className="w-full text-[12.5px] text-ink-faint">
@@ -191,21 +224,19 @@ export function UploadPage() {
 
       <label
         htmlFor="cert-files"
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
+        onDragOver={(e) => e.preventDefault()}
         onDrop={drop}
         className={cn(
-          'mt-4 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed bg-sheet px-6 py-12 text-center transition-colors',
-          dragging ? 'border-navy bg-navy-soft' : 'border-line-strong hover:border-navy/60',
+          'group mt-4 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-sheet px-6 py-14 text-center transition-colors',
+          'border-line-strong hover:border-navy/50 hover:bg-navy-soft/40',
           busy && 'pointer-events-none opacity-60',
         )}
       >
-        <FileUp className="size-9 text-navy" aria-hidden />
-        <span className="text-[15px] font-medium">{busy ? '올리는 중입니다. 창을 닫지 마세요.' : '이수증 파일을 여기에 끌어다 놓거나 눌러서 고르세요'}</span>
-        <span className="text-[13px] text-ink-faint">PDF, JPG, PNG · 여러 파일을 한 번에 · 스캔 묶음 PDF는 쪽마다 나눠서 읽습니다</span>
+        <span className="grid size-14 place-items-center rounded-2xl bg-navy-soft text-navy transition-transform duration-200 group-hover:-translate-y-0.5">
+          <FileUp className="size-7" aria-hidden />
+        </span>
+        <span className="text-[17px] font-bold">{busy ? '올리는 중입니다. 창을 닫지 마세요.' : '이수증 파일을 끌어다 놓거나 눌러서 고르세요'}</span>
+        <span className="text-[14px] text-ink-faint">PDF, JPG, PNG를 여러 개 한 번에 올릴 수 있고, 스캔 묶음 PDF는 쪽마다 나눠서 읽습니다</span>
         <input
           ref={inputRef}
           id="cert-files"
@@ -220,6 +251,21 @@ export function UploadPage() {
           }}
         />
       </label>
+      {dragging && !busy && (
+        <div
+          className="fixed inset-0 z-40 grid place-items-center bg-navy/10 p-6 backdrop-blur-[2px]"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={drop}
+        >
+          <div className="animate-pop-in pointer-events-none grid w-full max-w-xl place-items-center gap-3 rounded-3xl border-2 border-dashed border-navy bg-sheet/95 px-8 py-16 text-center shadow-float">
+            <span className="grid size-16 place-items-center rounded-2xl bg-navy text-white">
+              <FileUp className="size-8" aria-hidden />
+            </span>
+            <p className="text-[20px] font-bold">놓으면 바로 올립니다</p>
+            <p className="text-[14px] text-ink-soft">{batchId === null ? `${year}년 이수증으로 올립니다` : `묶음 #${batchId}에 이어서 올립니다`}</p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4">
         <FormError message={error} />

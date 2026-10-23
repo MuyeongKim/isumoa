@@ -4,7 +4,7 @@ import { cn } from '@/lib/format';
 export type Tone = 'neutral' | 'navy' | 'ok' | 'warn' | 'seal';
 
 const TONES: Record<Tone, string> = {
-  neutral: 'bg-paper text-ink-soft',
+  neutral: 'bg-ink/[0.06] text-ink-soft',
   navy: 'bg-navy-soft text-navy',
   ok: 'bg-ok-soft text-ok',
   warn: 'bg-warn-soft text-warn',
@@ -15,7 +15,7 @@ export function Tag({ tone = 'neutral', children, className }: { tone?: Tone; ch
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-px text-[12px] leading-5 font-medium whitespace-nowrap',
+        'inline-flex items-center rounded-full px-2 py-px text-[12.5px] leading-5 font-semibold whitespace-nowrap',
         TONES[tone],
         className,
       )}

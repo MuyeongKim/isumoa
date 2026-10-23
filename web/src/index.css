@@ -1,45 +1,61 @@
 @import "tailwindcss";
 
 /*
-  색과 글꼴 — 공공기관 사무실의 물건에서 가져왔다.
-  navy: 결재판 표지, gold: 결재판 금박 글씨, seal: 인주(도장), paper/sheet: 서류
+  색과 글꼴 — 밝고 가벼운 업무 화면.
+  navy: 장청(진한 파랑) — 누르는 것·고른 것, seal: 인주 — 도장·미이수, ok: 이수, warn: 부분이수·확인할 점
+  글꼴은 Wanted Sans 하나. 명조(serif)는 직인 안의 글자에만 쓴다.
 */
 @theme {
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Malgun Gothic", "맑은 고딕", sans-serif;
+  --font-sans: "Wanted Sans Variable", "Wanted Sans", -apple-system, "Malgun Gothic", "맑은 고딕", sans-serif;
   --font-serif: "Noto Serif KR", "Batang", "바탕", serif;
 
-  --color-paper: #eef1f5;
+  --color-paper: #f4f5f7;
   --color-sheet: #ffffff;
-  --color-ink: #1b2333;
-  --color-ink-soft: #46516a;
-  --color-ink-faint: #677287;
-  --color-line: #d6dce5;
-  --color-line-strong: #a9b4c4;
+  --color-ink: #161b26;
+  --color-ink-soft: #4a5263;
+  --color-ink-faint: #737c8c;
+  --color-line: #e6e8ec;
+  --color-line-strong: #cdd2da;
+  /* 표 머리행 */
+  --color-head: #f7f8fa;
 
-  --color-navy: #1c2a4a;
-  --color-navy-hover: #283b64;
-  --color-navy-soft: #e8edf6;
-  --color-gold: #b8924a;
-  --color-link: #2a4da8;
+  --color-navy: #2438a6;
+  --color-navy-hover: #1c2d8c;
+  --color-navy-soft: #edf0fc;
+  --color-link: #2438a6;
 
-  --color-seal: #c2372c;
-  --color-seal-soft: #fbeceb;
-  --color-ok: #1e7552;
-  --color-ok-soft: #e5f2eb;
-  --color-warn: #a5670f;
-  --color-warn-soft: #fbf1e0;
+  --color-seal: #d23b2c;
+  --color-seal-soft: #fdedeb;
+  --color-ok: #0f7a57;
+  --color-ok-soft: #e2f3ec;
+  --color-warn: #b26a00;
+  --color-warn-soft: #fdf2de;
+
+  --shadow-surface: 0 1px 2px rgb(22 27 38 / 0.04);
+  --shadow-float: 0 20px 48px -16px rgb(22 27 38 / 0.28), 0 2px 6px rgb(22 27 38 / 0.06);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
   html,
   body {
     @apply bg-paper text-ink font-sans antialiased;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 15px;
+    line-height: 1.6;
+    /* 한글 문장이 낱말 가운데서 줄바꿈되지 않게 (긴 낱말은 넘치지 않도록 끊는다) */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-link);
+    outline: 2px solid var(--color-navy);
     outline-offset: 2px;
   }
 
@@ -51,8 +67,38 @@
     background: var(--color-navy-soft);
   }
 
+  /* 대화상자: 열릴 때 살짝 커지며 나타난다 (사용자가 연 것에 대한 응답) */
+  dialog {
+    transition:
+      opacity 160ms var(--ease-out-quint),
+      transform 200ms var(--ease-out-quint),
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  dialog[open] {
+    opacity: 1;
+    transform: none;
+  }
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+  }
   dialog::backdrop {
-    background: rgb(20 28 46 / 0.45);
+    background: rgb(22 27 38 / 0.32);
+    backdrop-filter: blur(2px);
+    transition:
+      background 200ms,
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+  @starting-style {
+    dialog[open]::backdrop {
+      background: rgb(22 27 38 / 0);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -63,6 +109,66 @@
       transition-duration: 0.01ms !important;
     }
   }
+}
+
+/* 화면 사이를 옮길 때 본문만 살짝 바뀐다 (메뉴는 그대로) */
+.view-main {
+  view-transition-name: main;
+}
+::view-transition-old(main) {
+  animation: 120ms ease-in both fade-out;
+}
+::view-transition-new(main) {
+  animation: 220ms var(--ease-out-quint) both rise-in;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* 대시보드 직원 지도: 처음 열 때 칸이 차례로 찬다 (--i: 칸 순서) */
+@keyframes cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+.animate-cell-in {
+  animation: cell-in 420ms var(--ease-out-quint) both;
+  animation-delay: calc(min(var(--i, 0), 240) * 3ms);
+}
+
+/* 막대가 0에서 제 길이까지 자란다 */
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+.animate-grow-x {
+  transform-origin: left center;
+  animation: grow-x 700ms var(--ease-out-quint) both;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+.animate-pop-in {
+  animation: pop-in 140ms var(--ease-out-quint) both;
 }
 
 /* 결재란에 도장이 찍히는 순간 (사용자 동작에 대한 응답으로만 쓴다) */

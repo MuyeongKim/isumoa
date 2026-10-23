@@ -14,7 +14,7 @@ import {
 import { ApprovalSteps } from '@/components/ApprovalSteps';
 import { PageHeader } from '@/components/PageHeader';
 import { ConfirmStamp } from '@/components/SealMark';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClass } from '@/components/ui/Button';
 import { FormError, Select } from '@/components/ui/Field';
 import { Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
@@ -189,7 +189,7 @@ function FileStep({ busy, onFile }: { busy: boolean; onFile: (file: File) => voi
           }}
         />
       </label>
-      <div className="rounded-md border border-line bg-sheet px-5 py-4 text-[13px] text-ink-soft">
+      <div className="rounded-xl border border-line bg-sheet px-5 py-4 text-[13px] text-ink-soft">
         <p className="font-medium text-ink">알아 두면 좋은 점</p>
         <ul className="mt-2 list-disc space-y-1.5 pl-4">
           <li>위쪽에 제목 줄이나 빈 줄이 있어도 머리글 줄을 찾아냅니다.</li>
@@ -229,13 +229,13 @@ function MappingStep({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end gap-4 rounded-md border border-line bg-sheet px-5 py-4">
+      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-line bg-sheet px-6 py-5 shadow-surface">
         <div>
           <p className="text-[12.5px] text-ink-faint">파일</p>
           <p className="font-medium">{parsed.fileName}</p>
         </div>
         {parsed.sheets.length > 1 && (
-          <label className="block text-[13px]">
+          <label className="block text-[13.5px]">
             <span className="mb-1 block text-ink-soft">시트</span>
             <Select value={parsed.sheetIndex} onChange={(e) => onSheet(Number(e.target.value))} className="w-48" disabled={busy}>
               {parsed.sheets.map((s, i) => (
@@ -246,7 +246,7 @@ function MappingStep({
             </Select>
           </label>
         )}
-        <label className="block min-w-0 flex-1 text-[13px]">
+        <label className="block min-w-0 flex-1 text-[13.5px]">
           <span className="mb-1 block text-ink-soft">머리글 줄</span>
           <Select value={headerRowIndex} onChange={(e) => onHeaderRow(Number(e.target.value))}>
             {parsed.topRows.map((row, i) => (
@@ -356,7 +356,7 @@ function PreviewStep({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 overflow-hidden rounded-md border border-line bg-sheet sm:grid-cols-5">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-sheet sm:grid-cols-5">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -383,7 +383,7 @@ function PreviewStep({
       </div>
 
       {(preview.newDepartments.length > 0 || preview.notices.length > 0) && (
-        <ul className="space-y-1 rounded-md border border-line bg-sheet px-5 py-3 text-[13px] text-ink-soft">
+        <ul className="space-y-1 rounded-xl border border-line bg-sheet px-5 py-3 text-[13px] text-ink-soft">
           {preview.newDepartments.length > 0 && (
             <li>
               새로 만들 부서 {preview.newDepartments.length}개: <span className="text-ink">{preview.newDepartments.join(', ')}</span>
@@ -402,7 +402,7 @@ function PreviewStep({
       )}
 
       {counts.missing > 0 && (
-        <label className="flex items-start gap-3 rounded-md border border-warn/40 bg-warn-soft px-4 py-3 text-[13.5px]">
+        <label className="flex items-start gap-3 rounded-xl border border-warn/40 bg-warn-soft px-4 py-3 text-[13.5px]">
           <input
             type="checkbox"
             className="mt-1 size-4 accent-navy"
@@ -538,7 +538,7 @@ function DoneStep({ result, onAgain }: { result: RosterApplyResult; onAgain: () 
     ['새 부서', result.departmentsCreated],
   ] as const;
   return (
-    <div className="rounded-md border border-line bg-sheet px-6 py-6">
+    <div className="rounded-xl border border-line bg-sheet px-6 py-6">
       <div className="flex items-center gap-4">
         <ConfirmStamp animate className="size-14 text-[15px]" />
         <div>
@@ -555,10 +555,7 @@ function DoneStep({ result, onAgain }: { result: RosterApplyResult; onAgain: () 
         ))}
       </dl>
       <div className="mt-6 flex gap-2">
-        <Link
-          to="/employees"
-          className="inline-flex h-9 items-center rounded-md bg-navy px-4 text-[14px] font-medium text-white hover:bg-navy-hover"
-        >
+        <Link to="/employees" viewTransition className={buttonClass('primary')}>
           직원 명단 보기
         </Link>
         <Button onClick={onAgain}>다른 파일 올리기</Button>

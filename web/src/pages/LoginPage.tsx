@@ -40,7 +40,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout orgName={meta.data?.orgName ?? ''}>
-      <h1 className="font-serif text-[22px] font-semibold">로그인</h1>
+      <h1 className="text-[26px] font-bold tracking-[-0.03em]">로그인</h1>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <FormError message={error} />
         <Field label="아이디" htmlFor="loginId">

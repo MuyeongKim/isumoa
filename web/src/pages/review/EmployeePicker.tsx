@@ -47,7 +47,7 @@ export function EmployeePicker({
           )}
         </div>
       ) : (
-        <p className="rounded-md border border-dashed border-seal/50 bg-seal-soft/50 px-3 py-2 text-[13px] text-seal">
+        <p className="rounded-xl border border-dashed border-seal/50 bg-seal-soft/50 px-3 py-2 text-[13px] text-seal">
           직원을 정하지 않았습니다.
         </p>
       )}
@@ -78,7 +78,7 @@ export function EmployeePicker({
           <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-ink-faint" aria-hidden />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름이나 사번으로 찾기" className="pl-8" aria-label="직원 찾기" />
           {results.length > 0 && (
-            <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-sheet py-1 shadow-lg">
+            <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-sheet py-1 shadow-float">
               {results.map((e) => (
                 <li key={e.id}>
                   <button

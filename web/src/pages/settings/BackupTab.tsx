@@ -41,7 +41,7 @@ function Backups() {
 
   const data = status.data;
   return (
-    <section className="rounded-md border border-line bg-sheet p-5">
+    <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[72ch]">
           <h2 className="text-[16px] font-semibold">백업</h2>
@@ -119,7 +119,7 @@ function Retention({ view }: { view: RetentionView }) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-md border border-line bg-sheet p-5">
+    <form onSubmit={submit} className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <h2 className="text-[16px] font-semibold">보관기간</h2>
       <FormError message={error} />
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -168,7 +168,7 @@ function Purge({ view }: { view: RetentionView }) {
   }
 
   return (
-    <section className="rounded-md border border-line bg-sheet p-5">
+    <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <h2 className="text-[16px] font-semibold">보관기간이 지난 자료 파기</h2>
       <p className="mt-1 text-[13px] text-ink-soft">
         이수증 자료 보관기간({view.settings.documentYears}년)이 지난 연도입니다. 파기하면 그해의 원본 파일·쪽 이미지·이수 기록·대상 제외가 지워지고 되돌릴 수 없습니다. 필요하면 먼저 내보내기에서 현황 엑셀을 받아 두세요. 파기 내역은 감사 로그(파기 대장)에 남습니다.

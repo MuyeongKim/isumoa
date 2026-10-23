@@ -1,56 +1,18 @@
-import {
-  BookOpenCheck,
-  Download,
-  KeyRound,
-  LayoutDashboard,
-  LogOut,
-  Power,
-  Settings,
-  Stamp,
-  Table2,
-  Upload,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
+import { KeyRound, LogOut, Power, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useMatches } from 'react-router';
 import { ROLE_LABELS, type Overview } from '@shared/types.ts';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { useCurrentUser, useLogout, useMeta } from '@/lib/session';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { CommandPalette, Kbd } from './CommandPalette';
 import { ConfirmDialog } from './ConfirmDialog';
+import { NAV } from './nav';
 import { SealMark } from './SealMark';
 
-interface NavItem {
-  label: string;
-  icon: LucideIcon;
-  to: string;
-  /** 메뉴 옆에 보여 줄 숫자 */
-  badge?: 'drafts';
-}
-
-const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
-  {
-    group: '업무',
-    items: [
-      { label: '대시보드', icon: LayoutDashboard, to: '/' },
-      { label: '이수증 올리기', icon: Upload, to: '/upload' },
-      { label: '검수함', icon: Stamp, to: '/review', badge: 'drafts' },
-      { label: '이수 현황', icon: Table2, to: '/status' },
-      { label: '내보내기', icon: Download, to: '/export' },
-    ],
-  },
-  {
-    group: '기준 정보',
-    items: [
-      { label: '직원 명단', icon: Users, to: '/employees' },
-      { label: '교육 과정', icon: BookOpenCheck, to: '/trainings' },
-    ],
-  },
-  { group: '관리', adminOnly: true, items: [{ label: '설정', icon: Settings, to: '/settings' }] },
-];
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 export function AppShell() {
   const me = useCurrentUser();
@@ -77,44 +39,78 @@ export function AppShell() {
     refetchInterval: 30_000,
   });
 
+  // Ctrl+K(맥은 ⌘K): 빠른 이동. 한글 입력 상태에서도 되도록 글자 대신 키 위치(KeyK)로 본다
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'KeyK') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const footerButton = 'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] text-ink-soft transition-colors hover:bg-ink/[0.05] hover:text-ink';
+
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[236px_minmax(0,1fr)]">
-      <aside className="flex flex-col bg-navy text-white/80 md:sticky md:top-0 md:h-screen">
-        <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-          <SealMark className="size-10" />
+    <div className="min-h-screen md:grid md:grid-cols-[252px_minmax(0,1fr)]">
+      <aside className="flex flex-col border-r border-line bg-sheet md:sticky md:top-0 md:h-screen">
+        <div className="flex items-center gap-3 px-5 pt-6 pb-5">
+          <SealMark className="size-9" />
           <div className="min-w-0">
-            <p className="truncate font-serif text-[15px] leading-tight font-semibold text-white">
-              {meta?.orgName || '기관명 미설정'}
-            </p>
-            <p className="mt-1 text-[12px] leading-tight text-gold">법정교육 이수증 종합 플랫폼</p>
+            <p className="truncate text-[16px] leading-tight font-bold tracking-[-0.02em]">{meta?.orgName || '기관명 미설정'}</p>
+            <p className="mt-0.5 text-[12.5px] leading-tight text-ink-faint">법정교육 이수증</p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5" aria-label="주 메뉴">
+        <div className="px-3">
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="flex h-10 w-full items-center gap-2 rounded-lg border border-line bg-paper/70 px-3 text-[14px] text-ink-faint transition-colors hover:border-line-strong hover:text-ink-soft"
+          >
+            <Search className="size-4" aria-hidden />
+            빠른 이동
+            <span className="ml-auto flex gap-0.5">
+              <Kbd>{IS_MAC ? '⌘' : 'Ctrl'}</Kbd>
+              <Kbd>K</Kbd>
+            </span>
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6" aria-label="주 메뉴">
           {NAV.filter((g) => !g.adminOnly || me.role === 'admin').map((group) => (
             <div key={group.group}>
-              <p className="px-3 pb-1.5 text-[12px] text-white/45">{group.group}</p>
+              <p className="px-3 pb-1.5 text-[12.5px] font-medium text-ink-faint">{group.group}</p>
               <ul className="space-y-0.5">
                 {group.items.map((item) => (
                   <li key={item.label}>
                     <NavLink
                       to={item.to}
                       end={item.to === '/'}
+                      viewTransition
                       className={({ isActive }) =>
                         cn(
-                          'flex items-center gap-2.5 rounded-md border-l-2 px-3 py-2 text-[14px] transition-colors',
-                          isActive
-                            ? 'border-gold bg-white/10 font-medium text-white'
-                            : 'border-transparent hover:bg-white/5 hover:text-white',
+                          'group flex h-10 items-center gap-3 rounded-lg px-3 text-[14.5px] transition-colors',
+                          isActive ? 'bg-navy-soft font-semibold text-navy' : 'text-ink-soft hover:bg-ink/[0.04] hover:text-ink',
                         )
                       }
                     >
-                      <item.icon className="size-4 shrink-0" aria-hidden />
-                      {item.label}
-                      {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
-                        <span className="ml-auto rounded-full bg-gold/90 px-1.5 text-[11.5px] leading-[18px] font-semibold text-navy tabular-nums">
-                          {overview.data!.drafts}
-                        </span>
+                      {({ isActive }) => (
+                        <>
+                          <item.icon className={cn('size-[18px] shrink-0', isActive ? 'text-navy' : 'text-ink-faint group-hover:text-ink-soft')} aria-hidden />
+                          {item.label}
+                          {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
+                            <span
+                              className="ml-auto min-w-6 rounded-full bg-navy px-1.5 text-center text-[12px] leading-5 font-bold text-white tabular-nums"
+                              aria-label={`검수 대기 ${overview.data!.drafts}건`}
+                            >
+                              {overview.data!.drafts}
+                            </span>
+                          )}
+                        </>
                       )}
                     </NavLink>
                   </li>
@@ -124,53 +120,45 @@ export function AppShell() {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 px-5 py-4">
-          <p className="text-[14px] font-medium text-white">
-            {me.name}
-            <span className="ml-1.5 text-[12px] font-normal text-white/55">{ROLE_LABELS[me.role]}</span>
-          </p>
-          {me.role === 'clerk' && (
-            <p className="mt-0.5 truncate text-[12px] text-white/55">
-              {me.departments.length > 0 ? me.departments.map((d) => d.name).join(', ') : '담당 부서 없음'}
-            </p>
-          )}
-          <div className="mt-3 flex gap-1">
-            <button
-              type="button"
-              onClick={() => setPasswordOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
-            >
+        <div className="border-t border-line px-4 py-4">
+          <div className="flex items-center gap-3 px-1">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-navy-soft text-[14px] font-bold text-navy" aria-hidden>
+              {me.name.slice(0, 1)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[14.5px] leading-tight font-semibold">{me.name}</p>
+              <p className="mt-0.5 truncate text-[12.5px] leading-tight text-ink-faint">
+                {ROLE_LABELS[me.role]}
+                {me.role === 'clerk' && ` · ${me.departments.length > 0 ? me.departments.map((d) => d.name).join(', ') : '담당 부서 없음'}`}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-0.5">
+            <button type="button" onClick={() => setPasswordOpen(true)} className={footerButton}>
               <KeyRound className="size-3.5" aria-hidden />
               비밀번호 변경
             </button>
-            <button
-              type="button"
-              onClick={logout}
-              className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
-            >
+            <button type="button" onClick={logout} className={footerButton}>
               <LogOut className="size-3.5" aria-hidden />
               로그아웃
             </button>
+            {meta?.desktop && me.role === 'admin' && (
+              <button type="button" onClick={() => setQuitOpen(true)} className={cn(footerButton, 'hover:bg-seal-soft hover:text-seal')}>
+                <Power className="size-3.5" aria-hidden />
+                프로그램 끄기
+              </button>
+            )}
           </div>
-          {meta?.desktop && me.role === 'admin' && (
-            <button
-              type="button"
-              onClick={() => setQuitOpen(true)}
-              className="mt-1 inline-flex items-center gap-1.5 rounded px-2 py-1 text-[12.5px] text-white/70 hover:bg-white/10 hover:text-white"
-            >
-              <Power className="size-3.5" aria-hidden />
-              프로그램 끄기
-            </button>
-          )}
         </div>
       </aside>
 
-      <main className="min-w-0 px-5 py-7 md:px-10 md:py-9">
-        <div className={cn('mx-auto', wide ? 'max-w-[1680px]' : 'max-w-[1180px]')}>
+      <main className="view-main min-w-0 px-5 py-8 md:px-12 md:py-11">
+        <div className={cn('mx-auto', wide ? 'max-w-[1680px]' : 'max-w-[1160px]')}>
           <Outlet />
         </div>
       </main>
 
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <ConfirmDialog
         open={quitOpen && quitState !== 'done'}
         title="프로그램 끄기"
@@ -183,7 +171,8 @@ export function AppShell() {
       {quitState === 'done' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-paper p-6 text-center">
           <div>
-            <p className="font-serif text-[22px] font-semibold">프로그램을 껐습니다</p>
+            <SealMark className="mx-auto mb-5 size-12" />
+            <p className="text-[24px] font-bold tracking-[-0.03em]">프로그램을 껐습니다</p>
             <p className="mt-2 text-ink-soft">이 창을 닫아도 됩니다. 다시 쓰려면 바탕화면의 &lsquo;법정교육 이수증&rsquo;을 누르세요.</p>
           </div>
         </div>

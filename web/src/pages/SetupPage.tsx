@@ -45,7 +45,7 @@ export function SetupPage() {
 
   return (
     <AuthLayout orgName="">
-      <h1 className="font-serif text-[22px] font-semibold">처음 설정</h1>
+      <h1 className="text-[26px] font-bold tracking-[-0.03em]">처음 설정</h1>
       <p className="mt-2 text-[13px] text-ink-soft">
         기관 이름과 관리자 계정을 만듭니다. 서무 계정은 들어간 뒤 설정 화면에서 만듭니다.
       </p>

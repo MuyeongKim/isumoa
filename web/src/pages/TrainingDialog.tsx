@@ -32,7 +32,7 @@ function KeywordInput({ value, onChange }: { value: string[]; onChange: (next: s
   }
 
   return (
-    <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-line-strong bg-sheet px-2 py-1.5 focus-within:border-link focus-within:ring-2 focus-within:ring-link/20">
+    <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-lg border border-line-strong bg-sheet px-2 py-1.5 focus-within:border-link focus-within:ring-2 focus-within:ring-link/20">
       {value.map((word) => (
         <span key={word} className="inline-flex items-center gap-1 rounded bg-navy-soft px-1.5 py-0.5 text-[13px] text-navy">
           {word}
@@ -132,7 +132,7 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
               className="w-20"
               aria-label="기준 값"
             />
-            <div className="inline-flex overflow-hidden rounded-md border border-line-strong" role="radiogroup" aria-label="기준 단위">
+            <div className="inline-flex overflow-hidden rounded-lg border border-line-strong" role="radiogroup" aria-label="기준 단위">
               {(
                 [
                   ['count', '회'],
@@ -145,7 +145,7 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
                   role="radio"
                   aria-checked={reqType === value}
                   onClick={() => setReqType(value)}
-                  className={cn('h-9 px-4 text-[14px]', reqType === value ? 'bg-navy text-white' : 'bg-sheet hover:bg-paper')}
+                  className={cn('h-10 px-4 text-[14.5px] font-semibold transition-colors', reqType === value ? 'bg-navy text-white' : 'bg-sheet hover:bg-paper')}
                 >
                   {label}
                 </button>

@@ -30,13 +30,13 @@ export function ProcessingBanner() {
   return (
     <div className="mb-5 space-y-2">
       {active > 0 && (
-        <p className="flex items-center gap-2 rounded-md border border-navy/20 bg-navy-soft px-4 py-2.5 text-[13.5px] text-navy">
+        <p className="flex items-center gap-2 rounded-xl border border-navy/20 bg-navy-soft px-4 py-2.5 text-[13.5px] text-navy">
           <LoaderCircle className="size-4 animate-spin" aria-hidden />
           이수증 {formatNumber(active)}쪽을 읽는 중입니다{eta(data.etaSeconds)}. 다른 화면으로 가도 계속 처리하고, 끝난 것부터 바로 검수할 수 있습니다.
         </p>
       )}
       {data.failed > 0 && (
-        <p className="flex items-center gap-2 rounded-md border border-seal/30 bg-seal-soft px-4 py-2.5 text-[13.5px] text-seal">
+        <p className="flex items-center gap-2 rounded-xl border border-seal/30 bg-seal-soft px-4 py-2.5 text-[13.5px] text-seal">
           <TriangleAlert className="size-4" aria-hidden />
           {formatNumber(data.failed)}쪽은 세 번 시도해도 읽지 못했습니다. 올린 묶음 목록에서 확인해 주세요.
         </p>

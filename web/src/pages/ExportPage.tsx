@@ -6,6 +6,7 @@ import type { Department, ExportSummary, ZipLayout } from '@shared/types.ts';
 import { LoadingRows, PageHeader } from '@/components/PageHeader';
 import { Input, Select } from '@/components/ui/Field';
 import { api } from '@/lib/api';
+import { buttonClass } from '@/components/ui/Button';
 import { cn, formatNumber } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
 
@@ -17,10 +18,7 @@ const REASONS = ['연간 이수 현황 보고', '감사·점검 제출', '부서
 const OTHER = '기타';
 
 function DownloadLink({ href, disabled, children, primary }: { href: string; disabled?: boolean; children: ReactNode; primary?: boolean }) {
-  const style = cn(
-    'inline-flex h-9 items-center gap-1.5 rounded-md px-4 text-[14px] font-medium whitespace-nowrap',
-    primary ? 'bg-navy text-white hover:bg-navy-hover' : 'border border-line-strong bg-sheet hover:bg-paper',
-  );
+  const style = buttonClass(primary ? 'primary' : 'secondary');
   if (disabled) {
     return (
       <span aria-disabled className={cn(style, 'cursor-not-allowed opacity-50')}>
@@ -39,7 +37,7 @@ function DownloadLink({ href, disabled, children, primary }: { href: string; dis
 
 function Card({ icon, title, description, children }: { icon: ReactNode; title: string; description: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-md border border-line bg-sheet p-5">
+    <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 text-navy">{icon}</span>
         <div className="min-w-0 flex-1">
@@ -114,7 +112,7 @@ export function ExportPage() {
       ) : (
         <div className="space-y-4">
           {data.drafts > 0 && (
-            <p className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warn/40 bg-warn-soft px-5 py-3 text-[14px]">
+            <p className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn/40 bg-warn-soft px-5 py-3 text-[14px]">
               <span>
                 검수 대기 이수증 <span className="font-semibold tabular-nums">{formatNumber(data.drafts)}건</span>은 아직 확정하지 않아 내보내기에 들어가지 않습니다.
               </span>
@@ -124,9 +122,9 @@ export function ExportPage() {
             </p>
           )}
 
-          <section className="flex flex-wrap items-end gap-3 rounded-md border border-line bg-sheet px-5 py-4">
+          <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-sheet px-6 py-5 shadow-surface">
             <label className="text-[13px]">
-              <span className="mb-1 block font-medium">
+              <span className="mb-1.5 block font-semibold">
                 내려받는 사유<span className="ml-0.5 text-seal">*</span>
               </span>
               <Select className="w-56" value={reasonChoice} onChange={(e) => setReasonChoice(e.target.value)}>

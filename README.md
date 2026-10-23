@@ -100,7 +100,7 @@ vendor/    SheetJS (엑셀 읽기) 공식 배포 파일, OCR 모델(ocr-models/ 
 ## 기술 선택 이유
 
 - **내부망 설치**: 설치본에 실행용 Node와 대상 OS용 OCR 엔진(onnxruntime-node, sharp)까지 넣어, 서버·PC에 복사만 하면 실행됩니다. 설치본을 만들 때 대상 OS용이 아닌 네이티브 파일이 섞이면 실패 처리합니다. DB는 Node 내장 SQLite를 씁니다.
-- **외부 연결 없음**: 글꼴(Pretendard, Noto Serif KR), PDF 처리 파일, OCR 모델까지 모두 설치본 안에서 제공합니다. 이수증을 AI나 인터넷으로 보내지 않습니다.
+- **외부 연결 없음**: 글꼴(Wanted Sans, 직인용 Noto Serif KR), PDF 처리 파일, OCR 모델까지 모두 설치본 안에서 제공합니다. 이수증을 AI나 인터넷으로 보내지 않습니다.
 - **OCR은 kordoc**: 같은 가상 이수증으로 비교했을 때 스캔본을 tesseract보다 정확하게 읽었습니다(스캔 41쪽 중 tesseract 37쪽, kordoc 41쪽). kordoc(MIT)과 PP-OCRv5 모델(Apache-2.0)은 상업·공공 사용에 제한이 없는 라이선스입니다.
 - **PDF는 서무 PC의 브라우저에서 쪽 이미지로 나눈다**: 서버에 그림 라이브러리를 깔지 않아도 되고, 서버는 OCR과 판독만 합니다.
 - **서버 코드는 빌드 없이 실행**: Node의 TypeScript 실행 기능을 써서 `server/src`를 그대로 실행합니다.

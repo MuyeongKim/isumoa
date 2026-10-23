@@ -42,29 +42,29 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
         if (dismissible && e.target === ref.current) onClose();
       }}
       className={cn(
-        'm-auto max-h-[calc(100vh-48px)] rounded-lg border border-line bg-sheet p-0 text-ink shadow-[0_18px_48px_-12px_rgb(20_28_46/0.35)]',
+        'm-auto max-h-[calc(100vh-48px)] rounded-2xl border border-line/70 bg-sheet p-0 text-ink shadow-float',
         width === 'md' ? 'w-[min(520px,calc(100vw-32px))]' : 'w-[min(760px,calc(100vw-32px))]',
       )}
     >
       {open && (
         <div className="flex max-h-[calc(100vh-48px)] flex-col">
-          <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
             <div>
-              <h2 className="text-[16px] font-semibold">{title}</h2>
-              {description && <div className="mt-1 text-[13px] text-ink-soft">{description}</div>}
+              <h2 className="text-[18px] font-bold">{title}</h2>
+              {description && <div className="mt-1 text-[13.5px] text-ink-soft">{description}</div>}
             </div>
             {dismissible && (
               <button
                 type="button"
                 onClick={onClose}
-                className="-mr-2 rounded p-1 text-ink-faint hover:bg-paper hover:text-ink"
+                className="-mt-0.5 -mr-2 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink"
                 aria-label="닫기"
               >
                 <X className="size-5" />
               </button>
             )}
           </div>
-          <div className="overflow-y-auto px-6 py-5">{children}</div>
+          <div className="overflow-y-auto px-6 pt-2 pb-6">{children}</div>
         </div>
       )}
     </dialog>
@@ -73,5 +73,5 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
 
 /** 대화상자 아래쪽 버튼 줄 */
 export function DialogActions({ children }: { children: ReactNode }) {
-  return <div className="mt-6 flex justify-end gap-2 border-t border-line pt-4">{children}</div>;
+  return <div className="mt-6 flex justify-end gap-2">{children}</div>;
 }
