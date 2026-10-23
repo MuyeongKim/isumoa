@@ -15,6 +15,7 @@ import {
 } from '@shared/types.ts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader } from '@/components/PageHeader';
+import { withBase } from '@/lib/base';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Field';
@@ -302,7 +303,7 @@ export function ReviewPage() {
                     c.id === currentId ? 'bg-navy-soft' : 'hover:bg-paper',
                   )}
                 >
-                  <img src={`/api/pages/${c.pageId}/thumb`} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-sm border border-line object-cover object-top" />
+                  <img src={withBase(`/api/pages/${c.pageId}/thumb`)} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded-sm border border-line object-cover object-top" />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 text-[13.5px] font-medium">
                       <FlagDot item={c} />

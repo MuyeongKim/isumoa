@@ -1,4 +1,5 @@
 // 서버 API 호출. 데이터를 바꾸는 요청에는 서버가 확인하는 x-requested-with 헤더를 붙인다.
+import { withBase } from './base.ts';
 
 export class ApiError extends Error {
   status: number;
@@ -23,7 +24,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   let res: Response;
   try {
-    res = await fetch(`/api${path}`, { method, headers, body: payload, credentials: 'same-origin' });
+    res = await fetch(withBase(`/api${path}`), { method, headers, body: payload, credentials: 'same-origin' });
   } catch {
     throw new ApiError(0, '서버에 연결할 수 없습니다. 서버가 켜져 있는지 확인해 주세요.');
   }

@@ -13,6 +13,8 @@ const pdfjsAsset = (dir: string) => ({
 });
 
 export default defineConfig({
+  // 하위 경로에 올릴 때(예: 바깥 주소 /kmy/edu-cert/)만 VITE_BASE 로 정한다. 기본은 루트
+  base: process.env.VITE_BASE ?? '/',
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [
     react(),

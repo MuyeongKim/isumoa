@@ -1,5 +1,6 @@
 import { RotateCw } from 'lucide-react';
 import { useState } from 'react';
+import { withBase } from '@/lib/base';
 import { cn } from '@/lib/format';
 
 /** 이수증 원본 쪽 이미지: 화면 맞춤 / 원래 크기, 90° 돌리기, 읽은 글자 보기 */
@@ -34,7 +35,7 @@ export function PageViewer({ pageId, pageText, caption }: { pageId: number; page
         ) : (
           <img
             key={pageId}
-            src={`/api/pages/${pageId}/image`}
+            src={withBase(`/api/pages/${pageId}/image`)}
             alt="이수증 원본"
             className={cn('mx-auto block bg-white shadow-sm', fit ? 'w-full max-w-[780px]' : 'w-[1600px] max-w-none')}
             style={{ transform: rotation ? `rotate(${rotation}deg)` : undefined }}
