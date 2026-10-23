@@ -238,7 +238,8 @@ body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-
     <div id="badges"></div>
   </div>
 </div></div>
-<div id="controls"><button id="replay">처음부터</button><button id="pause">멈춤</button></div>
+<div id="controls"><button id="sound" hidden>소리 켜기</button><button id="replay">처음부터</button><button id="pause">멈춤</button></div>
+<audio id="bgm" preload="auto" src="AUDIO_SRC"></audio>
 
 <script>
 'use strict';
@@ -565,6 +566,39 @@ function renderBrand(t) {
   $('brand').style.opacity = o;
 }
 
+// ── 소리 신호: 장면과 같은 시간 상수로 만든다 (scripts/media/audio.ts가 이 목록대로 효과음을 넣는다) ──
+// t: ms, type: 소리 종류, pan: -1(왼쪽)~1(오른쪽), 그 밖의 값은 소리마다
+const CUES = [];
+const cue = (t, type, extra = {}) => CUES.push({ t, type, pan: 0, ...extra });
+PILE.forEach(([x], i) => cue(250 + i * 140 + 430, 'paper', { pan: (x - 960) / 1200 }));
+cue(2500, 'pop');
+cue(2700, 'count', { dur: 1300 });
+cue(6300, 'whoosh', { dur: 600, pan: 0 });
+cue(6750, 'whoosh', { dur: 900, pan: -0.3 });
+cue(7650, 'thunk');
+cue(8300, 'process', { dur: 1900 });
+thumbs.forEach((_, i) => { if (i % 2 === 0) cue(10500 + i * 28 + 120, 'glitter', { pan: ((i % 10) - 4.5) / 6, step: i / 2 }); });
+cue(13300, 'whoosh', { dur: 700, pan: -0.4 });
+cue(14300, 'scan', { dur: 1700 });
+FIELDS.forEach((_, i) => cue(16000 + i * 480, 'blip', { step: i, pan: 0.3 }));
+cue(18300, 'pop', { pan: 0.4 });
+cue(20900, 'whoosh', { dur: 700, pan: 0.4 });
+cue(22950, 'click', { pan: 0.4 });
+cue(23290, 'stamp', { pan: 0.25 });
+cue(24400, 'whoosh', { dur: 600, pan: 0.6 });
+Array.from({ length: STACK }, (_, i) => cue(landAt(i) + 140, 'paper', { pan: 0.45, soft: true }));
+cue(28000, 'whoosh', { dur: 700, pan: -0.2 });
+cue(29300, 'pop', { pan: -0.5 });
+Array.from({ length: COLS }, (_, c) => cue(WAVE + c * 110 + 650, 'rise', { step: c, pan: (c - 7) / 10 }));
+cue(WAVE + (COLS - 1) * 110 + (DEPTS.length - 1) * 140 + 700, 'chime');
+cue(36500, 'whoosh', { dur: 700, pan: 0.3 });
+NAMES.forEach((_, i) => cue(37600 + i * 380, 'type', { pan: 0.25 }));
+CHECKS.forEach((_, i) => cue(38200 + i * 900, 'pop', { pan: -0.4, step: i }));
+cue(41900, 'riser', { dur: 2000 });
+cue(43950, 'impact');
+BADGES.forEach((_, i) => cue(45300 + i * 220 + 120, 'pop', { pan: (i - 1) * 0.4, step: i + 2 }));
+window.__cues = CUES;
+
 function render(t) {
   renderS1(t); renderPile(t); renderS2(t); renderS3(t); renderS4(t); renderS5(t); renderS6(t); renderS7(t); renderBrand(t);
 }
@@ -584,17 +618,42 @@ if (new URLSearchParams(location.search).has('capture')) {
   $('stage').style.transform = 'none';
   render(0);
 } else {
+  // 소리를 켜면 음악이 시계가 된다 (화면과 소리가 어긋나지 않게)
+  const audio = $('bgm');
+  const hasAudio = audio.getAttribute('src').startsWith('data:');
   let start = performance.now();
   let pausedAt = null;
-  const loop = (now) => {
-    if (pausedAt === null) render(Math.min(now - start, TOTAL));
+  let audioClock = false;
+  const now = () => (audioClock ? audio.currentTime * 1000 : (pausedAt ?? performance.now()) - start);
+  const loop = () => {
+    render(Math.min(now(), TOTAL));
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  $('replay').onclick = () => { start = performance.now(); pausedAt = null; $('pause').textContent = '멈춤'; };
+  if (hasAudio) $('sound').hidden = false;
+  $('sound').onclick = () => {
+    if (!audioClock) {
+      audio.currentTime = Math.min(now(), TOTAL) / 1000;
+      audioClock = true;
+      pausedAt = null;
+      void audio.play();
+      $('pause').textContent = '멈춤';
+    } else {
+      audio.muted = !audio.muted;
+    }
+    $('sound').textContent = audio.muted ? '소리 켜기' : '소리 끄기';
+  };
+  $('replay').onclick = () => {
+    if (audioClock) { audio.currentTime = 0; void audio.play(); }
+    else { start = performance.now(); pausedAt = null; }
+    $('pause').textContent = '멈춤';
+  };
   $('pause').onclick = () => {
-    if (pausedAt === null) { pausedAt = performance.now(); $('pause').textContent = '이어 보기'; }
-    else { start += performance.now() - pausedAt; pausedAt = null; $('pause').textContent = '멈춤'; }
+    const playing = audioClock ? !audio.paused : pausedAt === null;
+    if (audioClock) playing ? audio.pause() : void audio.play();
+    else if (playing) pausedAt = performance.now();
+    else { start += performance.now() - pausedAt; pausedAt = null; }
+    $('pause').textContent = playing ? '이어 보기' : '멈춤';
   };
 }
 </script>

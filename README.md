@@ -12,7 +12,7 @@
   <a href="docs/PC설치안내.md">PC 설치</a> ·
   <a href="docs/설치가이드.md">서버 설치</a> ·
   <a href="docs/운영가이드.md">운영 가이드</a> ·
-  <a href="docs/promo/promo.mp4">소개 영상 (49초)</a>
+  <a href="docs/promo/promo.mp4">소개 영상 (49초, 소리 있음)</a>
 </p>
 
 <p align="center">
@@ -104,7 +104,7 @@ npm run dev
 | `npm run eval -- --truth samples/certs/정답.json` | 판독 정확도 점검 (`--truth confirmed`: 확정한 결과를 정답으로, `--engine tesseract`: 대체 OCR로) |
 | `npm run restore -- --check` | 백업 복원 연습 (`--list` 목록, `--apply --yes` 실제 복원) |
 | `npm run release` | 서버용 설치본 (`-- --target linux-x64 --download-node` 다른 OS용, `-- --target win-x64 --desktop --download-node` PC 설치판) |
-| `npm run media:screens` · `media:promo` | 문서용 화면 그림 · 소개 영상 다시 만들기 (헤드리스 크롬, ffmpeg) |
+| `npm run media:screens` · `media:promo` | 문서용 화면 그림 · 소개 영상 다시 만들기 (헤드리스 크롬, ffmpeg). `media:promo -- --audio-only`는 소리만, `-- --music 음원.mp3`는 배경음악을 기관 음원으로 |
 
 <details>
 <summary><b>폴더 구조</b></summary>
@@ -162,4 +162,4 @@ tests/     단위·API 테스트
 
 [kordoc](https://www.npmjs.com/package/kordoc)(MIT), PP-OCRv5 모델(Apache-2.0, [vendor/ocr-models/NOTICE.md](vendor/ocr-models/NOTICE.md)), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), [Wanted Sans](https://github.com/wanteddev/wanted-sans)·Noto Serif KR(OFL-1.1), Fastify·React·ExcelJS·pdf-lib(MIT), SheetJS(Apache-2.0).
 
-화면 그림과 소개 영상의 기관·사람·이수증은 모두 가상 자료입니다.
+화면 그림과 소개 영상의 기관·사람·이수증은 모두 가상 자료입니다. 소개 영상의 배경음악과 효과음은 외부 음원 없이 코드로 만든 것(`scripts/media/audio.ts`)이라 기관에서 틀거나 게시할 때 따로 저작권을 확인할 필요가 없습니다.
