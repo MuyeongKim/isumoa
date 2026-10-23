@@ -1,4 +1,4 @@
-import { KeyRound, LogOut, Power, Search } from 'lucide-react';
+import { BookOpen, KeyRound, LogOut, Power, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useMatches } from 'react-router';
@@ -134,6 +134,10 @@ export function AppShell() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-0.5">
+            <a href="/manual.html" target="_blank" rel="noopener" className={footerButton}>
+              <BookOpen className="size-3.5" aria-hidden />
+              사용설명서
+            </a>
             <button type="button" onClick={() => setPasswordOpen(true)} className={footerButton}>
               <KeyRound className="size-3.5" aria-hidden />
               비밀번호 변경

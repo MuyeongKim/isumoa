@@ -19,6 +19,8 @@
     "release": "node --disable-warning=ExperimentalWarning scripts/release.ts",
     "samples:certs": "node scripts/make-sample-certificates.ts",
     "samples:forms": "node scripts/make-sample-forms.ts",
+    "media:screens": "node --disable-warning=ExperimentalWarning scripts/media/screenshots.ts",
+    "media:promo": "node --disable-warning=ExperimentalWarning scripts/media/promo.ts",
     "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ocr.ts",
     "restore": "node --disable-warning=ExperimentalWarning scripts/restore.ts"
   },
@@ -51,6 +53,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
     "lucide-react": "^1.61.0",
+    "markdown-it": "14.3.3",
     "pdfjs-dist": "^6.4.299",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

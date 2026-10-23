@@ -77,7 +77,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   function go(item: Item | undefined) {
     if (!item) return;
     onClose();
-    void navigate(item.to, { viewTransition: true });
+    if (item.to.endsWith('.html')) window.open(item.to, '_blank', 'noopener');
+    else void navigate(item.to, { viewTransition: true });
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

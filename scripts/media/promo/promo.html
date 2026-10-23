@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>법정교육 이수증 종합 플랫폼 소개</title>
+<style>
+/*FONT_FACE*/
+:root {
+  --paper: #f4f5f7; --sheet: #fff; --ink: #161b26; --ink-soft: #4a5263; --ink-faint: #737c8c;
+  --line: #e6e8ec; --line-strong: #cdd2da; --navy: #2438a6; --navy-soft: #edf0fc;
+  --seal: #d23b2c; --ok: #0f7a57; --ok-soft: #e2f3ec; --warn: #b26a00; --warn-soft: #fdf2de;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: var(--paper); overflow: hidden; }
+body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-system, "Malgun Gothic", sans-serif; color: var(--ink); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+#viewport { position: absolute; inset: 0; display: grid; place-items: center; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); transform-origin: center; flex: none; }
+.abs { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.scene { position: absolute; inset: 0; }
+
+/* 큰 제목: 줄마다 아래에서 올라온다 */
+.headline { position: absolute; font-weight: 800; letter-spacing: -0.045em; line-height: 1.12; }
+.headline .line { display: block; overflow: hidden; padding-bottom: 0.08em; }
+.headline .line > span { display: inline-block; will-change: transform; }
+.h-xl { font-size: 104px; }
+.h-lg { font-size: 76px; }
+.caption { position: absolute; font-size: 32px; font-weight: 600; color: var(--ink-soft); letter-spacing: -0.02em; }
+
+.brand { position: absolute; left: 140px; top: 46px; display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 700; color: var(--ink-soft); }
+.seal { display: grid; grid-template-columns: 1fr 1fr; place-items: center; background: var(--seal); color: #fff; font-weight: 800; position: relative; }
+.seal::after { content: ""; position: absolute; border: solid rgb(255 255 255 / 0.9); }
+.seal-sm { width: 40px; height: 40px; border-radius: 7px; font-size: 13px; line-height: 1; padding: 6px; }
+.seal-sm::after { inset: 4px; border-width: 1.5px; border-radius: 4px; }
+
+/* 종이 이수증 (작은 것) */
+.doc { width: 250px; height: 330px; background: #fff; border-radius: 12px; padding: 34px 30px; box-shadow: 0 24px 48px -22px rgb(22 27 38 / 0.38), 0 2px 6px rgb(22 27 38 / 0.06); }
+.doc .t { font-weight: 800; font-size: 25px; text-align: center; letter-spacing: 0.32em; margin-bottom: 26px; }
+.doc .ln { height: 10px; border-radius: 5px; background: var(--line); margin: 15px 0; }
+.doc .stamp { position: absolute; right: 28px; bottom: 28px; width: 46px; height: 46px; border: 3px solid var(--seal); border-radius: 7px; opacity: 0.85; }
+.thumb { width: 104px; height: 138px; background: #fff; border-radius: 8px; padding: 14px 12px; box-shadow: 0 10px 22px -12px rgb(22 27 38 / 0.35); }
+.thumb .ln { height: 5px; border-radius: 3px; background: var(--line); margin: 8px 0; }
+.thumb .dot { position: absolute; right: 9px; top: 9px; width: 14px; height: 14px; border-radius: 50%; }
+
+.panel { background: var(--sheet); border: 1px solid var(--line); border-radius: 32px; box-shadow: 0 30px 60px -36px rgb(22 27 38 / 0.35); }
+.pill { display: inline-flex; align-items: center; gap: 14px; border-radius: 999px; font-weight: 700; }
+
+/* 업로드 */
+.drop { width: 900px; height: 420px; border-radius: 40px; border: 4px dashed rgb(36 56 166 / 0.35); background: rgb(255 255 255 / 0.75); display: grid; place-items: center; align-content: center; gap: 22px; text-align: center; }
+.drop .icon { width: 96px; height: 96px; border-radius: 28px; background: var(--navy-soft); display: grid; place-items: center; }
+.drop .label { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
+.bar { width: 620px; height: 16px; border-radius: 8px; background: var(--navy-soft); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--navy); border-radius: 8px; transform-origin: left; }
+
+/* 큰 이수증 */
+.cert { width: 600px; height: 800px; background: #fffdf9; border-radius: 14px; padding: 46px 50px; box-shadow: 0 40px 80px -40px rgb(22 27 38 / 0.45), 0 2px 8px rgb(22 27 38 / 0.06); }
+.cert .org { font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--navy); padding-bottom: 8px; }
+.cert h3 { text-align: center; font-size: 46px; font-weight: 800; letter-spacing: 0.08em; margin: 46px 0 40px; }
+.cert table { width: 100%; border-collapse: collapse; font-size: 22px; }
+.cert th, .cert td { border: 1.5px solid #3a3f4a; padding: 13px 14px; text-align: left; }
+.cert th { width: 140px; background: #f2f2ef; font-weight: 700; text-align: center; }
+.cert .proof { text-align: center; font-size: 19px; color: var(--ink-soft); margin-top: 46px; }
+.cert .sign { text-align: center; font-size: 28px; font-weight: 800; margin-top: 30px; }
+.hl { border: 3px solid var(--navy); background: rgb(36 56 166 / 0.08); border-radius: 8px; }
+.chip { width: 620px; padding: 22px 30px; }
+.chip .k { font-size: 22px; font-weight: 700; color: var(--ink-faint); }
+.chip .v { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; margin-top: 2px; }
+
+/* 검수 카드 */
+.review { width: 820px; height: 560px; padding: 40px 44px; }
+.review .k { font-size: 21px; font-weight: 700; color: var(--ink-faint); margin-bottom: 8px; }
+.review .v { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; }
+.btn { position: absolute; height: 72px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; font-weight: 800; padding: 0 36px; }
+.stamp-big { width: 220px; height: 220px; border-radius: 50%; border: 9px solid var(--seal); color: var(--seal); display: grid; place-items: center; font-size: 64px; font-weight: 800; background: rgb(255 255 255 / 0.4); }
+.stat .k { font-size: 26px; font-weight: 700; color: var(--ink-soft); }
+.stat .v { font-size: 96px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; }
+.stat .v small { font-size: 40px; color: var(--ink-faint); margin-left: 6px; }
+
+/* 직원 지도 */
+.map { width: 1240px; height: 640px; padding: 30px 40px; }
+.cell { width: 36px; height: 36px; border-radius: 9px; }
+.c-none { background: #fff; box-shadow: inset 0 0 0 3px rgb(210 59 44 / 0.7); }
+.c-partial { background: linear-gradient(135deg, var(--warn) 50%, var(--warn-soft) 50%); box-shadow: inset 0 0 0 2px rgb(178 106 0 / 0.5); }
+.c-done { background: var(--ok); }
+.dept { font-size: 24px; font-weight: 700; }
+.tip { width: 360px; padding: 20px 24px; background: var(--ink); color: #fff; border-radius: 18px; font-size: 22px; box-shadow: 0 24px 48px -20px rgb(22 27 38 / 0.6); }
+.meter { width: 340px; height: 18px; border-radius: 9px; background: var(--ok-soft); overflow: hidden; }
+.meter > i { display: block; height: 100%; background: var(--ok); border-radius: 9px; transform-origin: left; }
+
+/* 엑셀 */
+.xls { width: 1100px; height: 740px; border-radius: 22px; overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: 0 40px 80px -44px rgb(22 27 38 / 0.5); }
+.xls .bar-top { height: 56px; background: #eef0f3; display: flex; align-items: center; gap: 10px; padding: 0 22px; font-size: 20px; font-weight: 700; color: var(--ink-soft); }
+.xls .bar-top i { width: 14px; height: 14px; border-radius: 50%; background: var(--line-strong); }
+.grid { position: absolute; left: 0; top: 56px; right: 0; bottom: 0; font-size: 19px; }
+.gcell { position: absolute; display: grid; place-items: center; border-right: 1px solid #d9dde3; border-bottom: 1px solid #d9dde3; overflow: hidden; white-space: nowrap; }
+.ghead { background: #f3f4f6; color: var(--ink-faint); font-size: 16px; font-weight: 600; }
+.th { background: #d9e1f2; font-weight: 800; border-color: #1f2430 !important; }
+.td { border-color: #1f2430 !important; }
+.check { display: flex; align-items: center; gap: 16px; font-size: 28px; font-weight: 700; }
+.check b { width: 40px; height: 40px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 24px; flex: none; }
+
+/* 끝 화면 */
+.end { background: var(--navy); }
+.seal-lg { width: 168px; height: 168px; border-radius: 30px; font-size: 52px; line-height: 1; padding: 22px; gap: 2px 8px; box-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.5); }
+.seal-lg::after { inset: 12px; border-width: 4px; border-radius: 18px; }
+.badge { background: rgb(255 255 255 / 0.12); color: #fff; font-size: 30px; padding: 18px 32px; border: 1.5px solid rgb(255 255 255 / 0.22); }
+
+#controls { position: fixed; right: 18px; bottom: 16px; display: flex; gap: 8px; font: 600 14px/1 system-ui, sans-serif; }
+#controls button { border: 1px solid rgb(22 27 38 / 0.15); background: rgb(255 255 255 / 0.9); border-radius: 999px; padding: 9px 16px; cursor: pointer; color: var(--ink); }
+.capture #controls { display: none; }
+@media (prefers-reduced-motion: reduce) { #controls::after { content: "움직임 줄이기 설정 중에도 영상은 재생됩니다"; } }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+  <!-- 1. 쌓이는 이수증 -->
+  <div class="scene" id="s1">
+    <div class="headline h-xl" style="left:140px; top:300px" id="h1">
+      <span class="line"><span>올해도 법정교육 이수증,</span></span>
+      <span class="line"><span>한 장씩 모으고 계신가요?</span></span>
+    </div>
+    <div class="abs pill" id="count" style="left:140px; top:610px; background:#fff; border:2px solid rgb(210 59 44 / 0.25); color:var(--seal); font-size:34px; padding:18px 32px">
+      직원 118명 × 교육 7개 = 확인할 이수증 <b id="countNum" style="font-size:44px; font-weight:800">826</b>장
+    </div>
+  </div>
+  <div id="pile"></div>
+
+  <div class="brand abs" id="brand"><span class="seal seal-sm"><span>법</span><span>정</span><span>이</span><span>수</span></span>법정교육 이수증</div>
+
+  <!-- 2. 올리기 -->
+  <div class="scene" id="s2">
+    <div class="headline h-lg" style="left:140px; top:110px" id="h2">
+      <span class="line"><span>PDF·스캔본을</span></span>
+      <span class="line"><span>한꺼번에 올리면</span></span>
+    </div>
+    <div class="abs drop" id="drop">
+      <div class="icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2438a6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg></div>
+      <div class="label" id="dropLabel">이수증 PDF·스캔본</div>
+      <div class="bar" id="dropBar"><i id="dropFill"></i></div>
+      <div style="font-size:26px; font-weight:700; color:var(--ink-soft)" id="dropText">79쪽으로 나누는 중</div>
+    </div>
+    <div id="thumbs"></div>
+    <div class="caption" id="cap2" style="left:140px; top:960px">쪽마다 나눠서, 다 읽은 것부터 검수함으로 들어갑니다</div>
+  </div>
+
+  <!-- 3. 읽기 -->
+  <div class="scene" id="s3">
+    <div class="abs cert" id="cert">
+      <div class="org">가상사이버교육센터</div>
+      <h3>교육 이수증</h3>
+      <table>
+        <tr><th>이름</th><td>송주주</td></tr>
+        <tr><th>소속기관</th><td>가람시 재무과</td></tr>
+        <tr><th>교육과정</th><td>2026 장애인 인식개선 교육</td></tr>
+        <tr><th>이수시간</th><td>1시간</td></tr>
+        <tr><th>이수일자</th><td>2026-04-13</td></tr>
+      </table>
+      <p class="proof">위 사람은 상기 교육과정을 이수하였음을 증명합니다.</p>
+      <p class="sign">가상사이버교육센터장</p>
+    </div>
+    <div class="abs" id="beam" style="width:600px; height:120px; background:linear-gradient(transparent, rgb(36 56 166 / 0.18) 70%, rgb(36 56 166 / 0.55) 96%, transparent)"></div>
+    <div id="hls"></div>
+    <svg class="abs" id="links" width="1920" height="1080" style="overflow:visible"></svg>
+    <div class="headline h-lg" style="left:1100px; top:96px" id="h3">
+      <span class="line"><span>OCR이 읽고</span></span>
+      <span class="line"><span>직원·교육을 찾아 줍니다</span></span>
+    </div>
+    <div id="chips"></div>
+    <div class="abs pill" id="offline" style="left:1100px; top:940px; background:var(--ink); color:#fff; font-size:28px; padding:16px 28px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      인터넷·AI 없이, 이 PC 안에서 읽습니다
+    </div>
+  </div>
+
+  <!-- 4. 확정 -->
+  <div class="scene" id="s4">
+    <div class="headline h-lg" style="left:140px; top:150px" id="h4">
+      <span class="line"><span>원본과 대조하고</span></span>
+      <span class="line"><span>확정하면 끝</span></span>
+    </div>
+    <div class="abs stat" id="stDraft" style="left:140px; top:520px"><div class="k">검수 대기</div><div class="v"><span id="draftN">8</span><small>건</small></div></div>
+    <div class="abs stat" id="stDone" style="left:440px; top:520px"><div class="k">확정</div><div class="v" style="color:var(--navy)"><span id="doneN">71</span><small>건</small></div></div>
+    <div class="abs panel review" id="review">
+      <div style="display:flex; gap:40px">
+        <div class="thumb" style="position:relative; width:150px; height:200px; flex:none"><div class="ln" style="width:60%; margin:6px auto 18px; height:8px; background:var(--ink-faint)"></div><div class="ln"></div><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:50%"></div></div>
+        <div style="flex:1">
+          <div class="k">직원</div><div class="v">송주주 <span style="font-size:24px; color:var(--ink-faint); font-weight:600">재무과 · 2000003</span></div>
+          <div class="k" style="margin-top:26px">인정할 교육</div>
+          <div class="pill" style="background:var(--navy-soft); color:var(--navy); font-size:26px; padding:12px 22px">✓ 장애인 인식개선교육</div>
+          <div class="k" style="margin-top:26px">이수일 · 교육시간</div><div class="v">2026-04-13 · 1시간</div>
+        </div>
+      </div>
+      <div class="btn" style="right:200px; bottom:40px; background:#fff; border:2px solid var(--line-strong)">저장</div>
+      <div class="btn" id="confirmBtn" style="right:44px; bottom:40px; background:var(--navy); color:#fff">확정</div>
+    </div>
+    <div class="abs stamp-big" id="stamp">확인</div>
+    <div id="stack"></div>
+    <svg class="abs" id="cursor" width="44" height="52" viewBox="0 0 22 26"><path d="M2 1.5v19.5l5.2-4.7 3.4 7.6 3.4-1.5-3.3-7.4 7-.4z" fill="#161b26" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- 5. 직원 지도 -->
+  <div class="scene" id="s5">
+    <div class="headline h-lg" style="left:140px; top:110px" id="h5">
+      <span class="line"><span>누가 남았는지</span></span>
+      <span class="line"><span>한눈에</span></span>
+    </div>
+    <div class="abs panel map" id="map"></div>
+    <div class="abs stat" id="rate" style="left:1470px; top:420px">
+      <div class="k">전체 이수율</div>
+      <div class="v" style="font-size:150px"><span id="rateN">19</span><small style="font-size:64px">%</small></div>
+      <div class="meter" style="margin-top:18px"><i id="rateFill"></i></div>
+      <div class="k" style="margin-top:26px">모두 이수 <b id="allN" style="color:var(--ok); font-size:34px">0</b>명</div>
+    </div>
+    <div class="abs tip" id="tip"><b style="font-size:26px">권원빈</b> <span style="color:rgb(255 255 255 / 0.6)">총무과</span><div style="margin-top:6px; color:rgb(255 255 255 / 0.75)">일부 이수</div><div style="margin-top:12px; padding-top:12px; border-top:1px solid rgb(255 255 255 / 0.18); display:flex; justify-content:space-between">개인정보보호 <span style="color:rgb(255 255 255 / 0.6)">미이수</span></div></div>
+  </div>
+
+  <!-- 6. 제출 양식 -->
+  <div class="scene" id="s6">
+    <div class="headline h-lg" style="left:140px; top:110px" id="h6">
+      <span class="line"><span>부서 제출 양식 그대로</span></span>
+      <span class="line"><span>채워서 내보냅니다</span></span>
+    </div>
+    <div id="checks"></div>
+    <div class="abs xls" id="xls">
+      <div class="bar-top"><i></i><i></i><i></i><span style="margin-left:14px">2026년_총무과_제출양식.xlsx</span></div>
+      <div class="grid" id="sheet"></div>
+    </div>
+  </div>
+
+  <!-- 7. 끝 -->
+  <div class="scene end" id="s7">
+    <div class="abs seal seal-lg" id="endSeal"><span>법</span><span>정</span><span>이</span><span>수</span></div>
+    <div class="headline" id="endTitle" style="left:0; width:1920px; text-align:center; top:520px; font-size:92px; color:#fff">
+      <span class="line"><span>법정교육 이수증 종합 플랫폼</span></span>
+    </div>
+    <div class="caption" id="endTag" style="left:0; width:1920px; text-align:center; top:650px; color:rgb(255 255 255 / 0.78); font-size:36px">모으고, 확인하고, 현황을 보고, 제출 양식까지</div>
+    <div id="badges"></div>
+  </div>
+</div></div>
+<div id="controls"><button id="replay">처음부터</button><button id="pause">멈춤</button></div>
+
+<script>
+'use strict';
+// 모든 장면은 시간 t(ms)만으로 그린다 → 브라우저에서 그대로 재생하고, 같은 함수로 한 장씩 찍어 영상으로 만든다.
+const TOTAL = 49000;
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const p = (t, start, dur) => clamp((t - start) / dur);
+const lerp = (a, b, k) => a + (b - a) * k;
+const E = {
+  out: (x) => 1 - Math.pow(1 - x, 3),
+  out5: (x) => 1 - Math.pow(1 - x, 5),
+  in: (x) => x * x * x,
+  inOut: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2),
+  back: (x) => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); },
+};
+const bump = (x) => Math.sin(Math.PI * clamp(x));
+function put(el, { x = 0, y = 0, s = 1, r = 0, o = 1 } = {}) {
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
+  el.style.opacity = o;
+}
+function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; }
+function sceneFade(id, t, a, b, fade = 450) {
+  const o = Math.min(p(t, a, fade), 1 - p(t, b - fade, fade));
+  const node = $(id);
+  node.style.opacity = o;
+  node.style.visibility = t >= a && t < b ? 'visible' : 'hidden';
+}
+/** 큰 제목: 줄마다 아래에서 올라오고, 나갈 때는 위로 */
+function headline(id, t, inAt, outAt) {
+  [...$(id).querySelectorAll('.line > span')].forEach((span, i) => {
+    const enter = E.out5(p(t, inAt + i * 130, 800));
+    const exit = E.in(p(t, outAt + i * 70, 450));
+    span.style.transform = `translateY(${(1 - enter) * 110 - exit * 110}%)`;
+  });
+}
+const num = (v) => Math.round(v).toLocaleString('ko-KR');
+
+// ── 1. 쌓이는 이수증 ──
+const TITLES = ['수료증', '이수증', '교육 이수증', '수료증', '이수증', '수료증', '교육 이수증', '이수증', '수료증'];
+const PILE = [[1250, 330, -9], [1440, 280, 7], [1340, 470, -3], [1530, 430, 12], [1180, 520, 8], [1460, 590, -11], [1310, 640, 4], [1580, 640, -6], [1390, 380, 15]];
+const docs = PILE.map((_, i) => {
+  const d = el(`<div class="abs doc"><div class="t">${TITLES[i]}</div><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:55%"></div><div class="ln" style="width:80%"></div><div class="stamp"></div></div>`);
+  $('pile').append(d);
+  return d;
+});
+function renderPile(t) {
+  docs.forEach((d, i) => {
+    const [x, y, r] = PILE[i];
+    const drop = E.back(p(t, 250 + i * 140, 900));
+    let pos = { x: x, y: lerp(y - 1000, y, drop), r: lerp(r * 3, r, drop), s: 1, o: p(t, 250 + i * 140, 200) };
+    // 2장에서 업로드 칸으로 빨려 들어간다
+    const fly = E.inOut(p(t, 6700 + i * 90, 900));
+    if (fly > 0) pos = { x: lerp(x, 835, fly), y: lerp(y, 445, fly), r: lerp(r, 0, fly), s: lerp(1, 0.2, fly), o: 1 - p(t, 7300 + i * 90, 300) };
+    put(d, pos);
+  });
+}
+function renderS1(t) {
+  sceneFade('s1', t, 0, 6400, 300);
+  headline('h1', t, 600, 5600);
+  const pill = E.back(p(t, 2500, 600));
+  put($('count'), { s: lerp(0.85, 1, pill), o: p(t, 2500, 250) * (1 - p(t, 5600, 400)), y: -12 * p(t, 5600, 400) });
+  $('countNum').textContent = num(826 * E.out(p(t, 2700, 1300)));
+}
+
+// ── 2. 올리기 ──
+const thumbs = Array.from({ length: 40 }, (_, i) => {
+  const d = el(`<div class="abs thumb"><div class="ln" style="width:60%; margin:2px auto 12px; height:6px; background:var(--ink-faint)"></div><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:50%"></div><div class="dot"></div></div>`);
+  $('thumbs').append(d);
+  return d;
+});
+function renderS2(t) {
+  sceneFade('s2', t, 6300, 13500);
+  headline('h2', t, 6600, 12800);
+  const drop = $('drop');
+  const appear = E.back(p(t, 6300, 700));
+  const leave = E.in(p(t, 10300, 500));
+  put(drop, { x: 510, y: 330, s: lerp(0.92, 1, appear) * (1 - 0.1 * leave), o: p(t, 6300, 300) * (1 - leave) });
+  const glow = bump(p(t, 7500, 900));
+  drop.style.borderColor = `rgb(36 56 166 / ${0.35 + 0.65 * glow})`;
+  drop.style.borderStyle = glow > 0.5 ? 'solid' : 'dashed';
+  const fill = E.inOut(p(t, 8300, 1900));
+  $('dropFill').style.transform = `scaleX(${fill})`;
+  $('dropBar').style.opacity = p(t, 8200, 250);
+  $('dropText').style.opacity = p(t, 8200, 250);
+  $('dropText').textContent = fill < 0.35 ? '79쪽으로 나누는 중' : `읽는 중 ${num(79 * clamp((fill - 0.35) / 0.65))} / 79쪽`;
+  thumbs.forEach((d, i) => {
+    const col = i % 10, row = Math.floor(i / 10);
+    const k = E.back(p(t, 10500 + (row * 10 + col) * 28, 650));
+    put(d, {
+      x: lerp(908, 260 + col * 142, k),
+      y: lerp(510, 330 + row * 158, k),
+      s: lerp(0.3, 1, k),
+      o: p(t, 10500 + (row * 10 + col) * 28, 150),
+    });
+    const dot = d.querySelector('.dot');
+    const shown = p(t, 11200 + i * 25, 200);
+    dot.style.background = i % 7 === 3 ? 'var(--warn)' : 'var(--ok)';
+    dot.style.transform = `scale(${E.back(shown)})`;
+  });
+  $('cap2').style.opacity = p(t, 11400, 500) * (1 - p(t, 12800, 400));
+  $('cap2').style.transform = `translateY(${(1 - E.out(p(t, 11400, 500))) * 20}px)`;
+}
+
+// ── 3. 읽기 ──
+const FIELDS = [
+  { k: '성명', v: '송주주 · 재무과', row: 0 },
+  { k: '교육', v: '장애인 인식개선교육', row: 2 },
+  { k: '교육시간', v: '1시간', row: 3 },
+  { k: '이수일', v: '2026. 4. 13.', row: 4 },
+];
+const CERT = { x: 330, y: 150 };
+/** 이수증 표의 줄 위치 (글꼴이 바뀌면 달라지므로 그릴 때마다 잰다) */
+function certRow(row) {
+  const table = $('cert').querySelector('table');
+  const tr = table.rows[row];
+  return { x: CERT.x + table.offsetLeft, y: CERT.y + table.offsetTop + tr.offsetTop, w: table.offsetWidth, h: tr.offsetHeight };
+}
+const hls = FIELDS.map(() => { const d = el('<div class="abs hl"></div>'); $('hls').append(d); return d; });
+const chips = FIELDS.map((f) => { const d = el(`<div class="abs panel chip"><div class="k">${f.k}</div><div class="v">${f.v}</div></div>`); $('chips').append(d); return d; });
+const links = FIELDS.map(() => { const path = document.createElementNS('http://www.w3.org/2000/svg', 'path'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#2438a6'); path.setAttribute('stroke-width', '3'); path.setAttribute('stroke-dasharray', '6 8'); $('links').append(path); return path; });
+function renderS3(t) {
+  sceneFade('s3', t, 13300, 21000);
+  headline('h3', t, 13800, 20300);
+  const c = E.out5(p(t, 13300, 900));
+  put($('cert'), { x: CERT.x + (1 - c) * -80, y: CERT.y, o: c, r: (1 - c) * -3 });
+  const scan = p(t, 14300, 1700);
+  put($('beam'), { x: CERT.x, y: CERT.y - 60 + scan * 800, o: scan > 0 && scan < 1 ? 1 : 0 });
+  FIELDS.forEach((f, i) => {
+    const at = 16000 + i * 480;
+    const k = E.out(p(t, at, 350));
+    const row = certRow(f.row);
+    put(hls[i], { x: row.x - 6, y: row.y - 4, o: k, s: lerp(1.04, 1, k) });
+    hls[i].style.width = `${row.w + 12}px`;
+    hls[i].style.height = `${row.h + 8}px`;
+    const ck = E.out5(p(t, at + 150, 700));
+    const cy = 300 + i * 150;
+    put(chips[i], { x: 1100 + (1 - ck) * 60, y: cy, o: ck });
+    const from = [row.x + row.w + 6, row.y + row.h / 2], to = [1100, cy + 62];
+    links[i].setAttribute('d', `M${from[0]} ${from[1]} C ${from[0] + 120} ${from[1]}, ${to[0] - 140} ${to[1]}, ${to[0]} ${to[1]}`);
+    links[i].style.opacity = E.out(p(t, at + 100, 400)) * 0.7;
+  });
+  const off = E.back(p(t, 18300, 600));
+  put($('offline'), { s: lerp(0.9, 1, off), o: p(t, 18300, 250) });
+}
+
+// ── 4. 확정 ──
+const STACK = 8;
+const stack = Array.from({ length: STACK }, () => {
+  const d = el('<div class="abs thumb" style="width:170px; height:226px"><div class="ln" style="width:60%; margin:4px auto 16px; height:7px; background:var(--ink-faint)"></div><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln"></div><div class="ln" style="width:55%"></div><b style="position:absolute; right:-14px; top:-14px; width:44px; height:44px; border-radius:50%; background:var(--ok); color:#fff; display:grid; place-items:center; font-size:24px">✓</b></div>');
+  $('stack').append(d);
+  return d;
+});
+const landAt = (i) => 24700 + i * 190;
+function renderS4(t) {
+  sceneFade('s4', t, 20800, 28000);
+  headline('h4', t, 21200, 27300);
+  const enter = E.out5(p(t, 20900, 900));
+  const leave = E.inOut(p(t, 24400, 800));
+  const press = bump(p(t, 22950, 260));
+  put($('review'), { x: 900 + (1 - enter) * 120 + leave * 700, y: 260 + leave * 40, r: leave * 6, s: 1 - leave * 0.35, o: enter * (1 - p(t, 24800, 400)) });
+  $('confirmBtn').style.transform = `scale(${1 - press * 0.06})`;
+  // 마우스가 확정 단추로 가서 누른다
+  const move = E.inOut(p(t, 21900, 1000));
+  put($('cursor'), { x: lerp(1580, 1600, move), y: lerp(1040, 770, move), s: 1 - press * 0.12, o: p(t, 21700, 200) * (1 - p(t, 24300, 300)) });
+  // 도장 쾅
+  const stamp = p(t, 23150, 300);
+  const shake = bump(p(t, 23400, 160)) * 6;
+  put($('stamp'), { x: 1440 + shake + leave * 700, y: 360 + leave * 40, s: stamp === 0 ? 0 : lerp(2.3, 1, E.out(stamp)) * (1 - leave * 0.35), r: lerp(-20, -8, E.out(stamp)) + leave * 6, o: stamp > 0 ? Math.min(1, stamp * 3) * (1 - p(t, 24800, 400)) : 0 });
+  let stacked = 0;
+  stack.forEach((d, i) => {
+    const k = E.back(p(t, landAt(i), 420));
+    if (t >= landAt(i) + 200) stacked++;
+    put(d, { x: 1330 + i * 26, y: 330 + i * 34 + (1 - k) * 260, r: (i % 2 ? 4 : -4) + (1 - k) * 10, o: p(t, landAt(i), 150) });
+  });
+  $('draftN').textContent = num(8 - stacked);
+  $('doneN').textContent = num(71 + stacked);
+  put($('stDraft'), { o: p(t, 21500, 400), y: (1 - E.out(p(t, 21500, 600))) * 20 });
+  put($('stDone'), { o: p(t, 21650, 400), y: (1 - E.out(p(t, 21650, 600))) * 20 });
+}
+
+// ── 5. 직원 지도 ──
+const DEPTS = ['기획예산과', '총무과', '재무과', '민원봉사과', '복지정책과', '환경과', '도시계획과', '정보통신과'];
+const COLS = 15;
+const cells = [];
+DEPTS.forEach((name, r) => {
+  $('map').append(el(`<div class="abs dept" style="left:44px; top:${46 + r * 72}px">${name}</div>`));
+  for (let c = 0; c < COLS; c++) {
+    const d = el(`<div class="abs cell" style="left:${250 + c * 62}px; top:${42 + r * 72}px"></div>`);
+    $('map').append(d);
+    // 총무과·재무과는 일부 이수에서 시작한다 (실제 데모 자료와 같게)
+    const start = r === 1 || r === 2 ? 'partial' : 'none';
+    cells.push({ d, r, c, start });
+  }
+});
+const WAVE = 31000;
+function cellState(cell, t) {
+  const at = WAVE + cell.c * 110 + cell.r * 140;
+  if (t >= at + 650) return ['done', at + 650];
+  if (t >= at && cell.start === 'none') return ['partial', at];
+  return [cell.start, 0];
+}
+function renderS5(t) {
+  sceneFade('s5', t, 27800, 36500);
+  headline('h5', t, 28200, 35800);
+  const enter = E.out5(p(t, 28000, 900));
+  put($('map'), { x: 140, y: 340 + (1 - enter) * 40, o: enter });
+  let done = 0, all = 0;
+  const perDept = DEPTS.map(() => 0);
+  cells.forEach((cell) => {
+    const [state, changedAt] = cellState(cell, t);
+    if (state === 'done') { done++; perDept[cell.r]++; }
+    cell.d.className = `abs cell c-${state}`;
+    const pop = changedAt ? bump(p(t, changedAt, 300)) : 0;
+    const appear = E.back(p(t, 28300 + (cell.r * COLS + cell.c) * 6, 400));
+    cell.d.style.transform = `scale(${appear * (1 + pop * 0.3)})`;
+  });
+  all = perDept.filter((n) => n === COLS).length * COLS;
+  // 이수율: 처음 19%에서 칸이 채워지는 만큼
+  const rate = lerp(19, 100, done / cells.length);
+  $('rateN').textContent = num(rate);
+  $('rateFill').style.transform = `scaleX(${rate / 100})`;
+  $('allN').textContent = num(all);
+  put($('rate'), { o: p(t, 28600, 500), y: (1 - E.out(p(t, 28600, 700))) * 30 });
+  // 일부 이수한 직원 칸에 마우스를 올린 것처럼 남은 교육을 보여 준다
+  const tip = E.back(p(t, 29300, 500)) * (1 - p(t, 30700, 300));
+  put($('tip'), { x: 140 + 250 - 10, y: 340 + 42 + 72 - 205, s: lerp(0.92, 1, tip), o: clamp(tip) });
+}
+
+// ── 6. 제출 양식 ──
+const COLW = [52, 84, 160, 120, 196, 110, 140, 196];
+const ROWH = 36;
+const NAMES = ['권원빈', '김연진', '김혜연', '박똠이', '송우우', '신서하', '신연하', '신우호', '안솔진', '오호영'];
+const colX = COLW.map((_, i) => COLW.slice(0, i).reduce((a, b) => a + b, 0));
+const SHEET_W = COLW.reduce((a, b) => a + b, 0);
+const sheet = $('sheet');
+const gc = (x, y, w, h, cls, text, style = '') => { const d = el(`<div class="gcell ${cls}" style="left:${x}px; top:${y}px; width:${w}px; height:${h}px; ${style}">${text}</div>`); sheet.append(d); return d; };
+COLW.forEach((w, i) => gc(colX[i], 0, w, 30, 'ghead', i === 0 ? '' : String.fromCharCode(64 + i)));
+const ROW0 = 30;
+const rowNo = (r) => gc(0, ROW0 + r * ROWH, COLW[0], ROWH, 'ghead', String(r + 1));
+const body = SHEET_W - COLW[0];
+const X = (i) => colX[i];
+gc(X(1), ROW0, body, ROWH, '', '<b style="font-size:24px">2026년 법정의무교육 이수 현황</b>'); rowNo(0);
+gc(X(1), ROW0 + ROWH, body, ROWH, '', '부서명: 총무과 &nbsp;&nbsp;&nbsp; 작성일: 2026. 10. 23.', 'justify-content:start; padding-left:14px; place-items:center start'); rowNo(1);
+[[1, 2, '연번'], [2, 2, '소속'], [3, 2, '성명']].forEach(([c, h, txt]) => gc(X(c), ROW0 + 2 * ROWH, COLW[c], ROWH * h, 'th', txt));
+gc(X(4), ROW0 + 2 * ROWH, COLW[4] + COLW[5], ROWH, 'th', '성희롱 예방교육');
+gc(X(6), ROW0 + 2 * ROWH, COLW[6] + COLW[7], ROWH, 'th', '청렴교육');
+[[4, '이수일'], [5, '시간'], [6, '이수여부'], [7, '이수일']].forEach(([c, txt]) => gc(X(c), ROW0 + 3 * ROWH, COLW[c], ROWH, 'th', txt));
+rowNo(2); rowNo(3);
+const DATA_TOP = ROW0 + 4 * ROWH;
+const PREPARED = 5;
+const dataRows = NAMES.map((name, i) => {
+  const vals = [String(i + 1), '총무과', name, `2026-03-${String(10 + i).padStart(2, '0')}`, '1', i % 3 === 1 ? 'X' : 'O', i % 3 === 1 ? '' : `2026-06-${String(3 + i).padStart(2, '0')}`];
+  const row = el(`<div class="abs" style="left:0; top:0"></div>`);
+  sheet.append(row);
+  const no = el(`<div class="gcell ghead" style="left:0; top:0; width:${COLW[0]}px; height:${ROWH}px">${5 + i}</div>`);
+  row.append(no);
+  const cellsEls = vals.map((v, c) => { const d = el(`<div class="gcell td" style="left:${X(c + 1)}px; top:0; width:${COLW[c + 1]}px; height:${ROWH}px"><span>${v}</span></div>`); row.append(d); return d; });
+  return { row, cellsEls };
+});
+const footer = el('<div class="abs" style="left:0; top:0"></div>');
+sheet.append(footer);
+footer.append(el(`<div class="gcell td" style="left:${X(1)}px; top:0; width:${COLW[1] + COLW[2]}px; height:${ROWH}px; font-weight:800">계</div>`));
+footer.append(el(`<div class="gcell td" id="sumCell" style="left:${X(3)}px; top:0; width:${COLW[3]}px; height:${ROWH}px; font-weight:800">0명</div>`));
+footer.append(el(`<div class="gcell td" style="left:${X(4)}px; top:0; width:${body - COLW[1] - COLW[2] - COLW[3]}px; height:${ROWH}px"></div>`));
+footer.append(el(`<div class="gcell" style="left:${X(1)}px; top:${ROWH * 1.3}px; width:${body}px; height:${ROWH}px; border:0">위와 같이 제출합니다.</div>`));
+footer.append(el(`<div class="gcell" style="left:${X(1)}px; top:${ROWH * 2.4}px; width:${body - 40}px; height:${ROWH}px; border:0; place-items:center end">작성자: 교육담당 &nbsp; (서명)</div>`));
+const CHECKS = ['머리글·빈 줄·서명란 자동 인식', '모자란 줄은 끼우고 합계도 맞게', '부서별 파일로 한 번에'];
+const checks = CHECKS.map((text, i) => { const d = el(`<div class="abs check"><b>✓</b>${text}</div>`); $('checks').append(d); return d; });
+function renderS6(t) {
+  sceneFade('s6', t, 36300, 43500);
+  headline('h6', t, 36700, 42800);
+  const enter = E.out5(p(t, 36500, 900));
+  put($('xls'), { x: 720 + (1 - enter) * 80, y: 300, o: enter });
+  let filled = 0;
+  dataRows.forEach((r, i) => {
+    const at = 37600 + i * 380;
+    const k = p(t, at, 280);
+    if (k > 0) filled = i + 1;
+    // 미리 그린 빈 줄 5개는 처음부터 보이고, 그 뒤 줄은 끼워질 때 나타난다
+    const inserted = i >= PREPARED ? E.out(p(t, at - 120, 240)) : 1;
+    r.row.style.transform = `translate(0px, ${DATA_TOP + i * ROWH}px)`;
+    r.row.style.opacity = inserted;
+    r.cellsEls.forEach((cel, c) => {
+      const ck = E.out(p(t, at + c * 35, 220));
+      const span = cel.firstElementChild;
+      span.style.opacity = ck;
+      span.style.display = 'inline-block';
+      span.style.transform = `translateY(${(1 - ck) * 8}px)`;
+    });
+    r.row.style.background = bump(p(t, at, 500)) > 0.05 ? `rgb(36 56 166 / ${0.08 * bump(p(t, at, 500))})` : 'transparent';
+  });
+  const extraRows = dataRows.reduce((n, r, i) => n + (i >= PREPARED ? E.out(p(t, 37600 + i * 380 - 120, 240)) : 0), 0);
+  footer.style.transform = `translate(0px, ${DATA_TOP + (PREPARED + extraRows) * ROWH}px)`;
+  $('sumCell').textContent = `${filled}명`;
+  checks.forEach((d, i) => put(d, { x: 140, y: 420 + i * 92 + (1 - E.out(p(t, 38200 + i * 900, 600))) * 20, o: p(t, 38200 + i * 900, 400) }));
+}
+
+// ── 7. 끝 ──
+const BADGES = ['Windows PC에 설치 한 번', '인터넷·AI 없이', '개인정보는 PC 안에'];
+const badges = BADGES.map((b) => { const d = el(`<div class="abs pill badge">${b}</div>`); $('badges').append(d); return d; });
+function renderS7(t) {
+  const wipe = E.inOut(p(t, 43300, 800));
+  const s7 = $('s7');
+  s7.style.visibility = t >= 43300 ? 'visible' : 'hidden';
+  s7.style.clipPath = `circle(${wipe * 120}% at 50% 55%)`;
+  const seal = E.back(p(t, 43900, 700));
+  put($('endSeal'), { x: 960 - 84, y: 260 + (1 - seal) * 30, s: lerp(0.6, 1, seal), r: (1 - seal) * -12, o: p(t, 43900, 200) });
+  headline('endTitle', t, 44300, 99999);
+  const tag = E.out(p(t, 44800, 700));
+  put($('endTag'), { y: (1 - tag) * 20, o: tag });
+  let x = 0;
+  const widths = badges.map((d) => d.offsetWidth);
+  const total = widths.reduce((a, b) => a + b, 0) + 24 * (badges.length - 1);
+  badges.forEach((d, i) => {
+    const k = E.back(p(t, 45300 + i * 220, 600));
+    put(d, { x: 960 - total / 2 + x, y: 770 + (1 - k) * 24, s: lerp(0.9, 1, k), o: p(t, 45300 + i * 220, 250) });
+    x += widths[i] + 24;
+  });
+}
+
+function renderBrand(t) {
+  const o = p(t, 6600, 500) * (1 - p(t, 43000, 400));
+  $('brand').style.opacity = o;
+}
+
+function render(t) {
+  renderS1(t); renderPile(t); renderS2(t); renderS3(t); renderS4(t); renderS5(t); renderS6(t); renderS7(t); renderBrand(t);
+}
+window.__render = render;
+window.__total = TOTAL;
+
+// 화면 크기에 맞춰 1920×1080 무대를 줄이거나 늘린다
+function fit() {
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $('stage').style.transform = `scale(${s})`;
+}
+addEventListener('resize', fit);
+fit();
+
+if (new URLSearchParams(location.search).has('capture')) {
+  document.documentElement.classList.add('capture');
+  $('stage').style.transform = 'none';
+  render(0);
+} else {
+  let start = performance.now();
+  let pausedAt = null;
+  const loop = (now) => {
+    if (pausedAt === null) render(Math.min(now - start, TOTAL));
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+  $('replay').onclick = () => { start = performance.now(); pausedAt = null; $('pause').textContent = '멈춤'; };
+  $('pause').onclick = () => {
+    if (pausedAt === null) { pausedAt = performance.now(); $('pause').textContent = '이어 보기'; }
+    else { start += performance.now() - pausedAt; pausedAt = null; $('pause').textContent = '멈춤'; }
+  };
+}
+</script>
+</body>
+</html>

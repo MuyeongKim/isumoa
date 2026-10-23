@@ -1,4 +1,4 @@
-import { BookOpenCheck, Download, FilePen, LayoutDashboard, Settings, Stamp, Table2, Upload, Users, type LucideIcon } from 'lucide-react';
+import { BookOpen, BookOpenCheck, Download, FilePen, LayoutDashboard, Settings, Stamp, Table2, Upload, Users, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -32,4 +32,8 @@ export const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
 ];
 
 /** 메뉴에는 없지만 빠른 이동(Ctrl+K)으로 바로 가는 화면 */
-export const PALETTE_EXTRA: NavItem[] = [{ label: '제출 양식', icon: FilePen, to: '/export/forms', keywords: '엑셀 양식 서식 채우기 제출' }];
+export const PALETTE_EXTRA: NavItem[] = [
+  { label: '제출 양식', icon: FilePen, to: '/export/forms', keywords: '엑셀 양식 서식 채우기 제출' },
+  // 프로그램 밖의 페이지(새 탭으로 연다)
+  { label: '사용설명서', icon: BookOpen, to: '/manual.html', keywords: '도움말 설명서 매뉴얼 사용법' },
+];
