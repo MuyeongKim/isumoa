@@ -1,4 +1,4 @@
-import { BookOpenCheck, Download, LayoutDashboard, Settings, Stamp, Table2, Upload, Users, type LucideIcon } from 'lucide-react';
+import { BookOpenCheck, Download, FilePen, LayoutDashboard, Settings, Stamp, Table2, Upload, Users, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
   label: string;
@@ -30,3 +30,6 @@ export const NAV: { group: string; adminOnly?: boolean; items: NavItem[] }[] = [
   },
   { group: '관리', adminOnly: true, items: [{ label: '설정', icon: Settings, to: '/settings', keywords: '계정 부서 백업 감사 로그' }] },
 ];
+
+/** 메뉴에는 없지만 빠른 이동(Ctrl+K)으로 바로 가는 화면 */
+export const PALETTE_EXTRA: NavItem[] = [{ label: '제출 양식', icon: FilePen, to: '/export/forms', keywords: '엑셀 양식 서식 채우기 제출' }];

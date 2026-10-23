@@ -15,6 +15,7 @@ import { ApiError } from './lib/api';
 import { EmployeeImportPage } from './pages/EmployeeImportPage';
 import { EmployeesPage } from './pages/EmployeesPage';
 import { ExportPage } from './pages/ExportPage';
+import { FormsPage } from './pages/FormsPage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { ReviewPage } from './pages/review/ReviewPage';
@@ -62,6 +63,7 @@ const router = createBrowserRouter([
       { path: 'review', element: <ReviewPage />, handle: { wide: true } },
       { path: 'status', element: <StatusPage />, handle: { wide: true } },
       { path: 'export', element: <ExportPage /> },
+      { path: 'export/forms', element: <FormsPage /> },
       { path: 'employees', element: <EmployeesPage /> },
       {
         path: 'employees/import',

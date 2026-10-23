@@ -13,6 +13,7 @@ import {
   type Employee,
   type Training,
 } from '@shared/types.ts';
+import { shortTrainingName } from '@shared/trainingNames.ts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader } from '@/components/PageHeader';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
@@ -25,9 +26,7 @@ import { ExcludeDialog } from './ExcludeDialog';
 import { PageViewer } from './PageViewer';
 
 /** 목록에 쓰는 짧은 교육 이름: "성희롱 예방교육" → "성희롱" */
-export function shortTrainingName(name: string): string {
-  return name.replace(/\(.*?\)/g, '').replace(/\s*(예방)?\s*교육$/, '').trim();
-}
+export { shortTrainingName };
 
 function trainingSummary(ids: number[], trainings: Training[]): string {
   const names = trainings.filter((t) => ids.includes(t.id)).map((t) => shortTrainingName(t.name));

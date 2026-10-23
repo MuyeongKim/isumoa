@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/format';
 import { choseong, matchesName } from '@/lib/hangul';
 import { useCurrentUser } from '@/lib/session';
-import { NAV } from './nav';
+import { NAV, PALETTE_EXTRA } from './nav';
 
 interface Item {
   id: string;
@@ -49,8 +49,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   const items = useMemo<Item[]>(() => {
     const q = query.trim();
-    const pages: Item[] = NAV.filter((g) => !g.adminOnly || me.role === 'admin')
-      .flatMap((g) => g.items)
+    const pages: Item[] = [...NAV.filter((g) => !g.adminOnly || me.role === 'admin').flatMap((g) => g.items), ...PALETTE_EXTRA]
       .filter((item) => !q || `${item.label} ${item.keywords ?? ''}`.includes(q) || choseong(item.label.replace(/\s/g, '')).includes(q))
       .map((item) => ({ id: `page-${item.to}`, group: '메뉴', label: item.label, icon: item.icon, to: item.to }));
     if (!q) return pages;

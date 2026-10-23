@@ -3,7 +3,7 @@ import { ROSTER_FIELDS, type RosterFieldKey, type RosterMapping } from './types.
 // 인사 명단마다 머리글 이름이 달라서, 흔히 쓰는 이름으로 열을 자동으로 찾는다.
 // 서버(파일 처음 읽을 때)와 화면(머리글 줄을 바꿀 때)이 함께 쓴다.
 // exact: 머리글이 정확히 이 단어일 때, contains: 머리글에 이 단어가 들어 있을 때
-const HEADER_WORDS: Record<RosterFieldKey, { exact: string[]; contains: string[] }> = {
+export const HEADER_WORDS: Record<RosterFieldKey, { exact: string[]; contains: string[] }> = {
   empNo: {
     exact: ['사번', '직원번호', '사원번호', '개인번호', '공무원번호', '직번', '인사번호', '관리번호'],
     contains: ['사번', '직원번호', '사원번호'],

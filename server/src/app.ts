@@ -15,6 +15,7 @@ import { certificateRoutes } from './routes/certificates.ts';
 import { departmentRoutes } from './routes/departments.ts';
 import { employeeRoutes } from './routes/employees.ts';
 import { exportRoutes } from './routes/exports.ts';
+import { formRoutes } from './routes/forms.ts';
 import { overviewRoutes } from './routes/overview.ts';
 import { securityRoutes } from './routes/security.ts';
 import { statusRoutes } from './routes/status.ts';
@@ -64,6 +65,7 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(certificateRoutes, deps);
   await app.register(statusRoutes, deps);
   await app.register(exportRoutes, deps);
+  await app.register(formRoutes, deps);
   await app.register(auditRoutes, deps);
   await app.register(securityRoutes, deps);
   await app.register(systemRoutes, deps);

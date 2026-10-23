@@ -1,9 +1,12 @@
+import { ZipArchive } from 'archiver';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { ZIP_LAYOUTS, type ExportSummary } from '../../../shared/types.ts';
+import { ZIP_LAYOUTS, type ExportSummary, type FormMarkStyle } from '../../../shared/types.ts';
 import { assertDepartmentInScope, currentUser, departmentScope, requireUser } from '../auth/guard.ts';
 import { getSetting } from '../db/seed.ts';
 import type { Deps } from '../deps.ts';
+import { fillForm } from '../forms/fill.ts';
+import { loadFormPeople, type FormPersonRow } from '../forms/people.ts';
 import { audit } from '../lib/audit.ts';
 import { badRequest, notFound } from '../lib/errors.ts';
 import { contentDisposition } from '../lib/http.ts';
@@ -12,6 +15,7 @@ import { buildEvidenceZip, buildMergedPdf } from '../reports/evidence.ts';
 import { safeName } from '../reports/fileNames.ts';
 import { loadRecords } from '../reports/records.ts';
 import { loadStatusReport } from '../reports/statusReport.ts';
+import { canUseForm, getForm } from './forms.ts';
 import { countDrafts } from './status.ts';
 
 // 내보내기: 이수 현황 엑셀, 이수증 ZIP, 교육별 합본 PDF.
@@ -30,9 +34,26 @@ const ZipQuery = DownloadQuery.extend({
   trainingId: z.coerce.number().int().positive().optional(),
 });
 const PdfQuery = DownloadQuery.extend({ trainingId: z.coerce.number().int().positive() });
+const flag = z
+  .enum(['0', '1'])
+  .optional()
+  .transform((v) => v === '1');
+const FormQuery = DownloadQuery.extend({ formId: z.coerce.number().int().positive(), onlyMissing: flag, split: flag });
 
 function today(): string {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()).replaceAll('-', '');
+}
+
+/** 양식의 {작성일}: "2026. 10. 23." */
+function todayKorean(): string {
+  return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
+/** 부서별로 나눈다 (순서 유지) */
+function byDepartment(people: FormPersonRow[]): FormPersonRow[][] {
+  const groups = new Map<number | null, FormPersonRow[]>();
+  for (const p of people) groups.set(p.departmentId, [...(groups.get(p.departmentId) ?? []), p]);
+  return [...groups.values()];
 }
 
 export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
@@ -114,5 +135,47 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     reply.header('Content-Type', 'application/pdf');
     reply.header('Content-Disposition', contentDisposition(`${year}년_${safeName(training)}_이수증합본${filePart}.pdf`, 'merged.pdf'));
     return reply.send(Buffer.from(pdf));
+  });
+
+  // 제출 양식에 채워 받기: 한 파일, 또는 (전체 부서일 때) 부서별 파일을 ZIP으로
+  app.get('/api/exports/form', { preHandler: requireUser }, async (req, reply) => {
+    const { year, departmentId, reason, formId, onlyMissing, split } = FormQuery.parse(req.query);
+    const { user, scope, label, filePart } = await resolveScope(req, departmentId);
+    const form = await getForm(db, formId);
+    if (!form || !canUseForm(user, form.department_id)) throw notFound('양식을 찾을 수 없습니다.');
+    const people = await loadFormPeople(db, { year, scope, departmentId, onlyMissing });
+    if (people.length === 0) throw badRequest(onlyMissing ? '미이수·부분이수인 직원이 없습니다.' : '양식에 쓸 직원이 없습니다.');
+
+    const org = await getSetting(db, 'org', { name: '' });
+    const fill = (group: FormPersonRow[], departmentName: string) =>
+      fillForm({
+        file: form.file,
+        layout: { sheetName: form.sheet_name, headerFirst: form.header_first, headerLast: form.header_last, dataFirst: form.data_first, footerRow: form.footer_row },
+        columns: JSON.parse(form.columns),
+        markStyle: form.mark_style as FormMarkStyle,
+        people: group,
+        placeholders: { 기관명: org.name, 부서명: departmentName, 연도: String(year), 작성일: todayKorean(), 작성자: user.name },
+      });
+    const formName = safeName(form.name);
+    const groups = split && !departmentId ? byDepartment(people) : [people];
+    await audit(db, req, 'export.form', { type: 'form', id: form.id }, { year, scope: label, form: form.name, employees: people.length, files: groups.length, onlyMissing, reason });
+
+    if (groups.length === 1) {
+      // {부서명}: 한 부서 사람만 있으면 그 부서, 여러 부서면 범위 이름(전체 부서 등)
+      const oneDepartment = people.every((p) => p.departmentId === people[0].departmentId);
+      const buffer = await fill(people, oneDepartment ? (people[0].department ?? label) : label);
+      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      reply.header('Content-Disposition', contentDisposition(`${year}년_${formName}${filePart}_${today()}.xlsx`, 'form.xlsx'));
+      return reply.send(buffer);
+    }
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    for (const group of groups) {
+      const name = group[0].department ?? '부서 없음';
+      archive.append(await fill(group, name), { name: `${year}년_${formName}_${safeName(name)}.xlsx` });
+    }
+    void archive.finalize();
+    reply.header('Content-Type', 'application/zip');
+    reply.header('Content-Disposition', contentDisposition(`${year}년_${formName}_부서별_${today()}.zip`, 'forms.zip'));
+    return reply.send(archive);
   });
 }

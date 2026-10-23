@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { FileArchive, FileSpreadsheet, FileStack, Download } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { FileArchive, FilePen, FileSpreadsheet, FileStack, Download } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import type { Department, ExportSummary, ZipLayout } from '@shared/types.ts';
+import type { Department, ExportSummary, FormTemplate, ZipLayout } from '@shared/types.ts';
 import { LoadingRows, PageHeader } from '@/components/PageHeader';
+import { buttonClass } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Field';
 import { api } from '@/lib/api';
-import { buttonClass } from '@/components/ui/Button';
 import { cn, formatNumber } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
 
@@ -47,6 +47,70 @@ function Card({ icon, title, description, children }: { icon: ReactNode; title: 
         </div>
       </div>
     </section>
+  );
+}
+
+/** 제출 양식에 채우기: 고른 부서의 양식이 있으면 먼저 고른다 */
+function FormCard({ departmentId, downloadQuery, noReason, canSplit }: { departmentId: number | null; downloadQuery: string; noReason: boolean; canSplit: boolean }) {
+  const forms = useQuery({ queryKey: ['forms'], queryFn: () => api.get<FormTemplate[]>('/forms') });
+  const [formId, setFormId] = useState<number | null>(null);
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [split, setSplit] = useState(false);
+  const list = forms.data ?? [];
+
+  useEffect(() => {
+    if (list.length === 0) return;
+    const preferred = list.find((f) => f.departmentId === departmentId) ?? list.find((f) => f.departmentId === null) ?? list[0];
+    setFormId((current) => (current !== null && list.some((f) => f.id === current) ? current : preferred.id));
+  }, [list, departmentId]);
+
+  return (
+    <Card
+      icon={<FilePen className="size-5" aria-hidden />}
+      title="제출 양식에 채우기"
+      description={
+        <>
+          기관·부서가 정한 엑셀 양식에 직원 한 줄씩 이수 현황을 채웁니다. 양식의 제목·머리글·합계·서명란은 그대로 둡니다.{' '}
+          <Link to="/export/forms" viewTransition className="font-semibold text-link hover:underline">
+            양식 올리기·관리
+          </Link>
+        </>
+      }
+    >
+      {forms.isPending ? null : list.length === 0 ? (
+        <Link to="/export/forms" viewTransition className={buttonClass('secondary')}>
+          제출 양식 올리기
+        </Link>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Select className="w-64" value={formId ?? ''} onChange={(e) => setFormId(Number(e.target.value))} aria-label="제출 양식">
+            {list.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+                {f.departmentName ? ` (${f.departmentName})` : ''}
+              </option>
+            ))}
+          </Select>
+          <label className="flex items-center gap-2 text-[14px] text-ink-soft">
+            <input type="checkbox" className="size-4 accent-navy" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
+            미이수·부분이수 직원만
+          </label>
+          {canSplit && (
+            <label className="flex items-center gap-2 text-[14px] text-ink-soft">
+              <input type="checkbox" className="size-4 accent-navy" checked={split} onChange={(e) => setSplit(e.target.checked)} />
+              부서별 파일로 나누기 (ZIP)
+            </label>
+          )}
+          <DownloadLink
+            primary
+            href={`/api/exports/form?${downloadQuery}&formId=${formId}${onlyMissing ? '&onlyMissing=1' : ''}${split && canSplit ? '&split=1' : ''}`}
+            disabled={noReason || formId === null}
+          >
+            양식에 채워 받기
+          </DownloadLink>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -166,6 +230,13 @@ export function ExportPage() {
               엑셀 받기
             </DownloadLink>
           </Card>
+
+          <FormCard
+            departmentId={departmentId}
+            downloadQuery={downloadQuery}
+            noReason={noReason}
+            canSplit={departmentId === null && (me.role === 'admin' || me.departments.length > 1)}
+          />
 
           <Card
             icon={<FileArchive className="size-5" aria-hidden />}

@@ -214,6 +214,25 @@ export interface JobsTable {
   updated_at: Generated<string>;
 }
 
+export interface FormTemplatesTable {
+  id: Generated<number>;
+  name: string;
+  department_id: number | null;
+  file_name: string;
+  file: Uint8Array;
+  sheet_name: string;
+  header_first: number;
+  header_last: number;
+  data_first: number;
+  footer_row: number;
+  /** FormColumn[] (JSON) */
+  columns: string;
+  mark_style: Generated<string>;
+  created_by: number | null;
+  created_at: Generated<string>;
+  updated_at: Generated<string>;
+}
+
 export interface DB {
   departments: DepartmentsTable;
   users: UsersTable;
@@ -232,4 +251,5 @@ export interface DB {
   certificate_trainings: CertificateTrainingsTable;
   course_mappings: CourseMappingsTable;
   jobs: JobsTable;
+  form_templates: FormTemplatesTable;
 }

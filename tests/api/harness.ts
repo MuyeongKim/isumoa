@@ -37,7 +37,7 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-function multipart(parts: { name: string; value: string | Buffer; filename?: string; type?: string }[]) {
+export function multipart(parts: { name: string; value: string | Buffer; filename?: string; type?: string }[]) {
   const boundary = '----test' + Math.random().toString(16).slice(2);
   const chunks: Buffer[] = [];
   for (const p of parts) {

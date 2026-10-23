@@ -1,6 +1,6 @@
 {
   "name": "edu-cert-platform",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "법정교육 이수증 종합 플랫폼",
   "private": true,
   "type": "module",
@@ -18,6 +18,7 @@
     "samples": "node scripts/make-sample-roster.ts",
     "release": "node --disable-warning=ExperimentalWarning scripts/release.ts",
     "samples:certs": "node scripts/make-sample-certificates.ts",
+    "samples:forms": "node scripts/make-sample-forms.ts",
     "eval": "node --disable-warning=ExperimentalWarning scripts/eval-ocr.ts",
     "restore": "node --disable-warning=ExperimentalWarning scripts/restore.ts"
   },
