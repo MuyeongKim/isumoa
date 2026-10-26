@@ -1,5 +1,5 @@
 #!/bin/sh
-# 법정교육 이수증 종합 플랫폼을 systemd 서비스(edu-cert)로 등록한다. root로 실행:
+# 이수모아를 systemd 서비스(edu-cert)로 등록한다. root로 실행:
 #   sudo ./service/install-service.sh
 # 서비스는 설치 폴더 주인 계정으로 돈다 (RUN_USER=계정 으로 바꿀 수 있음). root 계정으로 돌리지 않기를 권한다.
 set -e

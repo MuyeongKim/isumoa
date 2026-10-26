@@ -10,7 +10,7 @@ import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { CommandPalette, Kbd } from './CommandPalette';
 import { ConfirmDialog } from './ConfirmDialog';
 import { NAV } from './nav';
-import { SealMark } from './SealMark';
+import { LogoMark } from './LogoMark';
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
@@ -58,10 +58,10 @@ export function AppShell() {
     <div className="min-h-screen md:grid md:grid-cols-[252px_minmax(0,1fr)]">
       <aside className="flex flex-col border-r border-line bg-sheet md:sticky md:top-0 md:h-screen">
         <div className="flex items-center gap-3 px-5 pt-6 pb-5">
-          <SealMark className="size-9" />
+          <LogoMark className="size-10" />
           <div className="min-w-0">
-            <p className="truncate text-[16px] leading-tight font-bold tracking-[-0.02em]">{meta?.orgName || '기관명 미설정'}</p>
-            <p className="mt-0.5 text-[12.5px] leading-tight text-ink-faint">법정교육 이수증</p>
+            <p className="text-[20px] leading-none font-extrabold tracking-[-0.04em]">이수모아</p>
+            <p className="mt-1 truncate text-[12.5px] leading-tight text-ink-faint">{meta?.orgName || '기관명 미설정'}</p>
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export function AppShell() {
       <ConfirmDialog
         open={quitOpen && quitState !== 'done'}
         title="프로그램 끄기"
-        description="처리 중인 이수증이 있으면 마친 뒤 프로그램을 끕니다. 다시 쓰려면 바탕화면의 '법정교육 이수증'을 누르세요."
+        description="처리 중인 이수증이 있으면 마친 뒤 프로그램을 끕니다. 다시 쓰려면 바탕화면의 '이수모아'를 누르세요."
         confirmLabel="끄기"
         busy={quitState === 'busy'}
         onConfirm={() => void quit()}
@@ -175,9 +175,9 @@ export function AppShell() {
       {quitState === 'done' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-paper p-6 text-center">
           <div>
-            <SealMark className="mx-auto mb-5 size-12" />
+            <LogoMark variant="full" className="mx-auto mb-5 size-16" />
             <p className="text-[24px] font-bold tracking-[-0.03em]">프로그램을 껐습니다</p>
-            <p className="mt-2 text-ink-soft">이 창을 닫아도 됩니다. 다시 쓰려면 바탕화면의 &lsquo;법정교육 이수증&rsquo;을 누르세요.</p>
+            <p className="mt-2 text-ink-soft">이 창을 닫아도 됩니다. 다시 쓰려면 바탕화면의 &lsquo;이수모아&rsquo;를 누르세요.</p>
           </div>
         </div>
       )}

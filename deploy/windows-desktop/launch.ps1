@@ -1,4 +1,4 @@
-# 바탕화면의 '법정교육 이수증' 아이콘이 (창 없이) 실행한다.
+# 바탕화면의 '이수모아' 아이콘이 (창 없이) 실행한다.
 # 서버가 켜져 있으면 브라우저만 열고, 아니면 서버를 켠 뒤 브라우저를 연다.
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')

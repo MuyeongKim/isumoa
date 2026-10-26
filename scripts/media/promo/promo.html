@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>법정교육 이수증 종합 플랫폼 소개</title>
+<title>이수모아 소개 — 법정교육 이수증 종합 플랫폼</title>
 <style>
 /*FONT_FACE*/
 :root {
@@ -27,11 +27,8 @@ body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-
 .h-lg { font-size: 76px; }
 .caption { position: absolute; font-size: 32px; font-weight: 600; color: var(--ink-soft); letter-spacing: -0.02em; }
 
-.brand { position: absolute; left: 140px; top: 46px; display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 700; color: var(--ink-soft); }
-.seal { display: grid; grid-template-columns: 1fr 1fr; place-items: center; background: var(--seal); color: #fff; font-weight: 800; position: relative; }
-.seal::after { content: ""; position: absolute; border: solid rgb(255 255 255 / 0.9); }
-.seal-sm { width: 40px; height: 40px; border-radius: 7px; font-size: 13px; line-height: 1; padding: 6px; }
-.seal-sm::after { inset: 4px; border-width: 1.5px; border-radius: 4px; }
+.brand { position: absolute; left: 140px; top: 40px; display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); }
+.brand svg { width: 48px; height: 48px; display: block; }
 
 /* 종이 이수증 (작은 것) */
 .doc { width: 250px; height: 330px; background: #fff; border-radius: 12px; padding: 34px 30px; box-shadow: 0 24px 48px -22px rgb(22 27 38 / 0.38), 0 2px 6px rgb(22 27 38 / 0.06); }
@@ -101,8 +98,8 @@ body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-
 
 /* 끝 화면 */
 .end { background: var(--navy); }
-.seal-lg { width: 168px; height: 168px; border-radius: 30px; font-size: 52px; line-height: 1; padding: 22px; gap: 2px 8px; box-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.5); }
-.seal-lg::after { inset: 12px; border-width: 4px; border-radius: 18px; }
+.logo-lg { width: 180px; height: 180px; filter: drop-shadow(0 30px 36px rgb(0 0 0 / 0.32)); }
+.logo-lg svg { width: 100%; height: 100%; display: block; }
 .badge { background: rgb(255 255 255 / 0.12); color: #fff; font-size: 30px; padding: 18px 32px; border: 1.5px solid rgb(255 255 255 / 0.22); }
 
 #controls { position: fixed; right: 18px; bottom: 16px; display: flex; gap: 8px; font: 600 14px/1 system-ui, sans-serif; }
@@ -126,7 +123,7 @@ body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-
   </div>
   <div id="pile"></div>
 
-  <div class="brand abs" id="brand"><span class="seal seal-sm"><span>법</span><span>정</span><span>이</span><span>수</span></span>법정교육 이수증</div>
+  <div class="brand abs" id="brand"><!--MARK_COMPACT-->이수모아</div>
 
   <!-- 2. 올리기 -->
   <div class="scene" id="s2">
@@ -230,11 +227,12 @@ body { font-family: "Promo Sans", "Wanted Sans Variable", "Wanted Sans", -apple-
 
   <!-- 7. 끝 -->
   <div class="scene end" id="s7">
-    <div class="abs seal seal-lg" id="endSeal"><span>법</span><span>정</span><span>이</span><span>수</span></div>
-    <div class="headline" id="endTitle" style="left:0; width:1920px; text-align:center; top:520px; font-size:92px; color:#fff">
-      <span class="line"><span>법정교육 이수증 종합 플랫폼</span></span>
+    <div class="abs logo-lg" id="endSeal"><!--MARK_FULL--></div>
+    <div class="headline" id="endTitle" style="left:0; width:1920px; text-align:center; top:392px; font-size:150px; color:#fff; letter-spacing:-0.05em">
+      <span class="line"><span>이수모아</span></span>
     </div>
-    <div class="caption" id="endTag" style="left:0; width:1920px; text-align:center; top:650px; color:rgb(255 255 255 / 0.78); font-size:36px">모으고, 확인하고, 현황을 보고, 제출 양식까지</div>
+    <div class="caption" id="endSub" style="left:0; width:1920px; text-align:center; top:588px; color:rgb(255 255 255 / 0.82); font-size:38px; font-weight:700">법정교육 이수증 종합 플랫폼</div>
+    <div class="caption" id="endTag" style="left:0; width:1920px; text-align:center; top:662px; color:rgb(255 255 255 / 0.62); font-size:32px">모으고, 확인하고, 현황을 보고, 제출 양식까지</div>
     <div id="badges"></div>
   </div>
 </div></div>
@@ -547,16 +545,18 @@ function renderS7(t) {
   s7.style.visibility = t >= 43300 ? 'visible' : 'hidden';
   s7.style.clipPath = `circle(${wipe * 120}% at 50% 55%)`;
   const seal = E.back(p(t, 43900, 700));
-  put($('endSeal'), { x: 960 - 84, y: 260 + (1 - seal) * 30, s: lerp(0.6, 1, seal), r: (1 - seal) * -12, o: p(t, 43900, 200) });
+  put($('endSeal'), { x: 960 - 90, y: 168 + (1 - seal) * 30, s: lerp(0.6, 1, seal), r: (1 - seal) * -12, o: p(t, 43900, 200) });
   headline('endTitle', t, 44300, 99999);
-  const tag = E.out(p(t, 44800, 700));
+  const sub = E.out(p(t, 44700, 700));
+  put($('endSub'), { y: (1 - sub) * 20, o: sub });
+  const tag = E.out(p(t, 45000, 700));
   put($('endTag'), { y: (1 - tag) * 20, o: tag });
   let x = 0;
   const widths = badges.map((d) => d.offsetWidth);
   const total = widths.reduce((a, b) => a + b, 0) + 24 * (badges.length - 1);
   badges.forEach((d, i) => {
-    const k = E.back(p(t, 45300 + i * 220, 600));
-    put(d, { x: 960 - total / 2 + x, y: 770 + (1 - k) * 24, s: lerp(0.9, 1, k), o: p(t, 45300 + i * 220, 250) });
+    const k = E.back(p(t, 45600 + i * 220, 600));
+    put(d, { x: 960 - total / 2 + x, y: 800 + (1 - k) * 24, s: lerp(0.9, 1, k), o: p(t, 45600 + i * 220, 250) });
     x += widths[i] + 24;
   });
 }
@@ -596,7 +596,7 @@ NAMES.forEach((_, i) => cue(37600 + i * 380, 'type', { pan: 0.25 }));
 CHECKS.forEach((_, i) => cue(38200 + i * 900, 'pop', { pan: -0.4, step: i }));
 cue(41900, 'riser', { dur: 2000 });
 cue(43950, 'impact');
-BADGES.forEach((_, i) => cue(45300 + i * 220 + 120, 'pop', { pan: (i - 1) * 0.4, step: i + 2 }));
+BADGES.forEach((_, i) => cue(45600 + i * 220 + 120, 'pop', { pan: (i - 1) * 0.4, step: i + 2 }));
 window.__cues = CUES;
 
 function render(t) {

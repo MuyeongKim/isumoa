@@ -51,7 +51,7 @@ const [targetOs, targetCpu] = [target.startsWith('win') ? 'win32' : target.split
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string };
 const nodeVersion = process.versions.node;
-const name = desktop ? `법정교육이수증-설치-${pkg.version}-${target}` : `edu-cert-platform-${pkg.version}-${target}`;
+const name = desktop ? `이수모아-설치-${pkg.version}-${target}` : `edu-cert-platform-${pkg.version}-${target}`;
 const releaseDir = join(ROOT, 'release');
 const outDir = join(releaseDir, name);
 // PC 설치판: program 폴더가 통째로 %LOCALAPPDATA%\Programs\EduCert로 복사된다
@@ -246,7 +246,7 @@ exec ./node/bin/node --disable-warning=ExperimentalWarning app/scripts/restore.t
 `;
 
 const START_SH = `#!/bin/sh
-# 법정교육 이수증 종합 플랫폼 실행
+# 이수모아 실행
 cd "$(dirname "$0")" || exit 1
 export ECP_CONFIG="$PWD/config.json"
 exec ./node/bin/node --disable-warning=ExperimentalWarning app/server/src/index.ts

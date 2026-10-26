@@ -1,7 +1,10 @@
-# 법정교육 이수증 PC판 — 설치·실행·제거 스크립트가 함께 쓰는 값과 함수.
+# 이수모아 PC판 — 설치·실행·제거 스크립트가 함께 쓰는 값과 함수.
 # 설치본을 만들 때(scripts/release.ts --desktop) UTF-8 BOM을 붙인다 — Windows PowerShell 5.1이 한글을 바르게 읽도록.
 
-$AppName = '법정교육 이수증'
+$AppName = '이수모아'
+# 0.2 이전 판의 이름 (그때 만든 바로가기를 업그레이드할 때 지운다)
+$OldAppName = '법정교육 이수증'
+# 폴더·등록 이름의 EduCert는 내부 이름이라 그대로 둔다 (이름을 바꿔도 자료와 업그레이드 길이 이어지게)
 # 프로그램 (업그레이드하면 통째로 바뀜)
 $AppHome = Join-Path $env:LOCALAPPDATA 'Programs\EduCert'
 # 자료·설정·기록 (업그레이드해도 그대로)

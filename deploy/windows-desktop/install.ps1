@@ -1,7 +1,7 @@
-# 법정교육 이수증 PC판 설치 (관리자 권한 필요 없음). 압축을 푼 폴더의 설치.bat이 실행한다.
+# 이수모아 PC판 설치 (관리자 권한 필요 없음). 압축을 푼 폴더의 설치.bat이 실행한다.
 #  - 프로그램: %LOCALAPPDATA%\Programs\EduCert
 #  - 자료·설정·기록: %LOCALAPPDATA%\EduCert (다시 설치·업그레이드해도 그대로 둔다)
-#  - 백업: 문서\법정교육이수증 백업
+#  - 백업: 문서\이수모아 백업
 $ErrorActionPreference = 'Stop'
 $Package = Join-Path (Split-Path -Parent $PSScriptRoot) 'program'
 
@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $Package 'common.ps1'))) {
   Add-Type -AssemblyName System.Windows.Forms
   [void][System.Windows.Forms.MessageBox]::Show(
     "설치 파일이 모두 있지 않습니다.`n압축 파일을 먼저 풀고(오른쪽 클릭 → 모두 압축 풀기), 푼 폴더의 설치.bat을 실행해 주세요.",
-    '법정교육 이수증', 'OK', 'Error')
+    '이수모아', 'OK', 'Error')
   exit 1
 }
 . (Join-Path $Package 'common.ps1')
@@ -46,7 +46,7 @@ try {
       host               = '127.0.0.1'
       port               = $DefaultPort
       dataDir            = 'data'
-      backupDir          = Join-Path ([Environment]::GetFolderPath('MyDocuments')) '법정교육이수증 백업'
+      backupDir          = Join-Path ([Environment]::GetFolderPath('MyDocuments')) '이수모아 백업'
       # 0시: 하루 중 처음 켰을 때 백업한다 (PC는 밤에 꺼져 있으므로)
       backupHour         = 0
       logDir             = 'logs'
@@ -71,18 +71,21 @@ try {
     $link.Description = $Description
     $link.Save()
   }
+  # 이전 이름으로 만들어 둔 바로가기가 있으면 지운다
+  Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) "$OldAppName.lnk") -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Programs')) $OldAppName) -Recurse -Force -ErrorAction SilentlyContinue
   $menu = Join-Path ([Environment]::GetFolderPath('Programs')) $AppName
   New-Item -ItemType Directory -Force -Path $menu | Out-Null
-  New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) "$AppName.lnk") 'launch.ps1' '법정교육 이수증 종합 플랫폼 열기'
-  New-Shortcut (Join-Path $menu "$AppName.lnk") 'launch.ps1' '법정교육 이수증 종합 플랫폼 열기'
-  New-Shortcut (Join-Path $menu "$AppName 제거.lnk") 'uninstall.ps1' '법정교육 이수증 프로그램 제거'
+  New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) "$AppName.lnk") 'launch.ps1' '이수모아 열기 (법정교육 이수증 종합 플랫폼)'
+  New-Shortcut (Join-Path $menu "$AppName.lnk") 'launch.ps1' '이수모아 열기 (법정교육 이수증 종합 플랫폼)'
+  New-Shortcut (Join-Path $menu "$AppName 제거.lnk") 'uninstall.ps1' '이수모아 프로그램 제거'
 
   # Windows 설정 > 앱 목록에 보이도록 (내 사용자 계정에만)
   New-Item -Path $UninstallKey -Force | Out-Null
   $strings = @{
     DisplayName     = $AppName
     DisplayVersion  = $version
-    Publisher       = '법정교육 이수증 종합 플랫폼'
+    Publisher       = '이수모아'
     InstallLocation = $AppHome
     DisplayIcon     = $icon
     UninstallString = "`"$powershell`" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$(Join-Path $AppHome 'uninstall.ps1')`""

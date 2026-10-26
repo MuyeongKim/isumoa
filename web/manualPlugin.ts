@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import MarkdownIt from 'markdown-it';
 import type { Plugin } from 'vite';
+import { MARK } from './src/brand/glyphs.ts';
 
 // 사용설명서(docs/사용설명서.md)를 프로그램 안의 /manual.html 로 만든다.
 // 내부망 PC는 GitHub를 볼 수 없으므로, 같은 글을 프로그램이 직접 보여 준다 (그림은 docs/images → /manual/images).
@@ -91,7 +92,7 @@ export function manualPage(): Plugin {
         return html.replace('<!--MANUAL-->', `
 <div class="layout">
   <aside class="toc">
-    <a class="brand" href="/"><span class="seal"><span>법</span><span>정</span><span>이</span><span>수</span></span><span>법정교육 이수증</span></a>
+    <a class="brand" href="/"><svg viewBox="0 0 100 100" width="36" height="36" role="img" aria-label="이수모아 로고"><rect width="100" height="100" rx="${MARK.compact.radius}" fill="#d23b2c"/><path d="${MARK.compact.glyphs.join('')}" fill="#fff"/></svg><span>이수모아</span></a>
     <p class="toc-title">사용설명서</p>
     <nav aria-label="차례"><ol>${nav}</ol></nav>
     <div class="toc-foot"><button type="button" id="print">인쇄·PDF로 저장</button><a href="/">프로그램으로 돌아가기</a></div>

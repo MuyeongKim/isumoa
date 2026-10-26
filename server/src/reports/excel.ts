@@ -96,7 +96,7 @@ export async function buildStatusWorkbook(input: WorkbookInput): Promise<Buffer>
   const { report, records } = input;
   const now = input.now ?? new Date();
   const wb = new ExcelJS.Workbook();
-  wb.creator = input.orgName || '법정교육 이수증 종합 플랫폼';
+  wb.creator = input.orgName || '이수모아';
   wb.created = now;
 
   const title = `${input.orgName ? `${input.orgName} ` : ''}${input.year}년 법정교육 이수 현황`;

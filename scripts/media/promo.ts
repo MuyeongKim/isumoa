@@ -16,6 +16,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { MARK } from '../../web/src/brand/glyphs.ts';
 import { renderSoundtrack, SR, wav, type Cue } from './audio.ts';
 import { Browser } from './cdp.ts';
 
@@ -54,7 +55,16 @@ function buildHtml(audioDataUrl = 'AUDIO_SRC'): string {
   rmSync(tmp, { recursive: true, force: true });
   const face = `/* Wanted Sans Variable (SIL Open Font License 1.1, © Wanted Lab) — 이 영상에 쓰인 글자만 남김 */
 @font-face { font-family: "Promo Sans"; font-weight: 400 1000; src: url(data:font/woff;base64,${font}) format("woff"); }`;
-  return template.replace('/*FONT_FACE*/', face).replace('src="AUDIO_SRC"', `src="${audioDataUrl}"`);
+  // 로고는 web/src/brand/glyphs.ts(npm run brand가 만듦)의 좌표를 그대로 쓴다
+  const svg = (variant: 'full' | 'compact') =>
+    `<svg viewBox="0 0 100 100" role="img" aria-label="이수모아 로고"><rect width="100" height="100" rx="${MARK[variant].radius}" fill="#d23b2c"/>${
+      variant === 'full' ? `<path d="${MARK.full.bracketsPath}" fill="none" stroke="#fff" stroke-width="${MARK.full.bracketsWidth}" stroke-linecap="round" stroke-linejoin="round"/>` : ''
+    }<path d="${MARK[variant].glyphs.join('')}" fill="#fff"/></svg>`;
+  return template
+    .replace('/*FONT_FACE*/', face)
+    .replace('<!--MARK_COMPACT-->', svg('compact'))
+    .replace('<!--MARK_FULL-->', svg('full'))
+    .replace('src="AUDIO_SRC"', `src="${audioDataUrl}"`);
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
@@ -120,7 +130,7 @@ try {
   // 배너: 끝 화면의 가운데 띠
   const end = join(tmpdir(), 'ecp-promo-end.png');
   writeFileSync(end, await frameAt(total - 500, 'png'));
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', end, '-vf', 'crop=1920:760:0:200,scale=1600:-1:flags=lanczos', '-q:v', '3', join(IMAGES, 'banner.jpg')], { stdio: 'inherit' });
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', end, '-vf', 'crop=1920:820:0:120,scale=1600:-1:flags=lanczos', '-q:v', '3', join(IMAGES, 'banner.jpg')], { stdio: 'inherit' });
   console.log(`배너: ${join(IMAGES, 'banner.jpg')}`);
 
   // HTML에도 소리를 넣는다 ("소리 켜기"를 누르면 음악에 맞춰 재생)

@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="docs/images/banner.jpg" alt="법정교육 이수증 종합 플랫폼 — 모으고, 확인하고, 현황을 보고, 제출 양식까지" width="100%">
+  <img src="docs/images/banner.jpg" alt="이수모아 — 법정교육 이수증 종합 플랫폼. 모으고, 확인하고, 현황을 보고, 제출 양식까지" width="100%">
 </p>
+
+<h1 align="center">이수모아</h1>
 
 <p align="center">
   <b>서무가 걷은 법정교육 이수증을 올리면 읽고, 분류하고, 현황을 만들고, 제출 양식까지 채워 주는 프로그램</b><br>

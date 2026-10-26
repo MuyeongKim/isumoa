@@ -95,5 +95,5 @@ if (shutdownToken) {
   writeFileSync(tokenFile, shutdownToken, { mode: 0o600 });
 }
 const shownHost = config.host === '0.0.0.0' ? '이 서버의 IP 주소' : config.host;
-app.log.info(`법정교육 이수증 종합 플랫폼 v${version} 실행 중 → ${https ? 'https' : 'http'}://${shownHost}:${config.port}`);
+app.log.info(`이수모아 v${version} 실행 중 → ${https ? 'https' : 'http'}://${shownHost}:${config.port}`);
 app.log.info(`데이터 폴더: ${config.dataDir} · 백업 폴더: ${config.backupDir} (매일 ${config.backupHour}시)`);
