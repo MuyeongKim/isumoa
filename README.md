@@ -131,7 +131,7 @@ shared/    화면과 서버가 함께 쓰는 타입과 규칙
 scripts/   가상 자료, 판독 정확도 점검, 백업 복원, 설치본, 문서 그림·소개 영상(media/)
 deploy/    서비스 등록(Windows 작업 스케줄러, Linux systemd), PC 설치판 스크립트(windows-desktop/)
 docs/      사용설명서, 설치·운영 가이드, 정보화 담당 확인 요청서, PC 설치 안내, 그림·소개 영상
-vendor/    SheetJS(엑셀 읽기), OCR 모델(PP-OCRv5 한국어)
+vendor/    OCR 모델(PP-OCRv5 한국어)
 tests/     단위·API 테스트
 ```
 </details>
@@ -162,6 +162,6 @@ tests/     단위·API 테스트
 
 ## 함께 쓰는 공개 소프트웨어
 
-[kordoc](https://www.npmjs.com/package/kordoc)(MIT), PP-OCRv5 모델(Apache-2.0, [vendor/ocr-models/NOTICE.md](vendor/ocr-models/NOTICE.md)), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), [Wanted Sans](https://github.com/wanteddev/wanted-sans)·Noto Serif KR(OFL-1.1), Fastify·React·ExcelJS·pdf-lib(MIT), SheetJS(Apache-2.0).
+[kordoc](https://www.npmjs.com/package/kordoc)(MIT), PP-OCRv5 모델(Apache-2.0, [vendor/ocr-models/NOTICE.md](vendor/ocr-models/NOTICE.md)), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), [Wanted Sans](https://github.com/wanteddev/wanted-sans)·Noto Serif KR(OFL-1.1), Fastify·React·ExcelJS·pdf-lib(MIT).
 
 화면 그림과 소개 영상의 기관·사람·이수증은 모두 가상 자료입니다. 소개 영상의 배경음악과 효과음은 외부 음원 없이 코드로 만든 것(`scripts/media/audio.ts`)이라 기관에서 틀거나 게시할 때 따로 저작권을 확인할 필요가 없습니다.

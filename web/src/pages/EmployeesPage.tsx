@@ -143,7 +143,7 @@ export function EmployeesPage() {
           title="등록된 직원이 없습니다"
           description={
             me.role === 'admin'
-              ? '인사 명단 엑셀(.xlsx, .xls, .csv)을 올리면 부서와 직원을 한 번에 등록합니다.'
+              ? '인사 명단 엑셀(.xlsx)이나 CSV를 올리면 부서와 직원을 한 번에 등록합니다.'
               : '관리자가 인사 명단을 올리면 담당 부서 직원이 여기에 나타납니다.'
           }
           action={

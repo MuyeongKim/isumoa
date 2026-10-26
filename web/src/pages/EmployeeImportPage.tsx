@@ -175,11 +175,11 @@ function FileStep({ busy, onFile }: { busy: boolean; onFile: (file: File) => voi
         <span className="text-[15px] font-medium">
           {busy ? '파일을 읽는 중…' : '인사 명단 파일을 여기에 끌어다 놓거나 눌러서 고르세요'}
         </span>
-        <span className="text-[13px] text-ink-faint">엑셀(.xlsx, .xls)과 CSV를 받습니다. 한글 윈도우에서 저장한 CSV도 됩니다.</span>
+        <span className="text-[13px] text-ink-faint">엑셀(.xlsx)과 CSV를 받습니다. 한글 윈도우에서 저장한 CSV도 됩니다.</span>
         <input
           id="roster-file"
           type="file"
-          accept=".xlsx,.xls,.csv,.txt"
+          accept=".xlsx,.csv,.txt"
           className="sr-only"
           disabled={busy}
           onChange={(e) => {

@@ -1,38 +1,100 @@
+import ExcelJS from 'exceljs';
 import iconv from 'iconv-lite';
 import { describe, expect, it } from 'vitest';
-import * as XLSX from 'xlsx';
 import { autoMapColumns, detectHeaderRow, emptyMapping } from '../../shared/rosterColumns.ts';
 import type { RosterMapping } from '../../shared/types.ts';
 import { buildRosterPreview, type ExistingEmployee } from '../../server/src/roster/preview.ts';
-import { decodeText, readRosterFile } from '../../server/src/roster/readRosterFile.ts';
+import { decodeText, parseDelimited, parseHtmlTables, readRosterFile, RosterFileError } from '../../server/src/roster/readRosterFile.ts';
 import { parseStatus, toRecords } from '../../server/src/roster/records.ts';
-
-function workbookBuffer(rows: unknown[][], bookType: 'xlsx' | 'xls'): Buffer {
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(rows, { cellDates: true }), '명단');
-  return XLSX.write(book, { type: 'buffer', bookType });
-}
+import { xlsxBuffer } from '../fixtures-workbook.ts';
 
 describe('명단 파일 읽기', () => {
-  it('CP949 CSV의 확장 한글(똠, 햏)을 깨뜨리지 않는다', () => {
+  it('CP949 CSV의 확장 한글(똠, 햏)을 깨뜨리지 않는다', async () => {
     const buf = iconv.encode('성명,부서\n박똠이,햏정지원과\n', 'cp949');
     expect(decodeText(buf)).toContain('박똠이,햏정지원과');
-    expect(readRosterFile(buf)[0].rows[1]).toEqual(['박똠이', '햏정지원과']);
+    expect((await readRosterFile(buf))[0].rows[1]).toEqual(['박똠이', '햏정지원과']);
   });
 
-  it('BOM이 있는 UTF-8 CSV를 읽는다', () => {
+  it('BOM이 있는 UTF-8 CSV를 읽는다', async () => {
     const buf = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('성명,부서\n홍길동,총무과\n')]);
-    expect(readRosterFile(buf)[0].rows).toEqual([
+    expect((await readRosterFile(buf))[0].rows).toEqual([
       ['성명', '부서'],
       ['홍길동', '총무과'],
     ]);
   });
 
-  it.each(['xlsx', 'xls'] as const)('%s의 날짜 칸과 빈 줄을 엑셀 행 번호 그대로 읽는다', (bookType) => {
-    const buf = workbookBuffer([['2026년 직원 현황'], [], ['성명', '생년월일'], ['홍길동', new Date(1985, 2, 12)]], bookType);
-    const rows = readRosterFile(buf)[0].rows;
+  it('xlsx의 날짜 칸과 빈 줄을 엑셀 행 번호 그대로 읽는다', async () => {
+    const buf = await xlsxBuffer({ 명단: [['2026년 직원 현황'], [], ['성명', '생년월일'], ['홍길동', new Date(Date.UTC(1985, 2, 12))]] });
+    const rows = (await readRosterFile(buf))[0].rows;
+    expect(rows).toHaveLength(4);
+    expect(rows[1]).toEqual(['', '']); // 빈 줄도 남는다
     expect(rows[2]).toEqual(['성명', '생년월일']);
     expect(rows[3]).toEqual(['홍길동', '1985-03-12']);
+  });
+
+  it('xlsx의 숫자·수식 결과·여러 시트를 읽고, 합친 칸의 글자를 되풀이하지 않는다', async () => {
+    const wb = new ExcelJS.Workbook();
+    const first = wb.addWorksheet('첫 시트');
+    first.addRow(['직원 현황', '', '']);
+    first.mergeCells('A1:C1');
+    first.addRow(['사번', '성명', '비고']);
+    first.addRow([2006001, '홍길동', { formula: 'A3+1', result: 2006002 } as ExcelJS.CellFormulaValue]);
+    wb.addWorksheet('둘째').addRow(['a', 'b']);
+    const sheets = await readRosterFile(Buffer.from(await wb.xlsx.writeBuffer()));
+    expect(sheets.map((s) => s.name)).toEqual(['첫 시트', '둘째']);
+    expect(sheets[0].rows).toEqual([
+      ['직원 현황', '', ''],
+      ['사번', '성명', '비고'],
+      ['2006001', '홍길동', '2006002'],
+    ]);
+  });
+
+  it('서식만 칠한 먼 아래쪽 빈 줄은 읽지 않는다', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('명단');
+    ws.addRow(['성명']);
+    ws.getRow(500_000).getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEEEEE' } };
+    const rows = (await readRosterFile(Buffer.from(await wb.xlsx.writeBuffer())))[0].rows;
+    expect(rows).toEqual([['성명']]);
+  });
+
+  it('쉼표·탭 구분과 따옴표 안의 쉼표·줄바꿈·따옴표를 읽는다', () => {
+    expect(parseDelimited('성명,메모\n홍길동,"서울, 종로구"\n이몽룡,"첫째 줄\n둘째 ""줄"""\n')).toEqual([
+      ['성명', '메모'],
+      ['홍길동', '서울, 종로구'],
+      ['이몽룡', '첫째 줄 둘째 "줄"'],
+    ]);
+    expect(parseDelimited('성명\t부서\r\n홍길동\t총무과\r\n')).toEqual([
+      ['성명', '부서'],
+      ['홍길동', '총무과'],
+    ]);
+    expect(parseDelimited('a,b,c\n1,2\n\n4,5,6')).toEqual([
+      ['a', 'b', 'c'],
+      ['1', '2', ''],
+      ['', '', ''],
+      ['4', '5', '6'],
+    ]);
+  });
+
+  it('확장자만 .xls인 HTML 표를 읽는다 (인사 시스템 내려받기)', async () => {
+    const html = iconv.encode(
+      '<html><body><table border=1><tr><th colspan=2>직원 현황</th></tr><tr><td>성명</td><td>부서</td></tr><tr><td>박&nbsp;똠이</td><td>햏정지원과 &amp; 총무</td></tr></table></body></html>',
+      'cp949',
+    );
+    expect(parseHtmlTables(decodeText(html))[0].rows).toEqual([
+      ['직원 현황', ''],
+      ['성명', '부서'],
+      ['박 똠이', '햏정지원과 & 총무'],
+    ]);
+    expect((await readRosterFile(html))[0].rows[2]).toEqual(['박 똠이', '햏정지원과 & 총무']);
+  });
+
+  it('옛 엑셀(.xls)·암호 건 파일·이상한 파일은 .xlsx로 저장하라고 알려 준다', async () => {
+    const ole = Buffer.concat([Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), Buffer.alloc(64)]);
+    await expect(readRosterFile(ole)).rejects.toThrow(RosterFileError);
+    await expect(readRosterFile(ole)).rejects.toThrow(/\.xlsx/);
+    await expect(readRosterFile(Buffer.from([0x25, 0x50, 0x44, 0x46, 0, 0, 1, 2]))).rejects.toThrow(RosterFileError); // PDF 같은 바이너리
+    await expect(readRosterFile(Buffer.from('PK\x03\x04 깨진 파일'))).rejects.toThrow(/읽지 못했습니다/);
   });
 });
 

@@ -20,7 +20,7 @@ import { nameKey } from '../lib/text.ts';
 import { autoMapColumns, detectHeaderRow } from '../../../shared/rosterColumns.ts';
 import { deleteImport, getImport, saveImport } from '../roster/importStore.ts';
 import { buildRosterPreview, type ExistingEmployee } from '../roster/preview.ts';
-import { readRosterFile } from '../roster/readRosterFile.ts';
+import { readRosterFile, RosterFileError } from '../roster/readRosterFile.ts';
 import { toRecords } from '../roster/records.ts';
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -236,14 +236,15 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
     const file = await req.file();
     if (!file) throw badRequest('파일을 골라 주세요.');
     const fileName = file.filename.normalize('NFC');
-    if (!/\.(xlsx|xls|csv|txt)$/i.test(fileName)) throw badRequest('엑셀(.xlsx, .xls) 또는 CSV 파일만 올릴 수 있습니다.');
+    // .xls는 받아서 읽을 수 없는 이유와 .xlsx로 저장하는 방법을 알려 주려고 확장자는 통과시킨다
+    if (!/\.(xlsx|xls|csv|txt)$/i.test(fileName)) throw badRequest('엑셀(.xlsx) 또는 CSV 파일만 올릴 수 있습니다.');
     const buffer = await file.toBuffer();
 
     let sheets;
     try {
-      sheets = readRosterFile(buffer);
-    } catch {
-      throw badRequest('파일을 읽지 못했습니다. 엑셀에서 다른 이름으로 저장(.xlsx)한 뒤 다시 올려 주세요.');
+      sheets = await readRosterFile(buffer);
+    } catch (err) {
+      throw badRequest(err instanceof RosterFileError ? err.message : '파일을 읽지 못했습니다. 엑셀에서 다른 이름으로 저장(.xlsx)한 뒤 다시 올려 주세요.');
     }
     const sheetIndex = Math.max(0, sheets.findIndex((s) => s.rows.length > 0));
     const rows = sheets[sheetIndex]?.rows ?? [];

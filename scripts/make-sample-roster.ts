@@ -1,47 +1,48 @@
 // 시연·테스트용 가상 인사 명단을 만든다 (실존 인물·기관 아님).
-// 실행: npm run samples  →  samples/ 폴더에 xlsx·xls·CP949 CSV와 "변경분" 파일이 생긴다.
+// 실행: npm run samples  →  samples/ 폴더에 xlsx·CP949 CSV와 "변경분" 파일이 생긴다.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ExcelJS from 'exceljs';
 import iconv from 'iconv-lite';
-import * as XLSX from 'xlsx';
 import { makePeople, ORG, ymd, type Person } from './fixtures/people.ts';
 
 const OUT_DIR = fileURLToPath(new URL('../samples/', import.meta.url));
 const HEADER = ['연번', '사번', '성명', '소속', '직급', '직종', '생년월일', '재직상태', '임용일'];
 
-function sheetRows(people: Person[], datesAsText: boolean): unknown[][] {
-  return people.map((p, i) => [
-    i + 1,
-    p.empNo,
-    p.name,
-    p.department,
-    p.grade,
-    p.type,
-    datesAsText ? ymd(p.birth) : p.birth,
-    p.status,
-    datesAsText ? ymd(p.hired) : p.hired,
-  ]);
+/** 엑셀 날짜 칸은 시간대 없는 값이라 UTC 자정으로 넣는다 */
+const asExcelDate = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+
+function sheetRows(people: Person[]): unknown[][] {
+  return people.map((p, i) => [i + 1, p.empNo, p.name, p.department, p.grade, p.type, asExcelDate(p.birth), p.status, asExcelDate(p.hired)]);
 }
 
-function writeWorkbook(file: string, rows: unknown[][], bookType: 'xlsx' | 'xls') {
-  // 실제 인사 명단처럼 위에 제목 줄과 빈 줄을 둔다
-  const sheet = XLSX.utils.aoa_to_sheet(
-    [[`${new Date().getFullYear()}년 ${ORG} 직원 현황`], ['(기준일: 10월 1일)'], [], HEADER, ...rows],
-    { cellDates: true, dateNF: 'yyyy-mm-dd' },
-  );
-  sheet['!cols'] = [6, 10, 10, 14, 10, 8, 12, 8, 12].map((wch) => ({ wch }));
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, '직원명단');
-  writeFileSync(join(OUT_DIR, file), XLSX.write(book, { type: 'buffer', bookType }));
+async function writeWorkbook(file: string, rows: unknown[][], widths: number[]) {
+  const book = new ExcelJS.Workbook();
+  const sheet = book.addWorksheet('직원명단');
+  sheet.columns = widths.map((width) => ({ width }));
+  rows.forEach((values, r) => {
+    const row = sheet.getRow(r + 1);
+    values.forEach((value, c) => {
+      const cell = row.getCell(c + 1);
+      cell.value = value as ExcelJS.CellValue;
+      if (value instanceof Date) cell.numFmt = 'yyyy-mm-dd';
+    });
+    row.commit();
+  });
+  writeFileSync(join(OUT_DIR, file), Buffer.from(await book.xlsx.writeBuffer()));
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
 const people = makePeople(120);
 
-writeWorkbook('직원명단_2026.xlsx', sheetRows(people, false), 'xlsx');
-writeWorkbook('직원명단_2026.xls', sheetRows(people, false), 'xls');
+// 실제 인사 명단처럼 위에 제목 줄과 빈 줄을 둔다
+await writeWorkbook(
+  '직원명단_2026.xlsx',
+  [[`${new Date().getFullYear()}년 ${ORG} 직원 현황`], ['(기준일: 10월 1일)'], [], HEADER, ...sheetRows(people)],
+  [6, 10, 10, 14, 10, 8, 12, 8, 12],
+);
 
 // 한글 윈도우 엑셀에서 "CSV로 저장"한 것과 같은 CP949 파일, 생년월일은 6자리
 const csvLines = [
@@ -67,15 +68,13 @@ const laterRows = later.map((p, i) => [
   p.type,
   `${ymd(p.birth).slice(2).replaceAll('-', '')}-${p.birth.getFullYear() < 2000 ? 1 : 3}******`,
   p.status,
-  p.hired,
+  asExcelDate(p.hired),
 ]);
-const laterSheet = XLSX.utils.aoa_to_sheet(
+await writeWorkbook(
+  '직원명단_변경분.xlsx',
   [['직원 현황 (변경분 반영)'], [], [...HEADER.slice(0, 6), '주민등록번호', ...HEADER.slice(7)], ...laterRows],
-  { cellDates: true },
+  [6, 10, 10, 14, 10, 8, 16, 8, 12],
 );
-const laterBook = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(laterBook, laterSheet, '직원명단');
-writeFileSync(join(OUT_DIR, '직원명단_변경분.xlsx'), XLSX.write(laterBook, { type: 'buffer', bookType: 'xlsx' }));
 
 function makeNewHires(): Person[] {
   return [
@@ -85,6 +84,6 @@ function makeNewHires(): Person[] {
 }
 
 console.log(`가상 명단을 만들었습니다 → ${OUT_DIR}`);
-console.log('  직원명단_2026.xlsx / .xls  (제목 줄 포함, 120명)');
+console.log('  직원명단_2026.xlsx          (제목 줄 포함, 120명)');
 console.log('  직원명단_2026_cp949.csv     (한글 윈도우 CSV, 생년월일 6자리)');
 console.log('  직원명단_변경분.xlsx         (전보 3, 승진 1, 신규 2, 퇴직 1, 주민번호 열)');

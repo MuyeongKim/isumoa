@@ -1,8 +1,8 @@
 import { inflateRawSync } from 'node:zlib';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import * as XLSX from 'xlsx';
 import type { AuditPage, CertificateListItem, Dashboard, ExportSummary } from '../../shared/types.ts';
+import { loadXlsx, sheetObjects, sheetRows } from '../fixtures-workbook.ts';
 import { createHarness, PDF, type Harness } from './harness.ts';
 
 // 대시보드·내보내기(엑셀·ZIP·합본 PDF)·감사 로그. 받은 파일을 실제로 열어 내용까지 확인한다.
@@ -133,21 +133,22 @@ describe('내보내기', () => {
     const res = await h.send('GET', `/api/exports/status.xlsx?year=2026&reason=${REASON}`);
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-disposition']).toContain(encodeURIComponent('2026년_법정교육_이수현황'));
-    const wb = XLSX.read(res.rawPayload);
-    expect(wb.SheetNames).toEqual(['요약', '직원별', '미이수자', '상세 내역']);
+    const wb = await loadXlsx(res.rawPayload);
+    expect(wb.worksheets.map((s) => s.name)).toEqual(['요약', '직원별', '미이수자', '상세 내역']);
 
-    const byEmployee = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets['직원별'], { range: 3 });
+    // 머리글은 넷째 줄 (위에 제목·기준·빈 줄)
+    const byEmployee = sheetObjects(wb.getWorksheet('직원별')!, 4);
     expect(byEmployee.map((r) => [r['부서'], r['성명'], r['성희롱 예방교육'], r['청렴교육(부패방지교육)']])).toEqual([
       ['총무과', '송주주', '미이수', '이수'],
       ['총무과', '오호영', '이수', '미이수'],
       ['재무과', '김재무', '미이수', '이수'],
     ]);
-    const missing = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets['미이수자'], { range: 3 });
+    const missing = sheetObjects(wb.getWorksheet('미이수자')!, 4);
     expect(missing).toHaveLength(21 - 6);
-    const detail = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets['상세 내역'], { range: 3 });
+    const detail = sheetObjects(wb.getWorksheet('상세 내역')!, 4);
     expect(detail).toHaveLength(6); // 통합교육 1장이 4줄 + 청렴 2장
     expect(detail[0]).toMatchObject({ 부서: '총무과', 성명: '송주주', 교육: '청렴교육(부패방지교육)', '원본 파일': '송주주:청렴?.pdf' });
-    const summary = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets['요약'], { header: 1 });
+    const summary = sheetRows(wb.getWorksheet('요약')!);
     expect(String(summary[0][0])).toContain('2026년 법정교육 이수 현황');
   });
 

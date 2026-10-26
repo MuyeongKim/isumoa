@@ -1,11 +1,11 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import * as XLSX from 'xlsx';
 import { buildApp } from '../../server/src/app.ts';
 import { loadConfig } from '../../server/src/config.ts';
 import { runMigrations } from '../../server/src/db/migrate.ts';
 import { seedDefaults } from '../../server/src/db/seed.ts';
 import { openDatabase } from '../../server/src/db/sqlite.ts';
+import { xlsxBuffer } from '../fixtures-workbook.ts';
 
 // 메모리 DB로 서버를 띄워 로그인·권한·명단 등록 흐름을 확인한다
 
@@ -95,17 +95,16 @@ describe('초기 설정과 로그인', () => {
 
 describe('명단 일괄 등록과 서무 권한', () => {
   it('엑셀 명단을 읽고, 미리보고, 반영한다', async () => {
-    const book = XLSX.utils.book_new();
-    const sheet = XLSX.utils.aoa_to_sheet([
-      ['직원 현황'],
-      [],
-      ['사번', '성명', '소속', '직급'],
-      ['1001', '홍길동', '총무과', '7급'],
-      ['1002', '이몽룡', '재무과', '8급'],
-      ['1003', '성춘향', '재무과', '9급'],
-    ]);
-    XLSX.utils.book_append_sheet(book, sheet, '명단');
-    const file: Buffer = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' });
+    const file = await xlsxBuffer({
+      명단: [
+        ['직원 현황'],
+        [],
+        ['사번', '성명', '소속', '직급'],
+        ['1001', '홍길동', '총무과', '7급'],
+        ['1002', '이몽룡', '재무과', '8급'],
+        ['1003', '성춘향', '재무과', '9급'],
+      ],
+    });
 
     const boundary = '----roster';
     const body = Buffer.concat([
