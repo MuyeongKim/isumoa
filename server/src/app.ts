@@ -7,6 +7,7 @@ import type { ServerOptions as HttpsOptions } from 'node:https';
 import Fastify, { LogController, type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { registerAccessLog } from './auth/accessLog.ts';
 import { registerAuth } from './auth/guard.ts';
+import { assertSingleUserHost } from './config.ts';
 import type { Deps } from './deps.ts';
 import { errorHandler } from './lib/errors.ts';
 import { auditRoutes } from './routes/audit.ts';
@@ -26,6 +27,7 @@ import { userRoutes } from './routes/users.ts';
 
 /** 서버 앱을 만든다. 테스트에서는 메모리 DB를 넣어 그대로 쓴다 */
 export async function buildApp(deps: Deps, options: { logger?: FastifyServerOptions['logger']; https?: HttpsOptions | null } = {}) {
+  assertSingleUserHost(deps.config);
   // https를 주면 Fastify가 HTTPS 서버로 만든다 (타입은 http 서버로 맞춰 다른 코드와 같이 쓴다)
   const app = Fastify({
     logger: options.logger ?? { level: 'info' },

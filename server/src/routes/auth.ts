@@ -66,7 +66,7 @@ export async function authRoutes(app: FastifyInstance, { db, config, version }: 
 
   app.get('/api/meta', async (): Promise<AppMeta> => {
     const org = await getSetting(db, 'org', { name: '' });
-    return { orgName: org.name, needsSetup: (await userCount()) === 0, version, desktop: config.desktop };
+    return { orgName: org.name, needsSetup: (await userCount()) === 0, version, desktop: config.desktop, singleUser: config.singleUser };
   });
 
   // 처음 실행: 관리자 계정이 하나도 없을 때만 동작한다
@@ -154,6 +154,8 @@ export async function authRoutes(app: FastifyInstance, { db, config, version }: 
   app.get('/api/auth/me', { preHandler: requireUser }, async (req) => currentUser(req));
 
   app.post('/api/auth/password', { preHandler: requireUser }, async (req, reply) => {
+    // 단일 사용자 모드는 로그인 없이 쓰는 모드라 비밀번호를 바꿀 화면도, 바꿀 이유도 없다
+    if (config.singleUser) throw new HttpError(403, '단일 사용자 모드에서는 비밀번호를 바꿀 수 없습니다.');
     const me = currentUser(req);
     const body = PasswordBody.parse(req.body);
     const user = await db.selectFrom('users').selectAll().where('id', '=', me.id).executeTakeFirstOrThrow();

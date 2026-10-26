@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { buildApp } from './app.ts';
 import { purgeExpiredSessions } from './auth/sessions.ts';
 import { processPage } from './certs/processPage.ts';
-import { APP_ROOT, loadConfig } from './config.ts';
+import { APP_ROOT, loadConfig, type AppConfig } from './config.ts';
 import { runMigrations } from './db/migrate.ts';
 import { seedDefaults } from './db/seed.ts';
 import { sealAuditLog } from './lib/logChain.ts';
@@ -16,7 +16,14 @@ import { createOcrEngine } from './ocr/engine.ts';
 import { startScheduler } from './ops/scheduler.ts';
 
 const version = (JSON.parse(readFileSync(join(APP_ROOT, 'package.json'), 'utf8')) as { version: string }).version;
-const config = loadConfig();
+// 설정이 잘못되면(예: 단일 사용자 모드인데 host가 바깥 주소) 이유만 보여 주고 멈춘다
+let config: AppConfig;
+try {
+  config = loadConfig();
+} catch (err) {
+  console.error(`설정 오류: ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+}
 mkdirSync(config.dataDir, { recursive: true });
 
 // HTTPS 인증서 (config.json의 tls). 파일을 읽지 못하면 시작하지 않는다 — 몰래 HTTP로 뜨지 않게
@@ -64,6 +71,7 @@ const recovered = await recoverInterruptedJobs(db);
 if (recovered > 0) app.log.info(`중단됐던 쪽 ${recovered}개를 다시 처리합니다.`);
 worker = startWorker({ db, log: app.log, handle: (job) => processPage({ db, dataDir: config.dataDir, ocr }, job.page_id) });
 app.log.info(`스캔본 OCR: ${ocr.label}`);
+if (config.singleUser) app.log.warn('단일 사용자 모드로 시작합니다: 앱 로그인 없이 모든 요청이 관리자로 처리됩니다. nginx 로그인으로 막혀 있어야 합니다.');
 if (ocr.fallbackReason) app.log.warn(`kordoc OCR을 띄우지 못해 대신 tesseract로 읽습니다: ${ocr.fallbackReason}`);
 
 const purgeTimer = setInterval(() => {

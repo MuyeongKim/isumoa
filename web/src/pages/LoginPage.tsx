@@ -41,6 +41,11 @@ export function LoginPage() {
   return (
     <AuthLayout orgName={meta.data?.orgName ?? ''}>
       <h1 className="text-[26px] font-bold tracking-[-0.03em]">로그인</h1>
+      {meta.data?.singleUser && (
+        <p className="mt-3 rounded-lg bg-seal-soft px-3 py-2 text-[13px] text-seal" role="status">
+          단일 사용자 모드로 켜져 있지만 쓸 수 있는 관리자 계정이 없어 자동으로 들어가지 못했습니다. 관리자 계정이 사용 중인지 확인해 주세요.
+        </p>
+      )}
       <form onSubmit={submit} className="mt-6 space-y-4">
         <FormError message={error} />
         <Field label="아이디" htmlFor="loginId">

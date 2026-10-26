@@ -88,6 +88,8 @@ export interface AppMeta {
   version: string;
   /** PC 설치판(이 PC에서 혼자 쓰는 모드)이면 true — 화면에 "프로그램 끄기"가 보인다 */
   desktop: boolean;
+  /** 단일 사용자 모드(시범 서버)이면 true — 로그인 없이 첫 관리자로 들어가므로 로그아웃·비밀번호 변경이 없다 */
+  singleUser: boolean;
 }
 
 export interface Overview {

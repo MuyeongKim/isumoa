@@ -32,11 +32,14 @@ export function AppShell() {
     }
   }
   const [passwordOpen, setPasswordOpen] = useState(false);
+  // 단일 사용자 모드(시범 서버): 앱 로그인이 없으므로 로그아웃·비밀번호 변경은 보이지 않고, 비밀번호 변경 요구도 없다
+  const singleUser = meta?.singleUser === true;
+  const mustChangePassword = me.mustChangePassword && !singleUser;
   const wide = useMatches().some((m) => (m.handle as { wide?: boolean } | undefined)?.wide);
   const overview = useQuery({
     queryKey: ['overview'],
     queryFn: () => api.get<Overview>('/overview'),
-    enabled: !me.mustChangePassword,
+    enabled: !mustChangePassword,
     refetchInterval: 30_000,
   });
 
@@ -139,14 +142,18 @@ export function AppShell() {
               <BookOpen className="size-3.5" aria-hidden />
               사용설명서
             </a>
-            <button type="button" onClick={() => setPasswordOpen(true)} className={footerButton}>
-              <KeyRound className="size-3.5" aria-hidden />
-              비밀번호 변경
-            </button>
-            <button type="button" onClick={logout} className={footerButton}>
-              <LogOut className="size-3.5" aria-hidden />
-              로그아웃
-            </button>
+            {!singleUser && (
+              <>
+                <button type="button" onClick={() => setPasswordOpen(true)} className={footerButton}>
+                  <KeyRound className="size-3.5" aria-hidden />
+                  비밀번호 변경
+                </button>
+                <button type="button" onClick={logout} className={footerButton}>
+                  <LogOut className="size-3.5" aria-hidden />
+                  로그아웃
+                </button>
+              </>
+            )}
             {meta?.desktop && me.role === 'admin' && (
               <button type="button" onClick={() => setQuitOpen(true)} className={cn(footerButton, 'hover:bg-seal-soft hover:text-seal')}>
                 <Power className="size-3.5" aria-hidden />
@@ -182,11 +189,9 @@ export function AppShell() {
           </div>
         </div>
       )}
-      <ChangePasswordDialog
-        open={me.mustChangePassword || passwordOpen}
-        forced={me.mustChangePassword}
-        onClose={() => setPasswordOpen(false)}
-      />
+      {!singleUser && (
+        <ChangePasswordDialog open={mustChangePassword || passwordOpen} forced={mustChangePassword} onClose={() => setPasswordOpen(false)} />
+      )}
     </div>
   );
 }

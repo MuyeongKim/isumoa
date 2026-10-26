@@ -34,6 +34,11 @@ export interface AppConfig {
   logDir: string | null;
   /** PC 설치판: 이 PC에서 혼자 쓰는 모드 ("프로그램 끄기" 단추, 설치·제거 프로그램이 끌 수 있는 열쇠 파일) */
   desktop: boolean;
+  /**
+   * 단일 사용자 모드 (시범 서버 전용): 앱 로그인 없이, 세션이 없는 요청을 모두 첫 관리자로 처리한다.
+   * 앞단(nginx 등)의 로그인이 유일한 보호이므로 host가 이 서버 안(127.0.0.1·localhost·::1)일 때만 켤 수 있다.
+   */
+  singleUser: boolean;
   /** 읽은 config.json 위치 (없으면 null) */
   configPath: string | null;
   /** 빌드된 화면 파일 위치 (없으면 API만 제공) */
@@ -41,6 +46,23 @@ export interface AppConfig {
 }
 
 type ConfigFile = Partial<Omit<AppConfig, 'webDistDir' | 'configPath'>>;
+
+/** 단일 사용자 모드로 열어도 되는 host: 이 서버 안에서만 접속되는 주소 */
+const LOOPBACK_HOSTS = ['127.0.0.1', 'localhost', '::1'];
+
+/**
+ * 단일 사용자 모드는 앱이 사용자를 가리지 않으므로, 서버 바깥에서 곧바로 닿는 주소(0.0.0.0 등)로는 열 수 없다.
+ * 설정을 읽을 때와 앱을 만들 때 둘 다 확인해, 어느 쪽으로 켜도 앞단을 거치지 않는 길이 생기지 않게 한다.
+ */
+export function assertSingleUserHost(config: Pick<AppConfig, 'singleUser' | 'host'>): void {
+  if (config.singleUser && !LOOPBACK_HOSTS.includes(config.host.trim().toLowerCase())) {
+    throw new Error(
+      `단일 사용자 모드(singleUser)는 host가 127.0.0.1·localhost·::1일 때만 켤 수 있습니다 (지금 host: ${config.host}). ` +
+        '로그인 없이 누구나 관리자가 되므로, 서버 바깥에서 바로 닿는 주소로는 시작하지 않습니다. ' +
+        'host를 127.0.0.1로 바꾸고 nginx 같은 앞단의 로그인으로 막은 뒤 켜 주세요.',
+    );
+  }
+}
 
 /** app 폴더(개발 중에는 프로젝트 폴더) */
 export const APP_ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -64,7 +86,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ? { certFile: path(file.tls.certFile), keyFile: path(file.tls.keyFile), pfxFile: path(file.tls.pfxFile), passphrase: file.tls.passphrase }
     : null;
 
-  return {
+  // 꺼짐이 기본: 문자열 "false"처럼 애매한 값이 켜짐으로 읽히지 않도록 true/false만 받는다
+  if (file.singleUser !== undefined && typeof file.singleUser !== 'boolean') {
+    throw new Error('config.json의 singleUser는 true 또는 false여야 합니다 (따옴표 없이).');
+  }
+
+  const config: AppConfig = {
     host: env.HOST ?? file.host ?? '127.0.0.1',
     port: Number(env.PORT ?? file.port ?? 3000),
     dataDir: resolve(baseDir, env.DATA_DIR ?? file.dataDir ?? 'data'),
@@ -77,7 +104,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     backupHour: Math.min(23, Math.max(0, Number(file.backupHour ?? 2))),
     logDir: path(env.LOG_DIR ?? file.logDir ?? undefined) ?? null,
     desktop: Boolean(file.desktop ?? false),
+    singleUser: file.singleUser === true,
     configPath: configPath && existsSync(configPath) ? configPath : null,
     webDistDir: join(APP_ROOT, 'web', 'dist'),
   };
+  assertSingleUserHost(config);
+  return config;
 }

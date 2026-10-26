@@ -4,7 +4,7 @@ import type { SessionUser } from '../../../shared/types.ts';
 import type { AppConfig } from '../config.ts';
 import type { DB } from '../db/schema.ts';
 import { HttpError } from '../lib/errors.ts';
-import { resolveSession, SESSION_COOKIE } from './sessions.ts';
+import { firstAdminUser, resolveSession, SESSION_COOKIE } from './sessions.ts';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -20,6 +20,8 @@ const ALLOWED_BEFORE_PASSWORD_CHANGE = new Set(['/api/auth/me', '/api/auth/passw
  * 모든 /api 요청에서
  * 1) 데이터를 바꾸는 요청에 우리 화면이 붙이는 헤더가 있는지 확인하고(다른 사이트가 보낸 요청 차단),
  * 2) 세션 쿠키로 로그인한 사용자를 찾아 request.user에 넣는다.
+ *    단일 사용자 모드(config.singleUser)에서는 유효한 세션이 없는 요청을 첫 관리자로 처리하고,
+ *    비밀번호 변경 요구도 건너뛴다 (로그인 화면·비밀번호 변경 화면이 없는 모드이므로).
  */
 export function registerAuth(app: FastifyInstance, deps: { db: Kysely<DB>; config: AppConfig }) {
   app.decorateRequest('user', null);
@@ -33,17 +35,17 @@ export function registerAuth(app: FastifyInstance, deps: { db: Kysely<DB>; confi
     }
 
     const token = req.cookies[SESSION_COOKIE];
-    if (!token) return;
-    const user = await resolveSession(deps.db, token, deps.config.sessionIdleMinutes);
+    const user = token ? await resolveSession(deps.db, token, deps.config.sessionIdleMinutes) : null;
+    if (token && !user) reply.clearCookie(SESSION_COOKIE, { path: '/' });
     if (!user) {
-      reply.clearCookie(SESSION_COOKIE, { path: '/' });
+      if (deps.config.singleUser) req.user = await firstAdminUser(deps.db);
       return;
     }
     req.user = user;
-    req.sessionToken = token;
+    req.sessionToken = token ?? null;
 
     const path = req.url.split('?')[0];
-    if (user.mustChangePassword && !ALLOWED_BEFORE_PASSWORD_CHANGE.has(path)) {
+    if (!deps.config.singleUser && user.mustChangePassword && !ALLOWED_BEFORE_PASSWORD_CHANGE.has(path)) {
       return reply
         .code(403)
         .send({ error: { message: '비밀번호를 먼저 변경해 주세요.', code: 'PASSWORD_CHANGE_REQUIRED' } });

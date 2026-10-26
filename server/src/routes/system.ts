@@ -50,6 +50,9 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version, 
     if (config.trustProxy && !config.cookieSecure) {
       warnings.push('리버스 프록시 뒤에서 운영 중입니다. 프록시가 HTTPS를 맡는다면 config.json의 cookieSecure를 true로 바꿔 주세요.');
     }
+    if (config.singleUser) {
+      warnings.push('단일 사용자 모드입니다. 앱 로그인이 없어 이 서버에 닿는 모든 요청이 관리자로 처리됩니다. 시범 서버에서만 쓰고, nginx 로그인이 막고 있는지 확인해 주세요.');
+    }
     const free = disk ? disk.bavail * disk.bsize : null;
     if (free !== null && free < 5 * GB) warnings.push(`데이터 디스크 남은 공간이 ${(free / GB).toFixed(1)}GB입니다. 5GB 넘게 비워 두세요.`);
     if (!backups.last) warnings.push('아직 백업한 적이 없습니다. 설정 > 백업·보관에서 "지금 백업"을 눌러 확인해 주세요.');
