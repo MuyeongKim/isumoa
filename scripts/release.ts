@@ -51,10 +51,10 @@ const [targetOs, targetCpu] = [target.startsWith('win') ? 'win32' : target.split
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { version: string };
 const nodeVersion = process.versions.node;
-const name = desktop ? `이수모아-설치-${pkg.version}-${target}` : `edu-cert-platform-${pkg.version}-${target}`;
+const name = desktop ? `이수모아-설치-${pkg.version}-${target}` : `isumoa-${pkg.version}-${target}`;
 const releaseDir = join(ROOT, 'release');
 const outDir = join(releaseDir, name);
-// PC 설치판: program 폴더가 통째로 %LOCALAPPDATA%\Programs\EduCert로 복사된다
+// PC 설치판: program 폴더가 통째로 %LOCALAPPDATA%\Programs\isumoa로 복사된다
 const programDir = desktop ? join(outDir, 'program') : outDir;
 const appDir = join(programDir, 'app');
 

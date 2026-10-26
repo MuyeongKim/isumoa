@@ -1,6 +1,6 @@
 # 이수모아 PC판 설치 (관리자 권한 필요 없음). 압축을 푼 폴더의 설치.bat이 실행한다.
-#  - 프로그램: %LOCALAPPDATA%\Programs\EduCert
-#  - 자료·설정·기록: %LOCALAPPDATA%\EduCert (다시 설치·업그레이드해도 그대로 둔다)
+#  - 프로그램: %LOCALAPPDATA%\Programs\isumoa
+#  - 자료·설정·기록: %LOCALAPPDATA%\isumoa (다시 설치·업그레이드해도 그대로 둔다. 이전 이름 EduCert 폴더가 있으면 여기로 옮긴다)
 #  - 백업: 문서\이수모아 백업
 $ErrorActionPreference = 'Stop'
 $Package = Join-Path (Split-Path -Parent $PSScriptRoot) 'program'
@@ -21,6 +21,7 @@ try {
   }
   $version = (Get-Content -LiteralPath (Join-Path $Package 'VERSION') -Raw).Trim()
   $installed = (Get-ItemProperty -Path $UninstallKey -ErrorAction SilentlyContinue).DisplayVersion
+  if (-not $installed) { $installed = (Get-ItemProperty -Path $OldUninstallKey -ErrorAction SilentlyContinue).DisplayVersion }
   $question = if ($installed) {
     "설치된 $installed 판을 $version 판으로 바꿉니다.`n이수증 자료와 설정은 그대로 둡니다. 계속할까요?"
   } else {
@@ -30,6 +31,14 @@ try {
 
   # 켜져 있으면 끈다 (업그레이드)
   Stop-Server
+
+  # 이전 이름(EduCert)으로 설치되어 있으면 끄고, 이수증 자료·설정을 새 폴더로 옮긴 뒤 옛 프로그램 폴더는 지운다
+  if (Test-Path -LiteralPath $OldAppHome) { Stop-Server $OldDataHome $OldAppHome }
+  if ((Test-Path -LiteralPath $OldDataHome) -and -not (Test-Path -LiteralPath $DataHome)) {
+    Move-Item -LiteralPath $OldDataHome -Destination $DataHome
+  }
+  Remove-Tree $OldAppHome
+  Remove-Item -Path $OldUninstallKey -Recurse -Force -ErrorAction SilentlyContinue
 
   # 프로그램 파일 복사. robocopy는 긴 경로도 복사하고, 옛 판에만 있던 파일은 지운다
   New-Item -ItemType Directory -Force -Path $AppHome | Out-Null

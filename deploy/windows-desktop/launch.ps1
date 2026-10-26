@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
 # 아이콘을 여러 번 눌러도 서버는 한 번만 켜도록
-$mutex = New-Object System.Threading.Mutex($false, 'Local\EduCertLaunch')
+$mutex = New-Object System.Threading.Mutex($false, 'Local\IsumoaLaunch')
 try { $owned = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $owned = $true }
 if (-not $owned) { exit 0 }
 

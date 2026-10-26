@@ -4,15 +4,16 @@
 $AppName = '이수모아'
 # 0.2 이전 판의 이름 (그때 만든 바로가기를 업그레이드할 때 지운다)
 $OldAppName = '법정교육 이수증'
-# 폴더·등록 이름의 EduCert는 내부 이름이라 그대로 둔다 (이름을 바꿔도 자료와 업그레이드 길이 이어지게)
 # 프로그램 (업그레이드하면 통째로 바뀜)
-$AppHome = Join-Path $env:LOCALAPPDATA 'Programs\EduCert'
+$AppHome = Join-Path $env:LOCALAPPDATA 'Programs\isumoa'
 # 자료·설정·기록 (업그레이드해도 그대로)
-$DataHome = Join-Path $env:LOCALAPPDATA 'EduCert'
+$DataHome = Join-Path $env:LOCALAPPDATA 'isumoa'
 $ConfigFile = Join-Path $DataHome 'config.json'
-# 켜져 있는 서버가 만들어 두는 열쇠. 설치·제거 프로그램이 서버를 끌 때 쓴다
-$TokenFile = Join-Path $DataHome 'run\shutdown.token'
-$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\EduCert'
+$UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\isumoa'
+# 제품 이름을 바꾸기 전(EduCert)의 폴더·등록 이름. 그 이름으로 설치되어 있으면 설치할 때 자료를 새 폴더로 옮기고 지운다
+$OldAppHome = Join-Path $env:LOCALAPPDATA 'Programs\EduCert'
+$OldDataHome = Join-Path $env:LOCALAPPDATA 'EduCert'
+$OldUninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\EduCert'
 $DefaultPort = 47210
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -60,17 +61,19 @@ function Test-Server {
   try { return (Invoke-Local 'GET' '/api/health') -eq 200 } catch { return $false }
 }
 
-function Stop-Server {
+# 켜져 있는 서버는 자료 폴더의 run\shutdown.token에 열쇠를 만들어 둔다. 설치·제거 프로그램은 그 열쇠로 서버를 끈다
+function Stop-Server([string]$Data = $DataHome, [string]$App = $AppHome) {
   # 1) 열쇠로 서버에 끄기를 부탁한다 (처리 중인 쪽을 마치고 꺼진다)
-  if ((Test-Server) -and (Test-Path -LiteralPath $TokenFile)) {
+  $tokenFile = Join-Path $Data 'run\shutdown.token'
+  if ((Test-Server) -and (Test-Path -LiteralPath $tokenFile)) {
     try {
-      $token = (Get-Content -LiteralPath $TokenFile -Raw).Trim()
+      $token = (Get-Content -LiteralPath $tokenFile -Raw).Trim()
       [void](Invoke-Local 'POST' '/api/system/quit' @{ 'x-shutdown-token' = $token; 'x-requested-with' = 'fetch' })
       for ($i = 0; $i -lt 60 -and (Test-Server); $i++) { Start-Sleep -Milliseconds 500 }
     } catch {}
   }
   # 2) 그래도 남아 있으면 이 프로그램 폴더의 node.exe만 끈다
-  $node = Join-Path $AppHome 'node\node.exe'
+  $node = Join-Path $App 'node\node.exe'
   Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.ExecutablePath -and ($_.ExecutablePath -ieq $node) } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -80,7 +83,7 @@ function Stop-Server {
 # 폴더를 지운다. node_modules 안의 긴 경로도 지우도록 빈 폴더를 robocopy /MIR로 덮은 뒤 지운다
 function Remove-Tree([string]$Path) {
   if (-not (Test-Path -LiteralPath $Path)) { return }
-  $empty = Join-Path $env:TEMP ('educert-empty-' + [guid]::NewGuid())
+  $empty = Join-Path $env:TEMP ('isumoa-empty-' + [guid]::NewGuid())
   New-Item -ItemType Directory -Path $empty | Out-Null
   & robocopy.exe $empty $Path /MIR /R:1 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
   Remove-Item -LiteralPath $empty -Force
