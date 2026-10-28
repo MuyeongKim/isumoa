@@ -24,7 +24,7 @@ Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에
 
 자세한 설치 순서, 자료 저장 위치와 업데이트 방법은 **[PC 설치 안내](docs/PC설치안내.md)**를 참고하세요.
 
-> 0.5.1은 부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증입니다. 기관 업무용 PC에서 확인할 범위는 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.1/validation-report-0.5.0.md)에 정리했습니다.
+> 0.5.1은 부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증입니다. 기관 업무용 PC에서 확인할 범위는 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.1/validation-report-0.5.1.md)에 정리했습니다.
 
 ## 어떤 일을 할 수 있나요?
 
