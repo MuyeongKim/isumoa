@@ -1,180 +1,63 @@
-<p align="center">
-  <img src="docs/images/banner.jpg" alt="이수모아 — 법정교육 이수증 종합 플랫폼. 모으고, 확인하고, 현황을 보고, 제출 양식까지" width="100%">
-</p>
+# 이수모아
 
-<h1 align="center">이수모아</h1>
+**법정교육 이수증을 모아 검수하고, 직원별 이수 현황과 제출 자료를 만드는 Windows 프로그램입니다.**
 
-<p align="center">
-  <b>서무가 걷은 법정교육 이수증을 올리면 읽고, 분류하고, 현황을 만들고, 제출 양식까지 채워 주는 프로그램</b><br>
-  Windows PC에 설치해 혼자 쓰거나 내부망 서버에 두고 여럿이 씁니다. 이수증은 PC·서버 밖으로 나가지 않습니다.
-</p>
+설치 파일을 실행하면 필요한 구성요소가 함께 설치됩니다. PC 설치판은 수료증을 사용하는 PC에서 읽고 보관하며, 화면은 Edge·Chrome 같은 브라우저에서 열립니다.
 
-<p align="center">
-  <a href="https://github.com/MuyeongKim/isumoa/releases/latest"><b>최신 Windows 배포판</b></a> ·
-  <a href="docs/사용설명서.md"><b>사용설명서</b></a> ·
-  <a href="docs/PC설치안내.md">PC 설치</a> ·
-  <a href="docs/설치가이드.md">서버 설치</a> ·
-  <a href="docs/운영가이드.md">운영 가이드</a> ·
-  <a href="docs/promo/promo.mp4">소개 영상 (49초, 소리 있음)</a>
-</p>
+## Windows 설치 파일 받기
 
-<p align="center">
-  <a href="docs/promo/promo.mp4"><img src="docs/images/promo-preview.gif" alt="직원 지도가 이수 완료로 채워지는 모습" width="720"></a>
-</p>
-
----
-
-## 무엇이 달라지나
-
-| 지금까지 | 이 프로그램으로 |
+| 받을 파일 | 용도 |
 |---|---|
-| 메일·메신저로 받은 이수증을 하나씩 열어 이름을 바꿔 저장 | 개별 PDF·스캔 묶음·사진을 **한꺼번에 올리면** 쪽마다 나눠 읽음 |
-| 이수증을 보며 엑셀 현황표에 한 줄씩 옮겨 적기 | 직원·교육·이수일·시간을 **읽어서 채워 두고**, 원본과 대조해 확정만 |
-| 누가 아직 안 들었는지 표를 뒤져 찾기 | **직원 지도**와 미이수자 명단으로 한눈에, 부서별로 바로 |
-| 상급기관·부서마다 다른 양식에 다시 옮겨 적기 | 그 **양식을 올려 두면 그대로 채워서** 내보냄 |
+| **[Windows 설치 EXE 다운로드](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.exe)** | **일반 사용자 권장. 내려받은 파일을 실행해 설치합니다.** |
+| [ZIP 설치판](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.zip) | 압축을 푼 뒤 `설치.bat`을 실행하는 방식입니다. |
+| [최신 릴리스 전체 보기](https://github.com/MuyeongKim/isumoa/releases/latest) | 버전별 변경 사항, 설치 안내, 검증 요약과 체크섬을 확인합니다. |
 
-## 이렇게 씁니다
+현재 배포 버전은 **0.4.3**, 대상은 **Windows 10·11 64비트**입니다. 디스크 여유 공간은 2GB 이상 필요하며 자료가 쌓이면 추가 공간이 필요합니다.
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/images/upload.webp" alt="이수증 올리기 화면"></td>
-    <td width="50%"><img src="docs/images/review.webp" alt="검수함 화면"></td>
-  </tr>
-  <tr>
-    <td><b>① 올리기</b> — PDF·스캔본·사진을 끌어다 놓습니다. 여러 장을 한 번에 스캔한 PDF도 쪽마다 나눠 읽습니다.</td>
-    <td><b>② 검수</b> — 원본과 읽은 값을 나란히 보고 확정합니다. 고칠 점·확인할 점은 색으로 표시하고, 문제없는 것은 한 번에 확정합니다.</td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/dashboard.webp" alt="대시보드 직원 지도"></td>
-    <td><img src="docs/images/form-columns.webp" alt="제출 양식 열 맞추기"></td>
-  </tr>
-  <tr>
-    <td><b>③ 현황</b> — 한 칸이 직원 한 명인 직원 지도에 마우스를 올리면 남은 교육이 보입니다. 이수 현황 표는 이름·초성으로 찾습니다.</td>
-    <td><b>④ 내보내기</b> — 현황 엑셀, 이수증 ZIP, 교육별 합본 PDF, 그리고 부서가 정한 제출 양식에 그대로 채운 엑셀.</td>
-  </tr>
-</table>
+Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에서도 위의 같은 다운로드 링크를 이용하세요. 현재 GitHub 저장소는 비공개이므로 접근 권한이 있는 GitHub 계정으로 로그인해야 합니다.
 
-## 특징
+## 설치하고 처음 시작하기
 
-- **인터넷·AI 없이** — PDF 글자는 그대로 읽고, 스캔본은 프로그램에 들어 있는 OCR([kordoc](https://www.npmjs.com/package/kordoc), PP-OCRv5 한국어)로 읽습니다. 가상 이수증 79쪽 시험에서 78쪽을 모두 맞게 읽었고, 확인할 점 없이 틀린 쪽은 0쪽이었습니다(스캔본은 쪽당 약 0.4초).
-- **틀린 것을 숨기지 않음** — 이름을 명단에서 못 찾았거나, 교육을 못 정했거나, 연도가 다르면 검수함에 표시합니다. 표시 없는 이수증만 일괄 확정할 수 있습니다.
-- **제출 양식 그대로** — 빈 엑셀 양식을 올리면 머리글·빈 줄·합계·서명란을 찾고, 사람이 모자라면 줄을 끼우며 합계 수식 범위와 인쇄 영역까지 늘립니다.
-- **손에 붙는 화면** — `Ctrl+K` 빠른 이동(초성 검색 `ㄱㅁㅈ`), 검수함 단축키(`↑↓` 이동, `Ctrl+Enter` 확정, `X` 제외), 화면 어디로 끌어도 받는 파일 올리기.
-- **공공기관 기준** — 성희롱·성매매·성폭력·가정폭력 예방, 청렴, 장애인 인식개선, 개인정보보호 등 법정교육 기본 목록과 이수 기준(연 n시간·n회)이 들어 있고, 통합과정 이수증은 교육마다 시간을 나눠 인정합니다.
-- **기록과 보관** — 감사 로그·접속기록(위·변조 확인), 내려받기 사유, 주민등록번호 뒷자리 가림, 매일 자동 백업과 복원 연습, 보관기간이 지난 자료 파기.
-- **선택 삭제·복원** — 부서·직원·교육 과정을 체크박스로 골라 휴지통으로 옮깁니다. 부서를 삭제하면 소속 직원도 함께 보관하며, 기존 이수증과 연결 기록은 유지하고 필요할 때 복원합니다.
-- **검수함 검색·선택 제외** — 직원·교육·원본 과정·파일명으로 찾고, 검색 결과를 체크해 한 번에 제외합니다. 확정 건수와 사유를 확인하며 원본·연결 기록은 보존합니다.
-- **검수값 보호** — 임시 저장·저장하고 다음, 미저장 상태의 화면 이동·로그아웃 보호, 실패한 오류 위치 안내, 검수 완료 후 현황·내보내기 연결을 제공합니다.
-- **목적별 내려받기** — 받을 자료를 먼저 고르고 범위와 사유를 선택합니다. 관리자 한 계정으로 시작하며 부서별 서무 계정 생성은 선택 사항입니다.
-- **검수 대기 초기화** — 묶음별 또는 전체 대기 결과·읽기 작업만 비웁니다. 확정·제외와 원본은 보존하며, 원본에서 다시 읽을 수 있습니다(직접 고친 대기값은 다시 작성).
-- **교육 문서·사진 가져오기** — PDF·HWPX 교육 계획과 JPG·JPEG·PNG 사진에서 교육명·기준 등을 읽어 초안으로 채웁니다. 원문과 대조해 수정하고 선택한 교육을 한 번에 등록합니다. 사진·스캔 PDF는 로컬 OCR로 읽습니다.
-- **개인별 합본·제목 수정** — 직원 한 명당 이수증을 PDF로 모아 ZIP으로 받습니다. 개인별 PDF 제목·파일명과 ZIP 파일 제목을 수정할 수 있습니다.
+1. 위의 **Windows 설치 EXE**를 내려받아 실행합니다.
+2. 설치 화면을 따라 완료한 뒤 바탕화면의 **이수모아**를 실행합니다.
+3. 처음 열린 화면에서 **기관명과 관리자 계정**을 직접 설정합니다. 이후에는 바탕화면 아이콘으로 다시 실행하면 됩니다.
 
-## 두 가지 판
+자세한 설치 순서, 자료 저장 위치와 업데이트 방법은 **[PC 설치 안내](docs/PC설치안내.md)**를 참고하세요.
 
-| | PC판 | 서버판 |
-|---|---|---|
-| 쓰는 곳 | Windows 10·11 PC 한 대 | 내부망 서버(Windows Server·Linux) |
-| 쓰는 사람 | 교육 담당자 혼자 | 교육 담당자 + 부서 서무 여럿 (서무는 담당 부서만) |
-| 설치 | EXE 실행 또는 ZIP을 풀고 `설치.bat` 실행 (관리자 권한 필요 없음) | 압축 풀고 서비스 등록 |
-| 안내 | [PC설치안내.md](docs/PC설치안내.md) | [설치가이드.md](docs/설치가이드.md) · [IT-확인요청서.md](docs/IT-확인요청서.md) |
+> 0.4.3은 부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증입니다. 기관 업무용 PC에서 확인할 범위는 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/validation-report-0.4.3.md)에 정리했습니다.
 
-설치본은 `npm run release`로 만듭니다. 실행용 Node.js, 대상 OS용 OCR 엔진, OCR 모델, 글꼴까지 모두 들어 있어 따로 설치할 것이 없습니다.
+## 어떤 일을 할 수 있나요?
 
-**0.4.3 다운로드:** [Windows 설치 EXE](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.exe) · [ZIP 설치판](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.zip) · [릴리스 내역](https://github.com/MuyeongKim/isumoa/releases/tag/v0.4.3)
-
-부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증이며, 사진 OCR 결과는 원본과 대조한 뒤 확정해야 합니다.
-
-## 어떻게 돌아가나
-
-```mermaid
-flowchart LR
-  A["서무 PC 브라우저<br/>PDF를 쪽 이미지·글자로 나눔"] -->|쪽마다 올림| B["처리 대기열"]
-  B --> C{"PDF 글자가<br/>있나"}
-  C -->|있음| D["규칙으로 판독<br/>성명·교육·이수일·시간"]
-  C -->|스캔본| E["OCR<br/>kordoc PP-OCRv5"] --> D
-  D --> F["직원 찾기 · 교육 분류<br/>확인할 점"]
-  F --> G["검수함<br/>원본과 대조해 확정"]
-  G --> H["이수 현황 · 대시보드"]
-  H --> I["엑셀 · ZIP · 합본 PDF<br/>제출 양식 채우기"]
-```
-
-## 개발
-
-Node.js 24가 필요합니다.
-
-```bash
-npm install
-npm run dev
-```
-
-화면은 http://localhost:5173, 서버 API는 http://localhost:3000 입니다. 처음 열면 기관명과 관리자 계정을 만듭니다.
-
-| 명령 | 하는 일 |
+| 업무 | 이수모아에서 하는 일 |
 |---|---|
-| `npm run dev` | 화면과 서버를 함께 실행 (코드를 고치면 자동 반영) |
-| `npm test` · `npm run typecheck` | 단위·API 테스트 · 타입 검사 |
-| `npm run verify:desktop -- --powershell pwsh --output data/desktop-check` | 가상 폴더에서 업데이트 실패 복구·실제 HTTP 실행본 확인·프로세스 간 잠금 검증. `--program`으로 EXE 추출 폴더 지정 가능. Windows 설치 UI 실기동과는 별도 |
-| `npm run samples` · `samples:certs` · `samples:forms` | 가상 인사 명단 · 가상 이수증(개별 PDF, 40쪽 스캔 묶음, 정답) · 가상 제출 양식 (실존 인물·기관 아님) |
-| `npm run eval -- --truth samples/certs/정답.json` | 판독 정확도 점검 (`--truth confirmed`: 확정한 결과를 정답으로, `--engine tesseract`: 대체 OCR로) |
-| `npm run restore -- --check` | 백업 복원 연습 (`--list` 목록, `--apply --yes` 실제 복원) |
-| `npm run release` | 서버용 설치본 (`-- --target linux-x64 --download-node` 다른 OS용, `-- --target win-x64 --desktop --exe --download-node` PC EXE·ZIP 설치판 (빌드 PC에 NSIS 필요)) |
-| `npm run media:screens` · `media:promo` | 문서용 화면 그림 · 소개 영상 다시 만들기 (헤드리스 크롬, ffmpeg). `media:promo -- --audio-only`는 소리만, `-- --music 음원.mp3`는 배경음악을 기관 음원으로 |
+| 수료증 모으기 | PDF·여러 쪽 스캔 PDF·JPG·JPEG·PNG 사진을 한꺼번에 올리고 내용을 읽습니다. |
+| 원본 대조와 검수 | 원본과 읽은 값을 나란히 보고 고친 뒤 확정합니다. 중복 제출과 교육 주제 충돌을 확인합니다. |
+| 이수 현황 확인 | 직원·부서·교육별 이수와 미이수 현황을 확인합니다. |
+| 제출 자료 만들기 | 현황 엑셀, 개인별·교육별 합본 PDF, 수료증 ZIP과 기관 제출 양식을 만듭니다. 개인별 PDF 제목도 바꿀 수 있습니다. |
+| 기준과 자료 관리 | 교육 기준표 PDF·HWPX·사진에서 등록할 내용을 읽고 확인합니다. 직원·부서·교육의 선택 삭제·복원과 백업을 지원합니다. |
 
-<details>
-<summary><b>폴더 구조</b></summary>
+## 사용하는 순서
 
-```
-web/       화면 (React 19, Vite, Tailwind 4)
-  src/pages/        화면별 파일 (이수증 올리기, 검수함, 이수 현황, 제출 양식 …)
-  src/upload/       브라우저에서 PDF를 쪽 이미지·글자로 나누어 올리기 (pdf.js)
-  src/components/   공통 부품 (사이드바, 빠른 이동, 표, 대화상자 …)
-server/    서버 (Fastify, Node 내장 SQLite)
-  src/routes/       API — 화면이 부르는 주소별 처리
-  src/db/           DB 구조(migrations/*.sql), 공공기관 교육 기본 목록
-  src/roster/       인사 명단 파일 읽기·비교
-  src/certs/        이수증 판독 규칙, 직원 찾기, 교육 분류, 확인할 점, 이수 판정
-  src/reports/      이수 현황 계산, 엑셀, 이수증 ZIP·합본 PDF
-  src/forms/        제출 양식 읽기(머리글·빈 줄·서명란 찾기)와 채우기(줄 끼우기·수식 범위 고치기)
-  src/ocr/          스캔본 글자 읽기 (kordoc, 안 되면 tesseract.js)
-  src/ops/          백업, 보관기간·파기, 매일 하는 예약 작업
-  src/jobs/         쪽 처리 대기열 (꺼졌다 켜져도 이어서 처리)
-  src/auth/         로그인·세션·권한
-shared/    화면과 서버가 함께 쓰는 타입과 규칙
-scripts/   가상 자료, 판독 정확도 점검, 백업 복원, 설치본, 문서 그림·소개 영상(media/)
-deploy/    서비스 등록(Windows 작업 스케줄러, Linux systemd), PC 설치판 스크립트(windows-desktop/)
-docs/      사용설명서, 설치·운영 가이드, 정보화 담당 확인 요청서, PC 설치 안내, 그림·소개 영상
-vendor/    OCR 모델(PP-OCRv5 한국어)
-tests/     단위·API 테스트
-```
-</details>
+1. **직원 명단**에 인사 명단 엑셀·CSV를 올리고 바뀌는 내용을 확인합니다.
+2. **교육 기준**에서 관리할 교육과 연간 시간·횟수를 기관 지침에 맞게 확인합니다.
+3. **수료증 올리기**에서 직원들이 제출한 PDF나 사진을 올립니다.
+4. **검수함**에서 직원·교육명·날짜·시간·증서번호를 원본과 대조하고 확정합니다.
+5. **이수 현황**을 확인한 뒤 **내보내기**에서 필요한 엑셀·PDF·제출 양식을 받습니다.
 
-<details>
-<summary><b>만들어 온 단계</b></summary>
+사진이나 스캔본은 글자를 잘못 읽을 수 있습니다. 자동으로 채워진 값도 원본과 확인한 뒤 확정하세요.
 
-| 단계 | 내용 |
-|---|---|
-| 1 | 로그인·권한, 부서·서무 계정, 교육 과정, 직원 명단 일괄 등록, 설치본 |
-| 2 | 이수증 올리기(PDF 쪽 나누기), 처리 대기열, OCR, 검수함, 이수 판정·현황 |
-| 3 | 교육 분류·직원 매칭, 일괄 확정, 정확도 점검 |
-| 4 | 대시보드, 엑셀·이수증 ZIP·교육별 합본 PDF, 감사 로그 화면 |
-| 5 | 접속기록(위·변조 확인·월 점검), 내려받기 사유, HTTPS, 주민번호 가림, 보관기간·파기, 백업·복원, 서비스 등록 |
-| 6 | AI 기능 제거, 스캔본 OCR을 kordoc으로, Windows PC 설치판 |
-| 7 | 화면 새 단장(직원 지도, `Ctrl+K`), 제출 양식에 채워 내보내기 |
-</details>
+![수료증 원본과 읽은 값을 나란히 확인하는 검수함 예시](docs/images/review.webp)
 
-<details>
-<summary><b>기술을 이렇게 고른 이유</b></summary>
+화면의 기관·직원·수료증은 설명을 위한 가상 자료입니다. [소개 영상 보기 (49초)](docs/promo/promo.mp4)
 
-- **내부망 설치** — 설치본에 실행용 Node와 대상 OS용 OCR 엔진(onnxruntime-node, sharp)까지 넣어 복사만 하면 실행됩니다. 대상 OS용이 아닌 네이티브 파일이 섞이면 설치본 만들기가 실패합니다.
-- **외부 연결 없음** — 글꼴, PDF 처리 파일, OCR 모델까지 설치본 안에서 제공합니다.
-- **OCR은 kordoc** — 같은 가상 이수증으로 비교했을 때 스캔 41쪽 중 tesseract는 37쪽, kordoc은 41쪽을 맞게 읽었습니다.
-- **PDF는 서무 PC의 브라우저에서 나눔** — 서버에 그림 라이브러리가 필요 없고, 서버는 OCR과 판독만 합니다.
-- **서버 코드는 빌드 없이 실행** — Node의 TypeScript 실행 기능으로 `server/src`를 그대로 실행합니다.
-</details>
+## 사용 중 필요한 안내
 
-## 함께 쓰는 공개 소프트웨어
+- **[사용설명서](docs/사용설명서.md)** — 직원 등록부터 검수·현황·자료 출력까지
+- **[PC 설치 안내](docs/PC설치안내.md)** — 설치, 다시 실행, 자료 위치, 업데이트와 제거
+- **[운영 가이드](docs/운영가이드.md)** — 백업과 자료 보관
 
-[kordoc](https://www.npmjs.com/package/kordoc)(MIT), PP-OCRv5 모델(Apache-2.0, [vendor/ocr-models/NOTICE.md](vendor/ocr-models/NOTICE.md)), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), [Wanted Sans](https://github.com/wanteddev/wanted-sans)·Noto Serif KR(OFL-1.1), Fastify·React·ExcelJS·pdf-lib(MIT).
+백업은 프로그램의 **설정 → 백업·보관 → 지금 백업**에서 실행할 수 있습니다. 업데이트 전에도 백업을 먼저 확인하세요.
 
-화면 그림과 소개 영상의 기관·사람·이수증은 모두 가상 자료입니다. 소개 영상의 배경음악과 효과음은 외부 음원 없이 코드로 만든 것(`scripts/media/audio.ts`)이라 기관에서 틀거나 게시할 때 따로 저작권을 확인할 필요가 없습니다.
+## 개발·서버 운영 담당자
+
+소스 수정·검사·배포 절차는 **[개발 안내](docs/개발안내.md)**에 모았습니다. 내부망 서버에 설치하는 경우에는 [서버 설치 가이드](docs/설치가이드.md)와 [정보화 담당 확인 요청서](docs/IT-확인요청서.md)를 참고하세요.

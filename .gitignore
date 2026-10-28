@@ -7,3 +7,10 @@ samples/
 .DS_Store
 backups/
 logs/
+
+# 로컬 개발 설정·내부 검증 기록·다시 생성하는 홍보 출력물
+/.claude/
+/docs/검증결과-*.md
+/docs/promo/promo.html
+/docs/images/banner.jpg
+/docs/images/promo-preview.gif
