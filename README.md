@@ -8,13 +8,13 @@
 
 | 받을 파일 | 용도 |
 |---|---|
-| **[Windows 설치 EXE 다운로드](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.exe)** | **일반 사용자 권장. 내려받은 파일을 실행해 설치합니다.** |
-| [ZIP 설치판](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.zip) | 압축을 푼 뒤 `설치.bat`을 실행하는 방식입니다. |
-| [최신 릴리스 전체 보기](https://github.com/MuyeongKim/isumoa/releases/latest) | 버전별 변경 사항, 설치 안내, 검증 요약과 체크섬을 확인합니다. |
+| **[Windows 설치 EXE 다운로드](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.0/isumoa-setup-0.5.0-win-x64.exe)** | **일반 사용자 권장. 내려받은 파일을 실행해 설치합니다.** |
+| [ZIP 설치판](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.0/isumoa-setup-0.5.0-win-x64.zip) | 압축을 푼 뒤 `설치.bat`을 실행하는 방식입니다. |
+| [최신 릴리스 전체 보기](https://github.com/MuyeongKim/isumoa-releases/releases/latest) | 버전별 변경 사항, 설치 안내, 검증 요약과 체크섬을 확인합니다. |
 
-현재 배포 버전은 **0.4.3**, 대상은 **Windows 10·11 64비트**입니다. 디스크 여유 공간은 2GB 이상 필요하며 자료가 쌓이면 추가 공간이 필요합니다.
+현재 배포 버전은 **0.5.0**, 대상은 **Windows 10·11 64비트**입니다. 디스크 여유 공간은 2GB 이상 필요하며 자료가 쌓이면 추가 공간이 필요합니다.
 
-Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에서도 위의 같은 다운로드 링크를 이용하세요. 현재 GitHub 저장소는 비공개이므로 접근 권한이 있는 GitHub 계정으로 로그인해야 합니다.
+Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에서도 위의 같은 다운로드 링크를 이용하세요. 설치 파일 전용 공개 배포 페이지이므로 GitHub 로그인 없이 내려받을 수 있습니다. 개발용 GitHub·GitLab 저장소와는 별도로 운영합니다.
 
 ## 설치하고 처음 시작하기
 
@@ -24,7 +24,7 @@ Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에
 
 자세한 설치 순서, 자료 저장 위치와 업데이트 방법은 **[PC 설치 안내](docs/PC설치안내.md)**를 참고하세요.
 
-> 0.4.3은 부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증입니다. 기관 업무용 PC에서 확인할 범위는 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/validation-report-0.4.3.md)에 정리했습니다.
+> 0.5.0은 부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증입니다. 기관 업무용 PC에서 확인할 범위는 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.0/validation-report-0.5.0.md)에 정리했습니다.
 
 ## 어떤 일을 할 수 있나요?
 
@@ -38,11 +38,15 @@ Windows 배포 파일은 **GitHub Releases에서만 관리**합니다. GitLab에
 
 ## 사용하는 순서
 
-1. **직원 명단**에 인사 명단 엑셀·CSV를 올리고 바뀌는 내용을 확인합니다.
-2. **교육 기준**에서 관리할 교육과 연간 시간·횟수를 기관 지침에 맞게 확인합니다.
+1. **직원 명단 → 일괄 등록 → 빈 양식 다운로드**에서 받은 엑셀을 채워 올리고 바뀌는 내용을 확인합니다.
+2. **교육 기준**에서 기본으로 제공되는 교육 16개와 연간 시간을 기관 지침에 맞게 확인합니다. 개인정보보호 기본값은 연 1시간입니다.
 3. **수료증 올리기**에서 직원들이 제출한 PDF나 사진을 올립니다.
 4. **검수함**에서 직원·교육명·날짜·시간·증서번호를 원본과 대조하고 확정합니다.
 5. **이수 현황**을 확인한 뒤 **내보내기**에서 필요한 엑셀·PDF·제출 양식을 받습니다.
+
+**최종 제출 명단 (16시트)**은 선택 범위의 직원들이 적용 교육을 모두 충족하고 검수 대기가 없어야 출력됩니다. 부족한 항목은 화면에 안내합니다. 2026년 양식의 기관·부서·계급·과정·시간·수료일·수료증 번호를 채우며 현원은 빈칸으로 둡니다. 기관별 적용 대상과 기준은 사용 전에 확인하세요.
+
+**설정 → 업데이트**에서 새 버전을 확인하고 내려받아 설치할 수 있습니다. PC 설치판은 설치 전에 자료를 백업하며, 설치 또는 기동 실패 시 이전 프로그램과 자료 복구를 시도합니다. 0.4.3 이하 버전은 이번 0.5.0 EXE를 직접 실행해 한 번 업데이트하세요.
 
 사진이나 스캔본은 글자를 잘못 읽을 수 있습니다. 자동으로 채워진 값도 원본과 확인한 뒤 확정하세요.
 

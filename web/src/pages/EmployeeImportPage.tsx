@@ -18,6 +18,7 @@ import { Button, buttonClass } from '@/components/ui/Button';
 import { FormError, Select } from '@/components/ui/Field';
 import { Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
+import { withBase } from '@/lib/base';
 import { api, errorMessage } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/format';
 
@@ -89,9 +90,9 @@ export function EmployeeImportPage() {
         title="직원 명단 일괄 등록"
         description="인사 명단 엑셀을 올리면 새 직원은 등록하고, 부서·직급이 바뀐 직원은 고칩니다. 반영하기 전에 바뀌는 내용을 먼저 보여 드립니다."
         actions={
-          <Link to="/employees" className="text-[13.5px] text-link hover:underline">
+          <div className="flex flex-wrap items-center gap-3"><a href={withBase('/api/employees/import/template')} download className={buttonClass()}>빈 양식 다운로드</a><Link to="/employees" className="text-[13.5px] text-link hover:underline">
             직원 명단으로 돌아가기
-          </Link>
+          </Link></div>
         }
       />
       <ApprovalSteps steps={STEPS} current={current} />

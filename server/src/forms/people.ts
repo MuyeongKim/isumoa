@@ -1,6 +1,7 @@
 import type { Kysely } from 'kysely';
 import { shortTrainingName } from '../../../shared/trainingNames.ts';
 import type { DB } from '../db/schema.ts';
+import { getSetting } from '../db/seed.ts';
 import { loadRecords } from '../reports/records.ts';
 import { loadStatusReport, type ReportScope } from '../reports/statusReport.ts';
 import type { FormPerson, FormTrainingValue } from './fill.ts';
@@ -16,6 +17,7 @@ export async function loadFormPeople(db: Kysely<DB>, filter: ReportScope & { onl
   const report = await loadStatusReport(db, filter);
   if (report.rows.length === 0) return [];
   const records = await loadRecords(db, filter);
+  const org = await getSetting(db, 'org', { name: '' });
   const details = new Map(
     (
       await db
@@ -51,11 +53,13 @@ export async function loadFormPeople(db: Kysely<DB>, filter: ReportScope & { onl
         date: rec?.completedOn ?? null,
         course: rec?.courseTitle ?? null,
         provider: rec?.provider ?? null,
+        certNo: rec?.certNo ?? null,
       };
     }
     return {
       departmentId: row.departmentId,
       name: row.name,
+      organization: org.name,
       department: row.departmentName,
       position: detail?.position ?? null,
       empNo: row.empNo,

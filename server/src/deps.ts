@@ -6,6 +6,7 @@ import type { OcrEngine } from './ocr/engine.ts';
 
 /** 라우트 파일들이 함께 받는 의존성 */
 export interface Deps {
+  updateRuntime?: import('./updates/service.ts').UpdateRuntime;
   db: Kysely<DB>;
   config: AppConfig;
   version: string;

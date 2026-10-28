@@ -63,6 +63,7 @@ export const AUDIT_ACTIONS: Record<string, { label: string; category: AuditCateg
   'logs.verify': { label: '기록 위·변조 확인', category: 'security' },
   'accesslog.review': { label: '접속기록 월 점검', category: 'security' },
   'backup.run': { label: '백업', category: 'security' },
+  'system.update': { label: '프로그램 업데이트', category: 'settings' },
   'system.shutdown': { label: '프로그램 끄기', category: 'security' },
 };
 

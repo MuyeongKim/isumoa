@@ -12,6 +12,7 @@ import { AuditTab } from './AuditTab';
 import { BackupTab } from './BackupTab';
 import { DepartmentsTab } from './DepartmentsTab';
 import { SystemTab } from './SystemTab';
+import { UpdateTab } from './UpdateTab';
 import { UsersTab } from './UsersTab';
 
 const TABS = [
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'audit', label: '감사 로그' },
   { key: 'access', label: '접속기록' },
   { key: 'backup', label: '백업·보관' },
+  { key: 'update', label: '업데이트' },
   { key: 'system', label: '시스템 점검' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -68,7 +70,7 @@ export function SettingsPage() {
   return (
     <>
       <PageHeader title="설정" description="부서·계정·기관 정보와 보안·백업을 관리합니다. 바꾼 내용은 감사 로그에 남습니다." />
-      <div className="mb-6 flex gap-1 border-b border-line" role="tablist">
+      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -77,7 +79,7 @@ export function SettingsPage() {
             aria-selected={tab === t.key}
             onClick={() => setParams({ tab: t.key }, { replace: true })}
             className={cn(
-              '-mb-px border-b-2 px-4 py-2 text-[14px] transition-colors',
+              '-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-[14px] transition-colors',
               tab === t.key ? 'border-navy font-semibold text-ink' : 'border-transparent text-ink-soft hover:text-ink',
             )}
           >
@@ -91,6 +93,7 @@ export function SettingsPage() {
       {tab === 'audit' && <AuditTab />}
       {tab === 'access' && <AccessLogTab />}
       {tab === 'backup' && <BackupTab />}
+      {tab === 'update' && <UpdateTab />}
       {tab === 'system' && <SystemTab />}
     </>
   );

@@ -32,6 +32,7 @@ const SEQ_WORDS = ['연번', '순번', '번호', 'no', '순', '일련번호'];
 const PERSON_WORDS: [FormPersonField, string[]][] = [
   ['seq', SEQ_WORDS],
   ['name', HEADER_WORDS.name.exact],
+  ['organization', ['소속', '소속기관', '기관명']],
   ['department', HEADER_WORDS.department.exact],
   ['position', HEADER_WORDS.position.exact],
   ['empNo', HEADER_WORDS.empNo.exact],
@@ -148,6 +149,7 @@ export function matchTraining(label: string, trainings: Training[]): TrainingMat
 /** 교육 열의 아래 칸 이름으로 넣을 형식을 정한다 */
 function trainingFormat(label: string): FormTrainingFormat | null {
   const k = key(label);
+  if (/수료증번호|증서번호|이수증번호|이수번호/.test(k)) return 'certNo';
   if (/이수일|일자|날짜|일시|수료일|완료일/.test(k)) return 'date';
   if (k.includes('시간')) return 'hours';
   if (/과정|교육명/.test(k)) return 'course';

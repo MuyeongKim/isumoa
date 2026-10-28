@@ -112,6 +112,12 @@ try {
       [System.IO.File]::WriteAllText($ConfigFile, ($config | ConvertTo-Json), (New-Object System.Text.UTF8Encoding $false))
     }
     Register-Program
+    if ($env:ISUMOA_UPDATING -ne '1') {
+      $cfg = Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json
+      $dataPart = if ([string]::IsNullOrWhiteSpace($cfg.dataDir)) { 'data' } else { [string]$cfg.dataDir }
+      $data = if ([IO.Path]::IsPathRooted($dataPart)) { $dataPart } else { Join-Path (Split-Path -Parent $ConfigFile) $dataPart }
+      Remove-Item -LiteralPath (Join-Path $data 'updates/install.lock') -Force -ErrorAction SilentlyContinue
+    }
   } -UndoRegistration {
     $undoErrors = New-Object System.Collections.Generic.List[string]
     foreach ($path in $registration.Shortcuts.Keys) {

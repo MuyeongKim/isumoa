@@ -16,6 +16,8 @@ import type { Deps } from '../deps.ts';
 import { audit } from '../lib/audit.ts';
 import { formatLocalDate, parseDateLoose } from '../lib/dates.ts';
 import { badRequest, HttpError, notFound } from '../lib/errors.ts';
+import { buildRosterTemplate } from '../roster/template.ts';
+import { contentDisposition } from '../lib/http.ts';
 import { nameKey } from '../lib/text.ts';
 import { autoMapColumns, detectHeaderRow } from '../../../shared/rosterColumns.ts';
 import { deleteImport, getImport, saveImport } from '../roster/importStore.ts';
@@ -115,6 +117,11 @@ async function loadExisting(db: Kysely<DB>): Promise<ExistingEmployee[]> {
 }
 
 export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
+  app.get('/api/employees/import/template', { preHandler: requireAdmin }, async (_req, reply) => {
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', contentDisposition('이수모아_직원명단_입력양식.xlsx', 'employee-template.xlsx'));
+    return reply.send(await buildRosterTemplate());
+  });
   async function assertUniqueEmpNo(empNo: string | null | undefined, exceptId?: number) {
     if (!empNo) return;
     const same = await db

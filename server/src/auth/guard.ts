@@ -1,3 +1,4 @@
+import { updateLocked } from '../updates/service.ts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Kysely } from 'kysely';
 import type { SessionUser } from '../../../shared/types.ts';
@@ -29,6 +30,7 @@ export function registerAuth(app: FastifyInstance, deps: { db: Kysely<DB>; confi
 
   app.addHook('onRequest', async (req, reply) => {
     if (!req.url.startsWith('/api/')) return;
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !req.url.startsWith('/api/system/update') && !req.url.startsWith('/api/system/shutdown') && updateLocked(deps.config)) return reply.code(503).send({ error: { message: '업데이트 중입니다. 재실행이 끝난 뒤 다시 시도해 주세요.' } });
 
     if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers['x-requested-with'] !== 'fetch') {
       return reply.code(403).send({ error: { message: '허용되지 않은 요청입니다.' } });

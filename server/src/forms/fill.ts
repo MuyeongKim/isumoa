@@ -22,10 +22,12 @@ export interface FormTrainingValue {
   date: string | null;
   course: string | null;
   provider: string | null;
+  certNo?: string | null;
 }
 
 export interface FormPerson {
   name: string;
+  organization?: string | null;
   department: string | null;
   position: string | null;
   empNo: string | null;
@@ -59,7 +61,7 @@ export function fillValue(fill: FormColumnFill, person: FormPerson, index: numbe
     case 'person': {
       if (fill.field === 'seq') return { value: index + 1 };
       if (fill.field === 'birthDate') return { value: person.birthDate, date: true };
-      return { value: person[fill.field] };
+      return { value: person[fill.field] ?? null };
     }
     case 'training': {
       const t = person.trainings[fill.trainingId];
@@ -69,7 +71,7 @@ export function fillValue(fill: FormColumnFill, person: FormPerson, index: numbe
       if (t.state === 'exempt') return { value: null };
       if (fill.format === 'date') return { value: t.date, date: true };
       if (fill.format === 'hours') return { value: t.hours > 0 ? t.hours : null };
-      return { value: fill.format === 'course' ? t.course : t.provider };
+      return { value: fill.format === 'certNo' ? t.certNo ?? null : fill.format === 'course' ? t.course : t.provider };
     }
   }
 }

@@ -285,7 +285,7 @@ for (const dir of ['server', 'shared', 'vendor']) cpSync(join(ROOT, dir), join(a
 cpSync(join(ROOT, 'web', 'dist'), join(appDir, 'web', 'dist'), { recursive: true });
 for (const file of ['package.json', 'package-lock.json']) copyFileSync(join(ROOT, file), join(appDir, file));
 mkdirSync(join(appDir, 'scripts'), { recursive: true });
-for (const script of ['eval-ocr.ts', 'restore.ts']) copyFileSync(join(ROOT, 'scripts', script), join(appDir, 'scripts', script));
+for (const script of ['eval-ocr.ts', 'restore.ts', 'desktop-update-backup.ts']) copyFileSync(join(ROOT, 'scripts', script), join(appDir, 'scripts', script));
 
 step(`실행에 필요한 라이브러리만 설치 (개발 도구 제외, ${targetOs}-${targetCpu}용 네이티브 모듈)`);
 const platform = [`--os=${targetOs}`, `--cpu=${targetCpu}`, ...(targetOs === 'linux' ? ['--libc=glibc'] : [])];
@@ -310,7 +310,7 @@ if (desktop) {
 if (desktop) {
   step('PC 설치판: 설치·실행·제거 스크립트와 안내');
   const source = join(ROOT, 'deploy', 'windows-desktop');
-  for (const script of ['common.ps1', 'maintenance.ps1', 'launch.ps1', 'uninstall.ps1']) {
+  for (const script of ['common.ps1', 'maintenance.ps1', 'launch.ps1', 'uninstall.ps1', 'apply-update.ps1']) {
     writeWindowsText(join(programDir, script), readFileSync(join(source, script), 'utf8'), true);
   }
   copyFileSync(join(source, 'app.ico'), join(programDir, 'app.ico'));

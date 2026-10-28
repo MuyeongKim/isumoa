@@ -1,9 +1,10 @@
 import type { Kysely } from 'kysely';
 import type { DB } from './schema.ts';
-import { PUBLIC_SECTOR_TRAININGS } from './trainingCatalog.ts';
+import { DEPLOYMENT_TRAININGS, COMMON_COURSE_MAPPINGS } from '../../../shared/deploymentCatalog.ts';
+import type { CatalogEntry } from './trainingCatalog.ts';
 
 /** 교육 과정이 하나도 없을 때(처음 실행) 공공기관 기본 목록을 넣는다 */
-export async function seedDefaults(db: Kysely<DB>): Promise<void> {
+export async function seedDefaults(db: Kysely<DB>, catalog: readonly (Omit<CatalogEntry, 'keywords'> & { readonly keywords: readonly string[] })[] = DEPLOYMENT_TRAININGS): Promise<void> {
   const { count } = await db
     .selectFrom('trainings')
     .select((eb) => eb.fn.countAll<number>().as('count'))
@@ -13,7 +14,7 @@ export async function seedDefaults(db: Kysely<DB>): Promise<void> {
   await db
     .insertInto('trainings')
     .values(
-      PUBLIC_SECTOR_TRAININGS.map((t, index) => ({
+      catalog.map((t, index) => ({
         code: t.code,
         name: t.name,
         category: t.category,
@@ -26,6 +27,11 @@ export async function seedDefaults(db: Kysely<DB>): Promise<void> {
       })),
     )
     .execute();
+  const created = await db.selectFrom('trainings').select(['id', 'code']).execute();
+  for (const mapping of COMMON_COURSE_MAPPINGS) {
+    const training = created.find(t => t.code === mapping.trainingCode);
+    if (training) await db.insertInto('course_mappings').values({ title_key: mapping.title, training_id: training.id }).onConflict(oc => oc.columns(['title_key', 'training_id']).doNothing()).execute();
+  }
 }
 
 export async function getSetting<T>(db: Kysely<DB>, key: string, fallback: T): Promise<T> {

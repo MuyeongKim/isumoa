@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FileArchive, FilePen, FileSpreadsheet, FileStack, Download } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import type { Department, ExportSummary, FormTemplate, ZipLayout } from '@shared/types.ts';
+import type { Department, ExportSummary, FinalExportCheck, FormTemplate, ZipLayout } from '@shared/types.ts';
 import { DEFAULT_PERSONAL_TITLE, personalArchiveTitleError, personalTitle, personalTitleError } from '@shared/exportTitles.ts';
 import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
 import { Button, buttonClass } from '@/components/ui/Button';
@@ -19,6 +19,7 @@ import { useCurrentUser } from '@/lib/session';
 const REASONS = ['연간 이수 현황 보고', '감사·점검 제출', '부서 미이수자 독려', '증빙 자료 보관'];
 const OTHER = '기타';
 const PURPOSES = [
+  { key: 'statutory', label: '최종 제출 명단 (16시트)' },
   { key: 'status', label: '현황 엑셀' },
   { key: 'personal', label: '개인별 합본 PDF' },
   { key: 'training', label: '교육별 합본 PDF' },
@@ -132,13 +133,28 @@ function FormCard({ active, departmentId, downloadQuery, noReason, canSplit }: {
   );
 }
 
+function StatutoryCard({ active, year, departmentId, query, noReason }: { active: boolean; year: number; departmentId: number | null; query: string; noReason: boolean }) {
+  const check = useQuery({ queryKey: ['exports', 'statutory', year, departmentId], queryFn: () => api.get<FinalExportCheck>(`/exports/statutory/check?year=${year}${departmentId ? `&departmentId=${departmentId}` : ''}`), enabled: active });
+  if (!active) return null;
+  return <Card icon={<FileSpreadsheet className="size-5" aria-hidden />} title="법정 의무교육 수료자 명단" description="기본 양식의 교육별 16개 시트를 한 파일로 받습니다. 선택 범위의 직원이 적용 교육기준을 모두 충족하고 검수가 끝나야 최종 출력할 수 있습니다. 현원은 자동 집계하지 않습니다.">
+    {check.isPending ? <p role="status">제출 기준을 확인하고 있습니다.</p> : check.isError ? <><p role="alert" className="text-seal">{errorMessage(check.error)}</p><Button onClick={() => void check.refetch()}>다시 확인</Button></> : check.data && <div className="space-y-3">
+      <p role="status" className={check.data.ready ? 'text-ok' : 'text-seal'}>{check.data.ready ? `직원 ${check.data.employees}명의 제출 기준을 모두 충족했습니다.` : `최종 출력 전 확인이 필요합니다. 미충족 ${check.data.blockers.length}항목 · 검수 대기 ${check.data.drafts}건`}</p>
+      {!check.data.employees && <p>출력 범위에 교육 대상 직원이 없습니다.</p>}
+      {check.data.missingTrainings.length > 0 && <p className="text-seal">기본 양식에 필요한 교육 기준을 확인해 주세요: {check.data.missingTrainings.join(', ')}</p>}
+      {check.data.blockers.length > 0 && <ul className="max-h-64 overflow-y-auto rounded-lg bg-paper p-3 text-[13px]">{check.data.blockers.slice(0,30).map((b,i)=><li key={i}>{b.department} · {b.name} · {b.training} ({b.hours}/{b.required}{b.unit})</li>)}{check.data.blockers.length > 30 && <li>나머지 항목은 이수 현황에서 확인하세요.</li>}</ul>}
+      <div className="flex flex-wrap gap-2"><Button onClick={() => void check.refetch()}>제출 기준 다시 확인</Button><Link className={buttonClass()} to={`/status?year=${year}${departmentId ? `&departmentId=${departmentId}` : ''}`}>이수 현황 보기</Link>
+      <DownloadLink primary href={withBase(`/api/exports/statutory.xlsx?${query}`)} disabled={noReason || !check.data.ready} disabledReason={!check.data.ready ? '미충족 항목과 검수를 마친 뒤 다시 확인해 주세요.' : undefined}>최종 명단 엑셀 받기</DownloadLink></div>
+    </div>}
+  </Card>;
+}
+
 export function ExportPage() {
   const me = useCurrentUser();
   const [params, setParams] = useSearchParams();
   const thisYear = new Date().getFullYear();
   const year = Number(params.get('year')) || thisYear;
   const departmentId = Number(params.get('departmentId')) || null;
-  const purpose = PURPOSES.find(p => p.key === params.get('purpose'))?.key ?? 'status';
+  const purpose = PURPOSES.find(p => p.key === params.get('purpose'))?.key ?? 'statutory';
   const [layout, setLayout] = useState<ZipLayout>('training');
   const [zipTraining, setZipTraining] = useState<number | null>(null);
   const [reasonChoice, setReasonChoice] = useState('');
@@ -240,6 +256,7 @@ export function ExportPage() {
             {noReason && <Button size="sm" onClick={reasonFocus}>사유 선택으로 이동</Button>}
           </div>
 
+          <StatutoryCard active={purpose === 'statutory'} year={year} departmentId={departmentId} query={downloadQuery} noReason={noReason} />
           {purpose === 'status' && <Card
             icon={<FileSpreadsheet className="size-5" aria-hidden />}
             title="이수 현황 엑셀"

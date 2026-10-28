@@ -433,11 +433,12 @@ export interface ExportSummary {
 // ── 제출 양식(엑셀)에 채우기 ─────────────────────────────────────
 // 기관·부서가 정한 명단형 엑셀 양식에 직원 한 줄씩 이수 현황을 써 넣는다.
 
-export const FORM_PERSON_FIELDS = ['seq', 'name', 'department', 'position', 'empNo', 'birthDate', 'empType'] as const;
+export const FORM_PERSON_FIELDS = ['seq', 'name', 'organization', 'department', 'position', 'empNo', 'birthDate', 'empType'] as const;
 export type FormPersonField = (typeof FORM_PERSON_FIELDS)[number];
 export const FORM_PERSON_LABELS: Record<FormPersonField, string> = {
   seq: '연번',
   name: '성명',
+  organization: '소속 기관',
   department: '부서',
   position: '직급',
   empNo: '사번',
@@ -445,7 +446,7 @@ export const FORM_PERSON_LABELS: Record<FormPersonField, string> = {
   empType: '직종',
 };
 
-export const FORM_TRAINING_FORMATS = ['mark', 'status', 'date', 'hours', 'course', 'provider'] as const;
+export const FORM_TRAINING_FORMATS = ['mark', 'status', 'date', 'hours', 'course', 'provider', 'certNo'] as const;
 export type FormTrainingFormat = (typeof FORM_TRAINING_FORMATS)[number];
 export const FORM_TRAINING_FORMAT_LABELS: Record<FormTrainingFormat, string> = {
   mark: '이수 표시 (O·X 등)',
@@ -454,6 +455,7 @@ export const FORM_TRAINING_FORMAT_LABELS: Record<FormTrainingFormat, string> = {
   hours: '이수 시간',
   course: '과정명',
   provider: '교육기관',
+  certNo: '수료증 번호',
 };
 
 /** 이수 표시 모양: 이수 / 미이수(부분이수 포함). 대상 제외는 "-" */
@@ -691,4 +693,13 @@ export interface ReviewResetPreview {
 export interface ReviewResetResult {
   removed: number;
   resetPages: number;
+}
+
+/** 선택 범위 전체가 해당 연도 교육기준을 충족해야 최종 제출할 수 있다. */
+export interface FinalExportCheck {
+  ready: boolean;
+  employees: number;
+  missingTrainings: string[];
+  blockers: { employeeId: number; name: string; department: string | null; training: string; hours: number; required: number; unit: string; state: CompletionState }[];
+  drafts: number;
 }

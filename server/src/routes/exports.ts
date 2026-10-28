@@ -13,6 +13,8 @@ import { badRequest, notFound } from '../lib/errors.ts';
 import { contentDisposition } from '../lib/http.ts';
 import { buildStatusWorkbook } from '../reports/excel.ts';
 import { buildEvidenceZip, buildMergedPdf, buildPersonalZip } from '../reports/evidence.ts';
+import { checkFinalExport, buildStatutoryWorkbook } from '../reports/statutory.ts';
+import { HttpError } from '../lib/errors.ts';
 import { safeName } from '../reports/fileNames.ts';
 import { loadRecords } from '../reports/records.ts';
 import { loadStatusReport } from '../reports/statusReport.ts';
@@ -76,6 +78,23 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     const label = department ? department.name : scope === null ? '전체 부서' : `담당 부서(${user.departments.map((d) => d.name).join(', ') || '없음'})`;
     return { user, scope, label, filePart: department ? `_${safeName(department.name)}` : '' };
   }
+
+  app.get('/api/exports/statutory/check', { preHandler: requireUser }, async req => {
+    const { year, departmentId } = ExportQuery.parse(req.query);
+    const { user, scope } = await resolveScope(req, departmentId);
+    return checkFinalExport(db, { year, scope, departmentId }, await countDrafts(db, user, year, departmentId));
+  });
+  app.get('/api/exports/statutory.xlsx', { preHandler: requireUser }, async (req, reply) => {
+    const { year, departmentId, reason } = DownloadQuery.parse(req.query);
+    const { user, scope, label, filePart } = await resolveScope(req, departmentId);
+    const check = await checkFinalExport(db, { year, scope, departmentId }, await countDrafts(db, user, year, departmentId));
+    if (!check.ready) throw new HttpError(409, `최종 제출 기준이 충족되지 않았습니다. 교육 기준 누락 ${check.missingTrainings.length}개, 미충족 ${check.blockers.length}항목, 검수 대기 ${check.drafts}건을 먼저 확인해 주세요.`);
+    const file = await buildStatutoryWorkbook(db, { year, scope, departmentId });
+    await audit(db, req, 'export.form', undefined, { year, scope: label, form: '법정 의무교육 수료자 명단 16시트', employees: check.employees, reason });
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', contentDisposition(`${year}년_법정의무교육_수료자명단${filePart}.xlsx`, 'statutory.xlsx'));
+    return reply.send(file);
+  });
 
   // 내보내기 화면: 범위 안의 확정 이수증 수와 교육별 수
   app.get('/api/exports/summary', { preHandler: requireUser }, async (req): Promise<ExportSummary> => {

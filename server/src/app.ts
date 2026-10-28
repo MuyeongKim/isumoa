@@ -1,3 +1,4 @@
+import { updateRoutes } from './routes/updates.ts';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import cookie from '@fastify/cookie';
@@ -71,6 +72,7 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(auditRoutes, deps);
   await app.register(securityRoutes, deps);
   await app.register(systemRoutes, deps);
+  await app.register(updateRoutes, deps);
 
   // 빌드된 화면이 있으면 같은 포트에서 제공한다 (개발 중에는 Vite가 따로 띄운다)
   const webDist = deps.config.webDistDir;

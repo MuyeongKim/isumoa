@@ -11,6 +11,7 @@ import { loadConfig, type AppConfig } from '../../server/src/config.ts';
 import type { Deps } from '../../server/src/deps.ts';
 import { runMigrations } from '../../server/src/db/migrate.ts';
 import type { DB } from '../../server/src/db/schema.ts';
+import { PUBLIC_SECTOR_TRAININGS } from '../../server/src/db/trainingCatalog.ts';
 import { seedDefaults } from '../../server/src/db/seed.ts';
 import { openDatabase } from '../../server/src/db/sqlite.ts';
 import { claimNextJob, failJob, finishJob } from '../../server/src/jobs/queue.ts';
@@ -55,7 +56,7 @@ export async function createHarness(overrides: Partial<AppConfig> = {}, extra: P
   const opened = openDatabase(':memory:');
   const db = opened.db;
   runMigrations(opened.raw);
-  await seedDefaults(db);
+  await seedDefaults(db, PUBLIC_SECTOR_TRAININGS);
   const config: AppConfig = { ...loadConfig({}), dataDir, webDistDir: '/nonexistent', ...overrides };
   const ocr: OcrEngine & { text: string } = {
     name: 'fake',
