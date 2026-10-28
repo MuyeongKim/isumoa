@@ -22,6 +22,7 @@ import { deleteImport, getImport, saveImport } from '../roster/importStore.ts';
 import { buildRosterPreview, type ExistingEmployee } from '../roster/preview.ts';
 import { readRosterFile, RosterFileError } from '../roster/readRosterFile.ts';
 import { toRecords } from '../roster/records.ts';
+import { RosterSelection, trashRoster } from '../roster/trash.ts';
 
 const optionalText = (max: number) => z.string().trim().max(max).nullable().optional();
 
@@ -58,6 +59,7 @@ const CreateEmployeeBody = EmployeeFields;
 const UpdateEmployeeBody = EmployeeFields.partial();
 
 const ListQuery = z.object({
+  trash: z.enum(['1']).optional(),
   q: z.string().trim().max(50).optional(),
   departmentId: z.coerce.number().int().positive().optional(),
   status: z.enum(EMPLOYEE_STATUSES).optional(),
@@ -95,6 +97,7 @@ async function loadExisting(db: Kysely<DB>): Promise<ExistingEmployee[]> {
       'e.hired_on',
       'e.left_on',
     ])
+    .where('e.deleted_at', 'is', null)
     .execute();
   return rows.map((r) => ({
     id: r.id,
@@ -116,20 +119,21 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
     if (!empNo) return;
     const same = await db
       .selectFrom('employees')
-      .select('id')
+      .select(['id', 'deleted_at'])
       .where('emp_no', '=', empNo)
       .$if(exceptId !== undefined, (qb) => qb.where('id', '!=', exceptId!))
       .executeTakeFirst();
-    if (same) throw new HttpError(409, `사번 ${empNo}은(는) 이미 다른 직원이 쓰고 있습니다.`);
+    if (same) throw new HttpError(409, same.deleted_at ? `사번 ${empNo}인 직원이 휴지통에 있습니다. 삭제한 직원 보기에서 먼저 복원해 주세요.` : `사번 ${empNo}은(는) 이미 다른 직원이 쓰고 있습니다.`);
   }
 
   async function assertDepartmentExists(id: number) {
-    const found = await db.selectFrom('departments').select('id').where('id', '=', id).executeTakeFirst();
+    const found = await db.selectFrom('departments').select('id').where('id', '=', id).where('deleted_at', 'is', null).executeTakeFirst();
     if (!found) throw badRequest('없는 부서입니다.');
   }
 
   app.get('/api/employees', { preHandler: requireUser }, async (req): Promise<Employee[]> => {
     const query = ListQuery.parse(req.query);
+    if (query.trash && currentUser(req).role !== 'admin') throw new HttpError(403, '휴지통은 관리자만 볼 수 있습니다.');
     const scope = departmentScope(currentUser(req));
     if (scope && scope.length === 0) return [];
     const keyword = query.q ? nameKey(query.q) : '';
@@ -139,6 +143,7 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
       .leftJoin('departments as d', 'd.id', 'e.department_id')
       .selectAll('e')
       .select('d.name as department_name')
+      .where('e.deleted_at', query.trash ? 'is not' : 'is', null)
       .$if(scope !== null, (qb) => qb.where('e.department_id', 'in', scope!))
       .$if(query.departmentId !== undefined, (qb) => qb.where('e.department_id', '=', query.departmentId!))
       .$if(query.status !== undefined, (qb) => qb.where('e.status', '=', query.status!))
@@ -163,6 +168,7 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
       hiredOn: r.hired_on,
       leftOn: r.left_on,
       note: r.note,
+      deletedAt: r.deleted_at,
     }));
   });
 
@@ -198,7 +204,7 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
     const user = currentUser(req);
     const { id } = IdParams.parse(req.params);
     const body = UpdateEmployeeBody.parse(req.body);
-    const before = await db.selectFrom('employees').selectAll().where('id', '=', id).executeTakeFirst();
+    const before = await db.selectFrom('employees').selectAll().where('id', '=', id).where('deleted_at', 'is', null).executeTakeFirst();
     if (!before) throw notFound('직원을 찾을 수 없습니다.');
     assertDepartmentInScope(user, before.department_id);
     if (body.departmentId !== undefined) {
@@ -227,6 +233,22 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
     // 무엇을 바꿨는지만 남기고 값(개인정보)은 남기지 않는다
     await audit(db, req, 'employee.update', { type: 'employee', id }, { fields: Object.keys(body) });
     return { ok: true };
+  });
+
+  for (const restore of [false, true]) {
+    app.post(`/api/employees/bulk-${restore ? 'restore' : 'delete'}`, { preHandler: requireAdmin }, async req => {
+      const { ids } = RosterSelection.parse(req.body);
+      const result = await trashRoster(db, 'employees', ids, restore);
+      await audit(db, req, restore ? 'employee.restore' : 'employee.delete', undefined, { ids, ...result });
+      return result;
+    });
+  }
+
+  app.delete('/api/employees/:id', { preHandler: requireAdmin }, async req => {
+    const { id } = IdParams.parse(req.params);
+    const result = await trashRoster(db, 'employees', [id]);
+    await audit(db, req, 'employee.delete', { type: 'employee', id });
+    return result;
   });
 
   // ── 명단 일괄 등록 (관리자) ─────────────────────────────────
@@ -294,7 +316,12 @@ export async function employeeRoutes(app: FastifyInstance, { db }: Deps) {
       throw badRequest('성명과 부서 열은 꼭 지정해야 합니다.');
     }
     const records = toRecords(rows, body.headerRowIndex, body.mapping);
-    const departments = await db.selectFrom('departments').select(['id', 'name']).execute();
+    const departments = await db.selectFrom('departments').select(['id', 'name', 'deleted_at']).execute();
+    const deletedEmployees = await db.selectFrom('employees').select(['emp_no', 'name_key', 'department_id']).where('deleted_at', 'is not', null).execute();
+    if (records.some(r => departments.some(d => d.deleted_at && d.name === r.departmentName) ||
+      deletedEmployees.some(e => r.empNo ? e.emp_no === r.empNo : e.name_key === r.nameKey && departments.some(d => d.id === e.department_id && d.name === r.departmentName)))) {
+      throw badRequest('명단에 휴지통의 부서·직원이 포함되어 있습니다. 해당 항목을 먼저 복원한 뒤 명단을 다시 반영해 주세요.');
+    }
     const existing = await loadExisting(db);
     const result = buildRosterPreview(
       records,

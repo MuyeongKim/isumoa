@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/MuyeongKim/isumoa/releases/latest"><b>최신 Windows 배포판</b></a> ·
   <a href="docs/사용설명서.md"><b>사용설명서</b></a> ·
   <a href="docs/PC설치안내.md">PC 설치</a> ·
   <a href="docs/설치가이드.md">서버 설치</a> ·
@@ -61,6 +62,13 @@
 - **손에 붙는 화면** — `Ctrl+K` 빠른 이동(초성 검색 `ㄱㅁㅈ`), 검수함 단축키(`↑↓` 이동, `Ctrl+Enter` 확정, `X` 제외), 화면 어디로 끌어도 받는 파일 올리기.
 - **공공기관 기준** — 성희롱·성매매·성폭력·가정폭력 예방, 청렴, 장애인 인식개선, 개인정보보호 등 법정교육 기본 목록과 이수 기준(연 n시간·n회)이 들어 있고, 통합과정 이수증은 교육마다 시간을 나눠 인정합니다.
 - **기록과 보관** — 감사 로그·접속기록(위·변조 확인), 내려받기 사유, 주민등록번호 뒷자리 가림, 매일 자동 백업과 복원 연습, 보관기간이 지난 자료 파기.
+- **선택 삭제·복원** — 부서·직원·교육 과정을 체크박스로 골라 휴지통으로 옮깁니다. 부서를 삭제하면 소속 직원도 함께 보관하며, 기존 이수증과 연결 기록은 유지하고 필요할 때 복원합니다.
+- **검수함 검색·선택 제외** — 직원·교육·원본 과정·파일명으로 찾고, 검색 결과를 체크해 한 번에 제외합니다. 확정 건수와 사유를 확인하며 원본·연결 기록은 보존합니다.
+- **검수값 보호** — 임시 저장·저장하고 다음, 미저장 상태의 화면 이동·로그아웃 보호, 실패한 오류 위치 안내, 검수 완료 후 현황·내보내기 연결을 제공합니다.
+- **목적별 내려받기** — 받을 자료를 먼저 고르고 범위와 사유를 선택합니다. 관리자 한 계정으로 시작하며 부서별 서무 계정 생성은 선택 사항입니다.
+- **검수 대기 초기화** — 묶음별 또는 전체 대기 결과·읽기 작업만 비웁니다. 확정·제외와 원본은 보존하며, 원본에서 다시 읽을 수 있습니다(직접 고친 대기값은 다시 작성).
+- **교육 문서·사진 가져오기** — PDF·HWPX 교육 계획과 JPG·JPEG·PNG 사진에서 교육명·기준 등을 읽어 초안으로 채웁니다. 원문과 대조해 수정하고 선택한 교육을 한 번에 등록합니다. 사진·스캔 PDF는 로컬 OCR로 읽습니다.
+- **개인별 합본·제목 수정** — 직원 한 명당 이수증을 PDF로 모아 ZIP으로 받습니다. 개인별 PDF 제목·파일명과 ZIP 파일 제목을 수정할 수 있습니다.
 
 ## 두 가지 판
 
@@ -68,10 +76,14 @@
 |---|---|---|
 | 쓰는 곳 | Windows 10·11 PC 한 대 | 내부망 서버(Windows Server·Linux) |
 | 쓰는 사람 | 교육 담당자 혼자 | 교육 담당자 + 부서 서무 여럿 (서무는 담당 부서만) |
-| 설치 | zip을 풀고 `설치.bat` 두 번 누르기 (관리자 권한 필요 없음) | 압축 풀고 서비스 등록 |
+| 설치 | EXE 실행 또는 ZIP을 풀고 `설치.bat` 실행 (관리자 권한 필요 없음) | 압축 풀고 서비스 등록 |
 | 안내 | [PC설치안내.md](docs/PC설치안내.md) | [설치가이드.md](docs/설치가이드.md) · [IT-확인요청서.md](docs/IT-확인요청서.md) |
 
 설치본은 `npm run release`로 만듭니다. 실행용 Node.js, 대상 OS용 OCR 엔진, OCR 모델, 글꼴까지 모두 들어 있어 따로 설치할 것이 없습니다.
+
+**0.4.3 다운로드:** [Windows 설치 EXE](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.exe) · [ZIP 설치판](https://github.com/MuyeongKim/isumoa/releases/download/v0.4.3/isumoa-setup-0.4.3-win-x64.zip) · [릴리스 내역](https://github.com/MuyeongKim/isumoa/releases/tag/v0.4.3)
+
+부서 시범운용용 미서명 배포본입니다. Windows 실기기 설치·실행은 아직 미검증이며, 사진 OCR 결과는 원본과 대조한 뒤 확정해야 합니다.
 
 ## 어떻게 돌아가나
 
@@ -102,10 +114,11 @@ npm run dev
 |---|---|
 | `npm run dev` | 화면과 서버를 함께 실행 (코드를 고치면 자동 반영) |
 | `npm test` · `npm run typecheck` | 단위·API 테스트 · 타입 검사 |
+| `npm run verify:desktop -- --powershell pwsh --output data/desktop-check` | 가상 폴더에서 업데이트 실패 복구·실제 HTTP 실행본 확인·프로세스 간 잠금 검증. `--program`으로 EXE 추출 폴더 지정 가능. Windows 설치 UI 실기동과는 별도 |
 | `npm run samples` · `samples:certs` · `samples:forms` | 가상 인사 명단 · 가상 이수증(개별 PDF, 40쪽 스캔 묶음, 정답) · 가상 제출 양식 (실존 인물·기관 아님) |
 | `npm run eval -- --truth samples/certs/정답.json` | 판독 정확도 점검 (`--truth confirmed`: 확정한 결과를 정답으로, `--engine tesseract`: 대체 OCR로) |
 | `npm run restore -- --check` | 백업 복원 연습 (`--list` 목록, `--apply --yes` 실제 복원) |
-| `npm run release` | 서버용 설치본 (`-- --target linux-x64 --download-node` 다른 OS용, `-- --target win-x64 --desktop --download-node` PC 설치판) |
+| `npm run release` | 서버용 설치본 (`-- --target linux-x64 --download-node` 다른 OS용, `-- --target win-x64 --desktop --exe --download-node` PC EXE·ZIP 설치판 (빌드 PC에 NSIS 필요)) |
 | `npm run media:screens` · `media:promo` | 문서용 화면 그림 · 소개 영상 다시 만들기 (헤드리스 크롬, ffmpeg). `media:promo -- --audio-only`는 소리만, `-- --music 음원.mp3`는 배경음악을 기관 음원으로 |
 
 <details>

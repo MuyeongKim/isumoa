@@ -23,6 +23,7 @@ export async function loadStatusReport(db: Kysely<DB>, { year, scope, department
     .selectFrom('employees as e')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .select(['e.id', 'e.emp_no', 'e.name', 'e.department_id', 'd.name as department_name', 'e.status'])
+    .where('e.deleted_at', 'is', null)
     .$if(scope !== null, (qb) => qb.where('e.department_id', 'in', scope!))
     .$if(departmentId !== undefined, (qb) => qb.where('e.department_id', '=', departmentId!))
     .orderBy('d.sort_order')

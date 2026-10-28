@@ -70,7 +70,7 @@ function Meter({ rate, label, className, tall }: { rate: number | null; label: s
 
 function Figure({ label, value, unit, to }: { label: string; value: number; unit: string; to: string }) {
   return (
-    <Link to={to} viewTransition className="group rounded-xl px-4 py-3 transition-colors hover:bg-paper">
+    <Link to={to} className="group rounded-xl px-4 py-3 transition-colors hover:bg-paper">
       <span className="flex items-center gap-1 text-[13.5px] text-ink-soft">
         {label}
         <ArrowUpRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
@@ -203,7 +203,6 @@ function EmployeeMap({ data }: { data: Dashboard }) {
                       onBlur={() => setTip(null)}
                       onClick={() =>
                         void navigate(`/status?year=${data.year}&q=${encodeURIComponent(p.row.name)}${d.departmentId ? `&departmentId=${d.departmentId}` : ''}`, {
-                          viewTransition: true,
                         })
                       }
                       style={{ '--i': i } as React.CSSProperties}
@@ -218,7 +217,7 @@ function EmployeeMap({ data }: { data: Dashboard }) {
             </ul>
             <div className="text-[13.5px] tabular-nums md:text-right">
               {d.missing > 0 && d.departmentId ? (
-                <Link to={`/status?year=${data.year}&departmentId=${d.departmentId}&missing=1`} viewTransition className="font-medium text-ink-soft hover:text-link hover:underline">
+                <Link to={`/status?year=${data.year}&departmentId=${d.departmentId}&missing=1`} className="font-medium text-ink-soft hover:text-link hover:underline">
                   남은 {formatNumber(d.missing)}명
                 </Link>
               ) : d.missing > 0 ? (
@@ -263,7 +262,7 @@ function TrainingRates({ data }: { data: Dashboard }) {
     <section className="mt-10">
       <div className="flex items-baseline justify-between">
         <h2 className="text-[19px] font-bold">교육별 이수율</h2>
-        <Link to={`/status?year=${data.year}`} viewTransition className="text-[14px] font-semibold text-link hover:underline">
+        <Link to={`/status?year=${data.year}`} className="text-[14px] font-semibold text-link hover:underline">
           직원별로 보기
         </Link>
       </div>
@@ -301,24 +300,18 @@ function AdminChecklist({ overview }: { overview: Overview }) {
       detail: '부서는 명단에 적힌 대로 함께 만들어집니다.',
     },
     {
-      title: '부서별 서무 계정 만들기',
-      done: overview.clerks > 0,
-      to: '/settings?tab=users',
-      action: '계정 만들기',
-      detail: '서무는 담당 부서의 직원과 이수증만 봅니다.',
-    },
-    {
-      title: '교육 과정 기준 확인하기',
+      title: '교육 기준 확인하기',
       done: trainingsReviewed(),
       to: '/trainings',
-      action: '교육 과정 보기',
+      action: '교육 기준 보기',
       detail: '공공기관 기본 목록이 들어 있습니다. 기관 지침과 다르면 고쳐 주세요.',
     },
   ];
   if (steps.every((s) => s.done)) return null;
   return (
-    <section className="mt-8">
-      <h2 className="text-[19px] font-bold">시작 준비</h2>
+    <section className="mb-6 rounded-2xl border border-navy/20 bg-navy-soft/30 p-5">
+      <h2 className="text-[19px] font-bold">처음 한 번만 준비하세요</h2>
+      <p className="mt-1 text-[13px] text-ink-soft">관리자 한 계정으로 모든 부서를 관리할 수 있습니다. 부서는 직원 분류와 보고 범위에 사용합니다.</p>
       <ol className="mt-4 divide-y divide-line rounded-2xl border border-line bg-sheet shadow-surface">
         {steps.map((step, index) => (
           <li key={step.title} className="flex items-center gap-4 px-6 py-4">
@@ -330,7 +323,7 @@ function AdminChecklist({ overview }: { overview: Overview }) {
             {step.done ? (
               <ConfirmStamp className="size-10 text-[12px]" />
             ) : (
-              <Link to={step.to} viewTransition className={buttonClass('secondary', 'sm')}>
+              <Link to={step.to} className={buttonClass('secondary', 'sm')}>
                 {step.action}
               </Link>
             )}
@@ -380,12 +373,13 @@ export function HomePage() {
                 </option>
               ))}
             </Select>
-            <Link to="/upload" viewTransition className={buttonClass('primary')}>
-              이수증 올리기
+            <Link to="/upload" className={buttonClass('primary')}>
+              수료증 올리기
             </Link>
           </>
         }
       />
+      {overview && me.role === 'admin' && <AdminChecklist overview={overview} />}
       {data && data.employees.total > 0 ? (
         <>
           <Headline key={year} data={data} reading={reading} />
@@ -400,7 +394,6 @@ export function HomePage() {
           />
         )
       )}
-      {overview && me.role === 'admin' && <AdminChecklist overview={overview} />}
       {me.role === 'clerk' && <ClerkDepartments />}
     </>
   );

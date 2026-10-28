@@ -2,6 +2,7 @@ import { ZipArchive } from 'archiver';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ZIP_LAYOUTS, type ExportSummary, type FormMarkStyle } from '../../../shared/types.ts';
+import { DEFAULT_PERSONAL_TITLE, PERSONAL_TITLE_FIELDS } from '../../../shared/exportTitles.ts';
 import { assertDepartmentInScope, currentUser, departmentScope, requireUser } from '../auth/guard.ts';
 import { getSetting } from '../db/seed.ts';
 import type { Deps } from '../deps.ts';
@@ -11,7 +12,7 @@ import { audit } from '../lib/audit.ts';
 import { badRequest, notFound } from '../lib/errors.ts';
 import { contentDisposition } from '../lib/http.ts';
 import { buildStatusWorkbook } from '../reports/excel.ts';
-import { buildEvidenceZip, buildMergedPdf } from '../reports/evidence.ts';
+import { buildEvidenceZip, buildMergedPdf, buildPersonalZip } from '../reports/evidence.ts';
 import { safeName } from '../reports/fileNames.ts';
 import { loadRecords } from '../reports/records.ts';
 import { loadStatusReport } from '../reports/statusReport.ts';
@@ -34,6 +35,12 @@ const ZipQuery = DownloadQuery.extend({
   trainingId: z.coerce.number().int().positive().optional(),
 });
 const PdfQuery = DownloadQuery.extend({ trainingId: z.coerce.number().int().positive() });
+const PersonalQuery = DownloadQuery.extend({
+  title: z.string().trim().min(1).max(150).default(DEFAULT_PERSONAL_TITLE).refine(value =>
+    [...value.matchAll(/\{([^{}]+)\}/g)].every(m => PERSONAL_TITLE_FIELDS.some(key => key === m[1])), '제목에는 {연도}, {부서}, {성명}, {사번}만 사용할 수 있습니다.'),
+  archiveTitle: z.string().trim().min(1).max(100).optional(),
+  employeeId: z.coerce.number().int().positive().optional(),
+});
 const flag = z
   .enum(['0', '1'])
   .optional()
@@ -63,7 +70,7 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     const scope = departmentScope(user);
     if (departmentId !== undefined) assertDepartmentInScope(user, departmentId);
     const department = departmentId
-      ? await db.selectFrom('departments').select('name').where('id', '=', departmentId).executeTakeFirst()
+      ? await db.selectFrom('departments').select('name').where('id', '=', departmentId).where('deleted_at', 'is', null).executeTakeFirst()
       : undefined;
     if (departmentId && !department) throw notFound('부서를 찾을 수 없습니다.');
     const label = department ? department.name : scope === null ? '전체 부서' : `담당 부서(${user.departments.map((d) => d.name).join(', ') || '없음'})`;
@@ -76,6 +83,12 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     const { user, scope } = await resolveScope(req, departmentId);
     const records = await loadRecords(db, { year, scope, departmentId });
     const report = await loadStatusReport(db, { year, scope, departmentId });
+    const employees = new Map<number, ExportSummary['employees'][number]>();
+    for (const record of records) {
+      if (employees.has(record.employeeId)) continue;
+      employees.set(record.employeeId, { employeeId: record.employeeId, name: record.employeeName, empNo: record.empNo, departmentName: record.departmentName,
+        certificates: new Set(records.filter(r => r.employeeId === record.employeeId).map(r => r.certificateId)).size });
+    }
     return {
       year,
       certificates: new Set(records.map((r) => r.certificateId)).size,
@@ -85,6 +98,7 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
         name: t.name,
         certificates: records.filter((r) => r.trainingId === t.id).length,
       })),
+      employees: [...employees.values()],
     };
   });
 
@@ -119,9 +133,21 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     reply.header('Content-Type', 'application/zip');
     reply.header(
       'Content-Disposition',
-      contentDisposition(`${year}년_이수증_${layout === 'training' ? '교육별' : '부서별'}${filePart}${trainingPart}.zip`, 'certificates.zip'),
+      contentDisposition(`${year}년_이수증_${layout === 'training' ? '교육별' : layout === 'employee' ? '개인별' : '부서별'}${filePart}${trainingPart}.zip`, 'certificates.zip'),
     );
     return reply.send(buildEvidenceZip(records, layout, config.dataDir));
+  });
+
+  app.get('/api/exports/employees.zip', { preHandler: requireUser }, async (req, reply) => {
+    const { year, departmentId, employeeId, reason, title, archiveTitle } = PersonalQuery.parse(req.query);
+    const { scope, label, filePart } = await resolveScope(req, departmentId);
+    const all = await loadRecords(db, { year, scope, departmentId });
+    const records = employeeId ? all.filter(r => r.employeeId === employeeId) : all;
+    if (!records.length) throw badRequest('선택한 범위에 내보낼 확정 이수증이 없습니다.');
+    await audit(db, req, 'export.personal-pdf', undefined, { year, scope: label, employees: new Set(records.map(r => r.employeeId)).size, title, reason });
+    reply.header('Content-Type', 'application/zip');
+    reply.header('Content-Disposition', contentDisposition(`${safeName(archiveTitle ?? `${year}년_개인별_이수증${filePart}`)}.zip`, 'employees.zip'));
+    return reply.send(buildPersonalZip(records, title, year, config.dataDir));
   });
 
   app.get('/api/exports/merged.pdf', { preHandler: requireUser }, async (req, reply) => {

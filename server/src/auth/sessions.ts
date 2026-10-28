@@ -87,6 +87,7 @@ async function userDepartments(db: Kysely<DB>, userId: number): Promise<SessionU
     .innerJoin('departments', 'departments.id', 'user_departments.department_id')
     .select(['departments.id', 'departments.name'])
     .where('user_departments.user_id', '=', userId)
+    .where('departments.deleted_at', 'is', null)
     .orderBy('departments.sort_order')
     .orderBy('departments.name')
     .execute();

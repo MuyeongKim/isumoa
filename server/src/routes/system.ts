@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { stat, statfs } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
@@ -35,7 +35,17 @@ export async function systemRoutes(app: FastifyInstance, { db, config, version, 
   const startedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
 
   // 로그인 없이: 살아 있는지만 알려 준다 (서버 감시용)
-  app.get('/api/health', async () => ({ ok: true, version }));
+  app.get<{ Querystring: { challenge?: string } }>('/api/health', async (req, reply) => {
+    reply.header('cache-control', 'no-store');
+    const challenge = req.query.challenge;
+    if (challenge !== undefined && !/^[a-f0-9]{64}$/.test(challenge)) throw new HttpError(400, '올바른 실행 확인 요청이 아닙니다.');
+    return {
+      ok: true, application: 'isumoa', protocol: 1, version,
+      ...(config.desktop && shutdownToken && challenge ? {
+        proof: createHmac('sha256', shutdownToken).update(`isumoa-instance-v1:${challenge}`).digest('hex'),
+      } : {}),
+    };
+  });
 
   app.get('/api/system', { preHandler: requireAdmin }, async (): Promise<SystemCheck> => {
     const dbPath = join(config.dataDir, 'app.db');

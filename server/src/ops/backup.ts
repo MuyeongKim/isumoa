@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -8,6 +7,7 @@ import type { BackupSnapshot, BackupStatus } from '../../../shared/types.ts';
 import type { AppConfig } from '../config.ts';
 import type { DB } from '../db/schema.ts';
 import { getSetting, setSetting } from '../db/seed.ts';
+import { fileHash as sha256, snapshotAssets } from './backupAssets.ts';
 
 // 백업: backupDir 아래에
 //   db/app-20261023-020000.db (+ .json)  DB 사본 (최근 N개만 둔다)
@@ -24,19 +24,14 @@ function stamp(now: Date): string {
   return parts.replace(/[-:]/g, '').replace(' ', '-');
 }
 
-async function sha256(file: string): Promise<string> {
-  const hash = createHash('sha256');
-  for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
-  return hash.digest('hex');
-}
-
 async function listFiles(root: string): Promise<Map<string, number>> {
   const result = new Map<string, number>();
   let entries: string[] = [];
   try {
     entries = await readdir(root, { recursive: true });
-  } catch {
-    return result;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return result;
+    throw error;
   }
   for (const rel of entries) {
     const s = await stat(join(root, rel));
@@ -51,7 +46,7 @@ export async function mirror(source: string, target: string): Promise<{ copied: 
   let copied = 0;
   let removed = 0;
   for (const [rel, size] of src) {
-    if (dst.get(rel) === size) continue;
+    if (dst.get(rel) === size && await sha256(join(source, rel)) === await sha256(join(target, rel))) continue;
     await mkdir(dirname(join(target, rel)), { recursive: true });
     await copyFile(join(source, rel), join(target, rel));
     copied++;
@@ -74,13 +69,17 @@ export async function listSnapshots(backupDir: string): Promise<BackupSnapshot[]
   }
   const snapshots = await Promise.all(
     names
-      .filter((n) => /^app-\d{8}-\d{6}\.db$/.test(n))
+      .filter((n) => /^app-\d{8}-\d{6}(?:-\d+)?\.db$/.test(n))
       .map(async (file) => {
         const s = await stat(join(dir, file));
         return { file, at: s.mtime.toISOString(), bytes: s.size };
       }),
   );
-  return snapshots.sort((a, b) => b.file.localeCompare(a.file));
+  return snapshots.sort((a, b) => {
+    const parts = (name: string) => /^app-(\d{8}-\d{6})(?:-(\d+))?\.db$/.exec(name)!;
+    const aa = parts(a.file), bb = parts(b.file);
+    return bb[1].localeCompare(aa[1]) || Number(bb[2] ?? 0) - Number(aa[2] ?? 0);
+  });
 }
 
 /** DB 사본이 온전한지 (SQLite 무결성 검사) */
@@ -101,21 +100,26 @@ export async function runBackup(db: Kysely<DB>, config: AppConfig, keep: number,
   try {
     const dbDir = join(config.backupDir, 'db');
     await mkdir(dbDir, { recursive: true });
-    const file = `app-${stamp(now)}.db`;
+    const base = `app-${stamp(now)}`;
+    let file = `${base}.db`;
+    for (let n = 1; existsSync(join(dbDir, file)); n++) file = `${base}-${String(n).padStart(3, '0')}.db`;
     const target = join(dbDir, file);
     // Kysely를 거쳐 실행해야 다른 요청의 트랜잭션 도중에 끼어들지 않는다
     await sql`VACUUM INTO ${target}`.execute(db);
     const integrity = checkSnapshot(target);
     if (integrity !== 'ok') throw new Error(`DB 사본 무결성 검사 실패: ${integrity}`);
 
+    // 원본 저장소의 누락·손상을 먼저 잡아 기존 정상 백업을 잘못 정리하지 않는다.
+    await snapshotAssets(target, config.dataDir);
     for (const folder of ['files', 'pages']) {
       const m = await mirror(join(config.dataDir, folder), join(config.backupDir, folder));
       result.copiedFiles += m.copied;
       result.removedFiles += m.removed;
     }
+    const assets = await snapshotAssets(target, config.backupDir);
     await writeFile(
       join(dbDir, file.replace(/\.db$/, '.json')),
-      `${JSON.stringify({ file, at: result.at, sha256: await sha256(target), bytes: (await stat(target)).size, integrity }, null, 2)}\n`,
+      `${JSON.stringify({ file, at: result.at, sha256: await sha256(target), bytes: (await stat(target)).size, integrity, assets }, null, 2)}\n`,
     );
 
     // 오래된 DB 사본 정리 (파기한 자료가 백업에 오래 남지 않도록)

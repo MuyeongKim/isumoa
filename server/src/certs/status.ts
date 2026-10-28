@@ -38,7 +38,7 @@ const AUTO_EXEMPT: Partial<Record<EmployeeStatus, string>> = { leave: '휴직', 
 
 /** 그해에 적용되는 사용 중인 교육 */
 export function applicableTrainings(trainings: Training[], year: number): Training[] {
-  return trainings.filter((t) => t.active && (t.fromYear ?? 0) <= year && year <= (t.toYear ?? 9999));
+  return trainings.filter((t) => !t.deletedAt && t.active && (t.fromYear ?? 0) <= year && year <= (t.toYear ?? 9999));
 }
 
 function judge(training: Training, hours: number, count: number, unknownHours: boolean): Pick<StatusCell, 'state' | 'note'> {

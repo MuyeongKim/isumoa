@@ -1,6 +1,17 @@
 import { createKordocOcr } from './kordoc.ts';
 import { createTesseractOcr } from './tesseract.ts';
 
+export interface OcrTextLine {
+  text: string;
+  confidence: number;
+  box: { x: number; y: number; w: number; h: number };
+}
+
+export interface OcrReadResult {
+  text: string;
+  lines: OcrTextLine[];
+}
+
 // 스캔본을 읽는 OCR. 두 가지 중 쓸 수 있는 것을 고른다.
 //  - kordoc (PP-OCRv5 한국어, ONNX): 기본. 가상 이수증 비교에서 스캔 41쪽을 모두 맞게 읽었다(tesseract는 37쪽)
 //  - tesseract.js (WebAssembly): kordoc의 엔진(네이티브 라이브러리)을 띄우지 못하는 PC에서 대신 쓴다
@@ -14,6 +25,8 @@ export interface OcrEngine {
   /** 기본 엔진을 못 띄워 대신 쓰는 중이면 그 이유 */
   readonly fallbackReason: string | null;
   recognize(imagePath: string): Promise<string>;
+  /** 표 문서를 읽을 때 쓰는 글줄 위치. 지원하지 않는 엔진은 일반 텍스트로 읽는다. */
+  recognizeWithLayout?(imagePath: string): Promise<OcrReadResult>;
   close(): Promise<void>;
 }
 

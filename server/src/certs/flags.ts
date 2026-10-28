@@ -46,7 +46,7 @@ export function computeFlags(ctx: FlagContext): CertificateFlag[] {
   const flags: CertificateFlag[] = [];
   const e = ctx.employee;
 
-  if (!ctx.looksLikeCertificate && !e) {
+  if (!ctx.looksLikeCertificate) {
     flags.push(warning('not-certificate', '이수증이 아닌 쪽 같습니다(표지·빈 쪽 등). 맞으면 제외해 주세요.'));
   }
 
@@ -78,7 +78,9 @@ export function computeFlags(ctx: FlagContext): CertificateFlag[] {
   }
 
   if (ctx.trainings.length === 0) {
-    flags.push(error('no-training', '어떤 교육인지 정하지 못했습니다. 교육을 골라 주세요.'));
+    flags.push(error('no-training', ctx.looksLikeCertificate
+      ? '수료증은 읽었지만 현재 관리 대상 교육과 연결되지 않았습니다. 대상 밖이면 제외하고, 대상 교육이면 직접 골라 주세요.'
+      : '어떤 교육인지 정하지 못했습니다. 교육을 골라 주세요.'));
   }
   if (ctx.inactiveMatches.length > 0) {
     flags.push(warning('inactive-training', `'${ctx.inactiveMatches.join(', ')}'과(와) 맞아 보이지만 사용하지 않는 교육입니다. 교육 과정 화면에서 사용으로 바꾸거나 제외해 주세요.`));
@@ -102,10 +104,10 @@ export function computeFlags(ctx: FlagContext): CertificateFlag[] {
   }
 
   if (ctx.duplicateIds.length > 0) {
-    flags.push(warning('duplicate', `같은 직원·교육·이수일의 이수증이 이미 있습니다(${ctx.duplicateIds.map((id) => `#${id}`).join(', ')}). 중복이면 제외해 주세요.`));
+    flags.push(warning('duplicate', `증서번호 또는 직원·교육·이수일이 같은 이수증이 있습니다(${ctx.duplicateIds.map((id) => `#${id}`).join(', ')}). 중복이면 제외해 주세요.`));
   }
   if (ctx.route === 'ocr') {
-    flags.push(info('ocr', '스캔본을 OCR로 읽었습니다. 이름과 날짜를 원본과 대조해 주세요.'));
+    flags.push(info('ocr', '스캔본을 OCR로 읽었습니다. 직원·교육명·날짜·시간·증서번호를 원본과 대조해 주세요.'));
   }
   return flags;
 }

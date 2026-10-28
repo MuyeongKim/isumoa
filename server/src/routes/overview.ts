@@ -19,18 +19,21 @@ export async function overviewRoutes(app: FastifyInstance, { db }: Deps) {
       .selectFrom('departments')
       .select((eb) => eb.fn.countAll<number>().as('n'))
       .where('active', '=', 1)
+      .where('deleted_at', 'is', null)
       .$if(scope !== null, (qb) => qb.where('id', 'in', none ? [-1] : scope!))
       .executeTakeFirstOrThrow();
     const employees = await db
       .selectFrom('employees')
       .select((eb) => eb.fn.countAll<number>().as('n'))
       .where('status', '!=', 'retired')
+      .where('deleted_at', 'is', null)
       .$if(scope !== null, (qb) => qb.where('department_id', 'in', none ? [-1] : scope!))
       .executeTakeFirstOrThrow();
     const trainings = await db
       .selectFrom('trainings')
       .select((eb) => eb.fn.countAll<number>().as('n'))
       .where('active', '=', 1)
+      .where('deleted_at', 'is', null)
       .executeTakeFirstOrThrow();
     const clerks = await db
       .selectFrom('users')

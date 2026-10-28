@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 import { EMPLOYEE_STATUSES, EMPLOYEE_STATUS_LABELS, type Department, type Employee } from '@shared/types.ts';
 import { Button } from '@/components/ui/Button';
@@ -28,10 +28,13 @@ export function EmployeeDialog({
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [dirty, setDirty] = useState(false);
+  async function save(): Promise<boolean> {
+    if (savingRef.current || !formRef.current?.reportValidity()) return false;
+    const form = new FormData(formRef.current);
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
     const body = {
       name: text(form, 'name'),
       empNo: text(form, 'empNo'),
@@ -44,6 +47,7 @@ export function EmployeeDialog({
       leftOn: text(form, 'leftOn'),
       note: text(form, 'note'),
     };
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -55,17 +59,25 @@ export function EmployeeDialog({
         queryClient.invalidateQueries({ queryKey: ['departments'] }),
         queryClient.invalidateQueries({ queryKey: ['overview'] }),
       ]);
+      setDirty(false);
       onClose();
+      return true;
     } catch (err) {
       setError(errorMessage(err));
+      return false;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
+  function submit(e: FormEvent<HTMLFormElement>) { e.preventDefault(); void save(); }
+  function requestClose() { formRef.current?.closest('dialog')?.dispatchEvent(new Event('cancel', { cancelable: true })); }
+
   return (
-    <Dialog open={open} onClose={onClose} title={employee ? '직원 정보 수정' : '직원 추가'} width="lg">
-      <form onSubmit={submit} className="space-y-4">
+    <Dialog open={open} onClose={onClose} title={employee ? '직원 정보 수정' : '직원 추가'} width="lg" dirty={dirty} busy={saving} onSave={save}>
+      <form ref={formRef} onSubmit={submit} onChange={() => setDirty(true)} className="space-y-4">
+        <fieldset disabled={saving} className="space-y-4">
         <FormError message={error} />
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="성명" htmlFor="emp-name" required>
@@ -115,11 +127,12 @@ export function EmployeeDialog({
           <Textarea id="emp-note" name="note" defaultValue={employee?.note ?? ''} rows={2} />
         </Field>
         <DialogActions>
-          <Button onClick={onClose}>취소</Button>
+          <Button disabled={saving} onClick={requestClose}>취소</Button>
           <Button type="submit" variant="primary" loading={saving}>
             {employee ? '저장' : '추가'}
           </Button>
         </DialogActions>
+        </fieldset>
       </form>
     </Dialog>
   );

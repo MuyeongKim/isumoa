@@ -14,10 +14,12 @@ export interface Job {
   kind: string;
   page_id: number;
   attempts: number;
+  review_generation: number;
 }
 
 export async function enqueuePageJob(db: Kysely<DB>, pageId: number): Promise<void> {
-  await db.insertInto('jobs').values({ kind: 'process-page', page_id: pageId }).execute();
+  const page = await db.selectFrom('pages').select('review_generation').where('id', '=', pageId).executeTakeFirstOrThrow();
+  await db.insertInto('jobs').values({ kind: 'process-page', page_id: pageId, review_generation: page.review_generation }).execute();
 }
 
 /** 서버 시작 때: 처리 도중 꺼져서 "처리 중"으로 남은 일을 다시 대기로 돌린다 */
@@ -36,27 +38,32 @@ export async function claimNextJob(db: Kysely<DB>): Promise<Job | undefined> {
     .where('id', '=', (eb) =>
       eb.selectFrom('jobs').select('id').where('state', '=', 'queued').where('run_after', '<=', now).orderBy('id').limit(1),
     )
-    .returning(['id', 'kind', 'page_id', 'attempts'])
+    .returning(['id', 'kind', 'page_id', 'attempts', 'review_generation'])
     .executeTakeFirst();
 }
 
-export async function finishJob(db: Kysely<DB>, jobId: number): Promise<void> {
-  await db.updateTable('jobs').set({ state: 'done', last_error: null, updated_at: nowIso() }).where('id', '=', jobId).execute();
+export async function finishJob(db: Kysely<DB>, jobId: number, expected?: Pick<Job, 'page_id' | 'review_generation'>): Promise<void> {
+  await db.updateTable('jobs').set({ state: 'done', last_error: null, updated_at: nowIso() }).where('id', '=', jobId)
+    .$if(expected !== undefined, query => query.where('page_id', '=', expected!.page_id).where('review_generation', '=', expected!.review_generation)).execute();
 }
 
-export async function failJob(db: Kysely<DB>, job: Job, message: string): Promise<'retry' | 'failed'> {
+export async function failJob(db: Kysely<DB>, job: Job, message: string): Promise<'retry' | 'failed' | 'cancelled'> {
   if (job.attempts < MAX_ATTEMPTS) {
     const delay = RETRY_DELAYS_SECONDS[job.attempts - 1] ?? RETRY_DELAYS_SECONDS.at(-1)!;
-    await db
+    const updated = await db
       .updateTable('jobs')
       .set({ state: 'queued', last_error: message, run_after: new Date(Date.now() + delay * 1000).toISOString(), updated_at: nowIso() })
       .where('id', '=', job.id)
-      .execute();
-    await db.updateTable('pages').set({ state: 'queued' }).where('id', '=', job.page_id).execute();
+      .where('page_id', '=', job.page_id).where('review_generation', '=', job.review_generation)
+      .executeTakeFirst();
+    if (Number(updated.numUpdatedRows) === 0) return 'cancelled';
+    await db.updateTable('pages').set({ state: 'queued' }).where('id', '=', job.page_id).where('review_generation', '=', job.review_generation).execute();
     return 'retry';
   }
-  await db.updateTable('jobs').set({ state: 'failed', last_error: message, updated_at: nowIso() }).where('id', '=', job.id).execute();
-  await db.updateTable('pages').set({ state: 'error', error: message }).where('id', '=', job.page_id).execute();
+  const updated = await db.updateTable('jobs').set({ state: 'failed', last_error: message, updated_at: nowIso() }).where('id', '=', job.id)
+    .where('page_id', '=', job.page_id).where('review_generation', '=', job.review_generation).executeTakeFirst();
+  if (Number(updated.numUpdatedRows) === 0) return 'cancelled';
+  await db.updateTable('pages').set({ state: 'error', error: message }).where('id', '=', job.page_id).where('review_generation', '=', job.review_generation).execute();
   return 'failed';
 }
 
@@ -117,7 +124,7 @@ export function startWorker(options: {
       const started = Date.now();
       try {
         await handle(job);
-        await finishJob(db, job.id);
+        await finishJob(db, job.id, job);
         durations.push(Date.now() - started);
         if (durations.length > 30) durations.shift();
       } catch (err) {

@@ -28,6 +28,8 @@ export interface Department extends DepartmentRef {
   active: boolean;
   employeeCount: number;
   clerkCount: number;
+  memberCount?: number;
+  deletedAt?: string | null;
 }
 
 export interface SessionUser {
@@ -64,6 +66,35 @@ export interface Employee {
   hiredOn: string | null;
   leftOn: string | null;
   note: string | null;
+  deletedAt?: string | null;
+}
+
+export interface RosterTrashResult {
+  changed: number;
+  employees?: number;
+}
+
+/** 문서에서 읽은 교육 초안. 기준을 찾지 못하면 빈칸으로 두고 등록 전에 확인한다. */
+export interface TrainingImportDraft {
+  name: string;
+  category: string | null;
+  legalBasis: string | null;
+  reqType: ReqType | null;
+  reqValue: number | null;
+  keywords: string[];
+  fromYear: number | null;
+  toYear: number | null;
+  note: string | null;
+  source: string;
+  warnings: string[];
+  duplicateId?: number;
+}
+
+export interface TrainingDocumentPreview {
+  fileName: string;
+  drafts: TrainingImportDraft[];
+  warnings: string[];
+  text: string;
 }
 
 export interface Training {
@@ -80,6 +111,7 @@ export interface Training {
   active: boolean;
   sortOrder: number;
   note: string | null;
+  deletedAt?: string | null;
 }
 
 export interface AppMeta {
@@ -251,6 +283,8 @@ export interface CertificateListItem {
   pageCount: number;
   status: CertificateStatus;
   personName: string | null;
+  /** 원본에 적힌 과정명. 검수함 검색에도 사용한다. */
+  courseTitle: string | null;
   employee: EmployeeRef | null;
   trainingIds: number[];
   completedOn: string | null;
@@ -264,6 +298,19 @@ export interface CertificateListItem {
 export interface CertificateCredit {
   trainingId: number;
   creditedHours: number | null;
+}
+
+export interface BulkExcludePreview {
+  ids: number[];
+  drafts: number;
+  confirmed: number;
+  token: string;
+  items: { id: number; status: CertificateStatus; employeeName: string | null; fileName: string; courseTitle: string | null }[];
+}
+
+export interface BulkExcludeResult {
+  excluded: number;
+  ids: number[];
 }
 
 export interface CertificateDetail extends CertificateListItem {
@@ -370,7 +417,7 @@ export interface Dashboard {
 
 // ── 내보내기 ────────────────────────────────────────────────────
 
-export const ZIP_LAYOUTS = ['training', 'department'] as const;
+export const ZIP_LAYOUTS = ['training', 'department', 'employee'] as const;
 export type ZipLayout = (typeof ZIP_LAYOUTS)[number];
 
 export interface ExportSummary {
@@ -380,6 +427,7 @@ export interface ExportSummary {
   /** 아직 검수 대기라 내보내기에 들어가지 않는 이수증 */
   drafts: number;
   trainings: { trainingId: number; name: string; certificates: number }[];
+  employees: { employeeId: number; name: string; empNo: string | null; departmentName: string | null; certificates: number }[];
 }
 
 // ── 제출 양식(엑셀)에 채우기 ─────────────────────────────────────
@@ -629,4 +677,18 @@ export interface SystemCheck {
 export interface BulkConfirmResult {
   confirmed: number;
   skipped: { id: number; reason: string }[];
+}
+
+export interface ReviewResetPreview {
+  batchId: number | null;
+  scopeLabel: string;
+  drafts: number;
+  incompletePages: number;
+  pages: number;
+  token: string;
+}
+
+export interface ReviewResetResult {
+  removed: number;
+  resetPages: number;
 }

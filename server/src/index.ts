@@ -69,7 +69,7 @@ if (masked > 0) app.log.info(`저장된 글자 ${masked}쪽에서 주민등록�
 
 const recovered = await recoverInterruptedJobs(db);
 if (recovered > 0) app.log.info(`중단됐던 쪽 ${recovered}개를 다시 처리합니다.`);
-worker = startWorker({ db, log: app.log, handle: (job) => processPage({ db, dataDir: config.dataDir, ocr }, job.page_id) });
+worker = startWorker({ db, log: app.log, handle: (job) => processPage({ db, dataDir: config.dataDir, ocr }, job.page_id, job.review_generation) });
 app.log.info(`스캔본 OCR: ${ocr.label}`);
 if (config.singleUser) app.log.warn('단일 사용자 모드로 시작합니다: 앱 로그인 없이 모든 요청이 관리자로 처리됩니다. nginx 로그인으로 막혀 있어야 합니다.');
 if (ocr.fallbackReason) app.log.warn(`kordoc OCR을 띄우지 못해 대신 tesseract로 읽습니다: ${ocr.fallbackReason}`);

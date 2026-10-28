@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileUp } from 'lucide-react';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import type { BatchSummary } from '@shared/types.ts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -30,6 +30,10 @@ interface UploadItem {
 
 function formatSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))}KB` : `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+}
+
+function reprocessablePages(batch: BatchSummary): number {
+  return Math.max(0, batch.pages - batch.confirmed - batch.excluded);
 }
 
 function ItemStatus({ state }: { state: ItemState }) {
@@ -62,6 +66,7 @@ function ItemStatus({ state }: { state: ItemState }) {
 
 export function UploadPage() {
   const queryClient = useQueryClient();
+  const { hash } = useLocation();
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState(thisYear);
   const [title, setTitle] = useState('');
@@ -78,6 +83,13 @@ export function UploadPage() {
     refetchInterval: (query) => (query.state.data?.some((b) => b.pagesWaiting > 0) ? 3000 : false),
   });
   const continuing = batches.data?.find((b) => b.id === batchId);
+
+  useEffect(() => {
+    if (hash !== '#uploaded-batches') return;
+    const heading = document.getElementById('uploaded-batches');
+    heading?.scrollIntoView({ block: 'start' });
+    heading?.focus({ preventScroll: true });
+  }, [hash, batches.isPending]);
 
   function update(key: string, state: ItemState) {
     setItems((list) => list.map((item) => (item.key === key ? { ...item, state } : item)));
@@ -181,8 +193,8 @@ export function UploadPage() {
   return (
     <>
       <PageHeader
-        title="이수증 올리기"
-        description="걷은 이수증 PDF(여러 장을 한꺼번에 스캔한 파일도 됩니다)와 사진을 한꺼번에 올리세요. 쪽마다 나눠서 읽고, 읽은 것부터 검수함에 들어갑니다."
+        title="수료증 올리기"
+        description="직원이 받은 수료증 PDF(여러 장을 한꺼번에 스캔한 파일도 됩니다)와 사진을 한꺼번에 올리세요. 쪽마다 나눠서 읽고, 읽은 것부터 검수함에 들어갑니다."
       />
       <ProcessingBanner />
 
@@ -235,8 +247,8 @@ export function UploadPage() {
         <span className="grid size-14 place-items-center rounded-2xl bg-navy-soft text-navy transition-transform duration-200 group-hover:-translate-y-0.5">
           <FileUp className="size-7" aria-hidden />
         </span>
-        <span className="text-[17px] font-bold">{busy ? '올리는 중입니다. 창을 닫지 마세요.' : '이수증 파일을 끌어다 놓거나 눌러서 고르세요'}</span>
-        <span className="text-[14px] text-ink-faint">PDF, JPG, PNG를 여러 개 한 번에 올릴 수 있고, 스캔 묶음 PDF는 쪽마다 나눠서 읽습니다</span>
+        <span className="text-[17px] font-bold">{busy ? '올리는 중입니다. 창을 닫지 마세요.' : '수료증 파일을 끌어다 놓거나 눌러서 고르세요'}</span>
+        <span className="text-[14px] text-ink-faint">PDF·JPG·JPEG·PNG를 선택하면 바로 읽기를 시작합니다. 교육 목록·기준표는 ‘교육 기준’에서 가져오세요.</span>
         <input
           ref={inputRef}
           id="cert-files"
@@ -309,7 +321,7 @@ export function UploadPage() {
       )}
 
       <section className="mt-8">
-        <h2 className="mb-2 text-[15px] font-semibold">올린 묶음</h2>
+        <h2 id="uploaded-batches" tabIndex={-1} className="mb-2 scroll-mt-4 text-[15px] font-semibold">올린 묶음</h2>
         {batches.data && batches.data.length === 0 ? (
           <EmptyState title="아직 올린 이수증이 없습니다" description="위 칸에 이수증 파일을 끌어다 놓으면 묶음이 만들어집니다." />
         ) : (
@@ -363,7 +375,7 @@ export function UploadPage() {
                     <button
                       type="button"
                       className="rounded px-2 py-1 text-[13px] text-link hover:bg-navy-soft disabled:text-ink-faint"
-                      disabled={b.drafts === 0 || b.pagesWaiting > 0}
+                      disabled={reprocessablePages(b) === 0 || b.pagesWaiting > 0}
                       onClick={() => setReprocessing({ batch: b, busy: false })}
                     >
                       다시 읽기
@@ -393,7 +405,7 @@ export function UploadPage() {
         title={`묶음 #${reprocessing?.batch.id ?? ''} 다시 읽기`}
         description={
           <>
-            검수 대기 이수증 {formatNumber(reprocessing?.batch.drafts ?? 0)}건을 다시 읽습니다. 확정·제외한 이수증은 그대로 둡니다.
+            확정·제외하지 않은 원본 {formatNumber(reprocessing ? reprocessablePages(reprocessing.batch) : 0)}쪽을 다시 읽습니다. 초기화한 검수 결과도 다시 만들며, 확정·제외한 이수증은 그대로 둡니다.
             <br />
             검수 대기 중에 고쳐 둔 값은 새로 읽은 값으로 바뀝니다.
           </>

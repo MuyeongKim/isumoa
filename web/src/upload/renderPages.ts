@@ -1,6 +1,7 @@
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { withBase } from '../lib/base.ts';
+import { joinPdfTextItems, type PdfTextItem } from '../../../shared/pdfText.ts';
 
 // 서무 PC의 브라우저에서 PDF를 쪽마다 이미지로 그리고 글자층을 뽑는다.
 // 서버에서 하지 않는 이유: OS별로 컴파일해야 하는 그림 라이브러리 없이 설치본을 유지하려고.
@@ -30,7 +31,15 @@ export async function openPdf(file: File): Promise<{ doc: PDFDocumentProxy; clos
     standardFontDataUrl: withBase('/pdfjs/standard_fonts/'),
     wasmUrl: withBase('/pdfjs/wasm/'),
   });
-  return { doc: await task.promise, close: () => task.destroy() };
+  try {
+    return { doc: await task.promise, close: () => task.destroy() };
+  } catch (error) {
+    await task.destroy().catch(() => {});
+    const name = error instanceof Error ? error.name : '';
+    if (name === 'PasswordException') throw new Error('암호로 잠긴 PDF입니다. 암호를 해제한 사본을 선택해 주세요.');
+    if (name === 'InvalidPDFException') throw new Error('PDF가 손상되었거나 올바른 PDF 형식이 아닙니다. 원본을 다시 내려받거나 PDF로 다시 저장한 뒤 올려 주세요.');
+    throw new Error('PDF를 열지 못했습니다. 파일이 정상적으로 열리는지 확인한 뒤 다시 선택해 주세요.');
+  }
 }
 
 function toBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
@@ -50,37 +59,24 @@ async function thumbnailOf(source: HTMLCanvasElement): Promise<Blob> {
   return toBlob(thumb, 0.8);
 }
 
-interface TextItemLike {
-  str: string;
-  hasEOL: boolean;
-  transform: number[];
-  width: number;
-  height: number;
-}
-
-/**
- * 글자 조각을 줄 단위로 이어 붙인다. 같은 줄에서 간격이 넓으면 빈칸 두 개를 넣어
- * "성명 홍길동    생년월일 1985-03-12"처럼 항목이 나뉜 것을 남긴다.
- */
-function joinTextItems(items: TextItemLike[]): string {
-  let text = '';
-  let prev: TextItemLike | null = null;
-  for (const item of items) {
-    if (prev) {
-      const sameLine = Math.abs(item.transform[5] - prev.transform[5]) < Math.max(prev.height, 1) * 0.5;
-      if (prev.hasEOL || !sameLine) {
-        text += '\n';
-      } else {
-        const gap = item.transform[4] - (prev.transform[4] + prev.width);
-        const size = Math.max(prev.height, 1);
-        if (gap > size * 0.8) text += '  ';
-        else if (gap > size * 0.15 && !text.endsWith(' ') && !item.str.startsWith(' ')) text += ' ';
-      }
+/** 교육 문서 가져오기도 이수증 올리기와 같은 PDF 글자 읽기 순서를 쓴다. */
+export async function extractPdfText(file: File): Promise<string> {
+  const { doc, close } = await openPdf(file);
+  try {
+    if (doc.numPages > 100) throw new Error('교육 문서는 100쪽 이하로 나누어 올려 주세요.');
+    const pages: string[] = [];
+    let length = 0;
+    for (let index = 1; index <= doc.numPages; index++) {
+      const page = await doc.getPage(index);
+      const content = await page.getTextContent();
+      const text = joinPdfTextItems(content.items.filter((i): i is PdfTextItem & typeof i => 'str' in i));
+      length += text.length;
+      if (length > 300_000) throw new Error('내용이 너무 많습니다. 교육 목록 부분만 나누어 올려 주세요.');
+      pages.push(text);
+      page.cleanup();
     }
-    text += item.str;
-    prev = item;
-  }
-  return text.normalize('NFC');
+    return pages.join('\n\n');
+  } finally { await close(); }
 }
 
 export async function renderPdfPage(doc: PDFDocumentProxy, pageNo: number): Promise<RenderedPage> {
@@ -93,11 +89,11 @@ export async function renderPdfPage(doc: PDFDocumentProxy, pageNo: number): Prom
   await page.render({ canvas, viewport, background: 'rgb(255,255,255)' }).promise;
 
   const content = await page.getTextContent();
-  const items = content.items.filter((i): i is TextItemLike & typeof i => 'str' in i);
+  const items = content.items.filter((i): i is PdfTextItem & typeof i => 'str' in i);
   const result: RenderedPage = {
     width: canvas.width,
     height: canvas.height,
-    text: joinTextItems(items),
+    text: joinPdfTextItems(items),
     image: await toBlob(canvas, 0.85),
     thumb: await thumbnailOf(canvas),
   };

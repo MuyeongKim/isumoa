@@ -7,9 +7,9 @@ import { createCanvas, GlobalFonts } from '@napi-rs/canvas';
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib';
 import { PAGE, type Op } from './certificate.ts';
 
-const FONT_DIR = fileURLToPath(new URL('../../node_modules/pretendard/dist/public/static/alternative/', import.meta.url));
-const REGULAR = readFileSync(`${FONT_DIR}Pretendard-Regular.ttf`);
-const BOLD = readFileSync(`${FONT_DIR}Pretendard-Bold.ttf`);
+const FONT_DIR = fileURLToPath(new URL('../../node_modules/wanted-sans/fonts/ttf/', import.meta.url));
+const REGULAR = readFileSync(`${FONT_DIR}WantedSans-Regular.ttf`);
+const BOLD = readFileSync(`${FONT_DIR}WantedSans-Bold.ttf`);
 GlobalFonts.register(REGULAR, 'FixtureRegular');
 GlobalFonts.register(BOLD, 'FixtureBold');
 

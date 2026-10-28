@@ -1,9 +1,9 @@
 // 내려받는 파일·ZIP 안 파일의 이름. Windows 탐색기에서 그대로 열리도록:
 //  - 쓸 수 없는 글자(\ / : * ? " < > |)와 제어 문자는 바꾸고
 //  - 끝의 점·빈칸, CON·PRN 같은 예약 이름을 피하고
-//  - 너무 긴 이름은 자른다 (경로 전체 260자 제한을 넉넉히 피하도록)
+//  - 너무 긴 파일명 구성요소는 자른다 (최대 80자·UTF-8 240바이트)
 
-const RESERVED = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
+const RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(?:\.|$)/i;
 const MAX_PART = 80;
 
 export function safeName(part: string, fallback = '이름없음'): string {
@@ -13,7 +13,12 @@ export function safeName(part: string, fallback = '이름없음'): string {
     .replace(/\s+/g, ' ')
     .trim()
     .replace(/[. ]+$/, '');
-  if ([...name].length > MAX_PART) name = [...name].slice(0, MAX_PART).join('').trim();
+  let bounded = '';
+  for (const char of [...name].slice(0, MAX_PART)) {
+    if (Buffer.byteLength(bounded + char, 'utf8') > 240) break;
+    bounded += char;
+  }
+  name = bounded.replace(/[. ]+$/, '');
   if (name === '') name = fallback;
   if (RESERVED.test(name)) name = `_${name}`;
   return name;
@@ -37,5 +42,5 @@ export class UniqueNames {
 
 /** 이수증 파일 이름: 부서_성명_교육명_이수일 */
 export function certificateBaseName(r: { departmentName: string | null; employeeName: string; trainingName: string; completedOn: string }): string {
-  return [r.departmentName ?? '부서없음', r.employeeName, r.trainingName, r.completedOn || '이수일없음'].map((p) => safeName(p)).join('_');
+  return safeName([r.departmentName ?? '부서없음', r.employeeName, r.trainingName, r.completedOn || '이수일없음'].map((p) => safeName(p)).join('_'));
 }

@@ -68,6 +68,8 @@ export async function loadRecords(db: Kysely<DB>, filter: ReportScope & { traini
       'u.name as confirmed_by_name',
       'c.confirmed_at',
     ])
+    .where('e.deleted_at', 'is', null)
+    .where('t.deleted_at', 'is', null)
     .where('c.status', '=', 'confirmed')
     .where('c.year', '=', year)
     .$if(scope !== null, (qb) => qb.where('e.department_id', 'in', scope!))

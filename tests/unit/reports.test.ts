@@ -9,12 +9,19 @@ describe('내보내기 파일 이름 (Windows 탐색기 기준)', () => {
     expect(safeName('송주주:청렴?<1>/2"|*')).toBe('송주주_청렴__1__2___');
     expect(safeName('과정명 끝에 점...  ')).toBe('과정명 끝에 점');
     expect(safeName('CON')).toBe('_CON');
+    expect(safeName('CON.txt')).toBe('_CON.txt');
+    expect(safeName('nul.tar.gz')).toBe('_nul.tar.gz');
+    expect(safeName('COM¹.log')).toBe('_COM¹.log');
     expect(safeName('   ')).toBe('이름없음');
     expect(safeName('홍가길동'.normalize('NFD'))).toBe('홍가길동');
   });
 
   it('너무 긴 이름은 자른다', () => {
     expect([...safeName('가'.repeat(200))]).toHaveLength(80);
+    expect(Buffer.byteLength(safeName('😀'.repeat(100)), 'utf8')).toBeLessThanOrEqual(240);
+    const long = certificateBaseName({ departmentName: '부서'.repeat(50), employeeName: '이름'.repeat(25), trainingName: '교육'.repeat(50), completedOn: '2026-01-01' });
+    expect([...long].length).toBeLessThanOrEqual(80);
+    expect(Buffer.byteLength(long, 'utf8')).toBeLessThanOrEqual(240);
   });
 
   it('부서_성명_교육명_이수일, 겹치면 (2)를 붙인다 (대소문자 구분 없이)', () => {

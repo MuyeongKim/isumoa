@@ -186,6 +186,34 @@ describe('내보내기', () => {
     expect((await h.send('GET', `/api/exports/merged.pdf?year=2026&trainingId=${empty.trainingId}&reason=${REASON}`)).statusCode).toBe(400);
   });
 
+  it('개인별 합본은 제목을 바꾸고, 통합과정의 같은 이수증을 한 번만 담는다', async () => {
+    const title = encodeURIComponent('제출용_{연도}_{성명}');
+    const result = await h.send('GET', `/api/exports/employees.zip?year=2026&reason=${REASON}&title=${title}&archiveTitle=${encodeURIComponent('기관제출')}`);
+    expect(result.statusCode).toBe(200);
+    expect(result.headers['content-disposition']).toContain(encodeURIComponent('기관제출.zip'));
+    const entries = readZip(result.rawPayload);
+    expect(entries.map(e => e.name).sort()).toEqual(['제출용_2026_김재무.pdf', '제출용_2026_송주주.pdf', '제출용_2026_오호영.pdf']);
+    for (const entry of entries) {
+      const pdf = await PDFDocument.load(entry.data);
+      expect(pdf.getPageCount()).toBe(1);
+      expect(pdf.getTitle()).toBe(entry.name.replace(/\.pdf$/, ''));
+    }
+    const duplicate = await h.send('GET', `/api/exports/employees.zip?year=2026&reason=${REASON}&title=${encodeURIComponent('../CON')}`);
+    const names = readZip(duplicate.rawPayload).map(e => e.name);
+    expect(new Set(names).size).toBe(3);
+    expect(names.every(name => !name.includes('/'))).toBe(true);
+  });
+
+  it('개인별 내보내기도 서무 범위와 사유를 확인한다', async () => {
+    const zip = readZip((await get(`/api/exports/employees.zip?year=2026&reason=${REASON}`, clerkCookie)).rawPayload);
+    expect(zip).toHaveLength(2);
+    expect(zip.every(e => e.name.includes('총무과'))).toBe(true);
+    const finance = (await h.send('GET', '/api/employees')).json().find((e: { name: string }) => e.name === '김재무');
+    expect((await get(`/api/exports/employees.zip?year=2026&reason=${REASON}&employeeId=${finance.id}`, clerkCookie)).statusCode).toBe(400);
+    expect((await h.send('GET', '/api/exports/employees.zip?year=2026')).statusCode).toBe(400);
+    expect((await h.send('GET', `/api/exports/employees.zip?year=2026&reason=${REASON}&title=${encodeURIComponent('{알수없는항목}')}`)).statusCode).toBe(400);
+  });
+
   it('서무는 담당 부서 것만 받고, 다른 부서를 고르면 거절한다', async () => {
     const s = (await get('/api/exports/summary?year=2026', clerkCookie)).json() as ExportSummary;
     expect(s.certificates).toBe(2);

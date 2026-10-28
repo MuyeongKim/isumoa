@@ -7,7 +7,9 @@ $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $env:TEMP
 [Environment]::CurrentDirectory = $env:TEMP
 
+$gate = $null
 try {
+  $gate = Enter-DesktopOperation
   if ((Show-Message "$AppName 프로그램을 이 PC에서 제거할까요?" 'Question' 'YesNo' 'Button2') -ne 'Yes') { exit 0 }
   Stop-Server
 
@@ -29,4 +31,6 @@ try {
 } catch {
   Show-Message "제거하지 못했습니다.`n`n$($_.Exception.Message)" 'Error' | Out-Null
   exit 1
+} finally {
+  if ($null -ne $gate) { $gate.ReleaseMutex(); $gate.Dispose() }
 }

@@ -96,6 +96,7 @@ export async function getForm(db: Kysely<DB>, id: number) {
   return db
     .selectFrom('form_templates as f')
     .leftJoin('departments as d', 'd.id', 'f.department_id')
+    .where('d.deleted_at', 'is', null)
     .leftJoin('users as u', 'u.id', 'f.created_by')
     .selectAll('f')
     .select(['d.name as department_name', 'u.name as created_by_name'])
@@ -124,7 +125,7 @@ function toForm(row: FormRow, user: SessionUser): FormTemplate {
 export async function formRoutes(app: FastifyInstance, { db }: Deps) {
   async function assertDepartmentExists(departmentId: number | null) {
     if (departmentId === null) return;
-    const found = await db.selectFrom('departments').select('id').where('id', '=', departmentId).executeTakeFirst();
+    const found = await db.selectFrom('departments').select('id').where('id', '=', departmentId).where('deleted_at', 'is', null).executeTakeFirst();
     if (!found) throw notFound('부서를 찾을 수 없습니다.');
   }
 
@@ -184,6 +185,7 @@ export async function formRoutes(app: FastifyInstance, { db }: Deps) {
     const rows = await db
       .selectFrom('form_templates as f')
       .leftJoin('departments as d', 'd.id', 'f.department_id')
+    .where('d.deleted_at', 'is', null)
       .leftJoin('users as u', 'u.id', 'f.created_by')
       .selectAll('f')
       .select(['d.name as department_name', 'u.name as created_by_name'])

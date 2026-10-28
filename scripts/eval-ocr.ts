@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import type { CertificateFlag } from '../shared/types.ts';
-import { computeFlags } from '../server/src/certs/flags.ts';
+import { computeFlags, withNotes } from '../server/src/certs/flags.ts';
 import { parseCertificateText } from '../server/src/certs/parseText.ts';
 import { buildDraft } from '../server/src/certs/processPage.ts';
 import { recognizePage, type Recognition } from '../server/src/certs/recognize.ts';
@@ -177,7 +177,7 @@ function flagsOf(recognition: Recognition, year: number): { draft: ReturnType<ty
     scope: null,
     today: new Date().toISOString().slice(0, 10),
   });
-  return { draft, flags };
+  return { draft, flags: withNotes(flags, draft.notes) };
 }
 
 const results: PageResult[] = [];

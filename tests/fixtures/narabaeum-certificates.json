@@ -1,0 +1,113 @@
+{
+  "description": "실제 나라배움터 수료증 6개의 서식으로 만든 회귀 자료. 이름·소속·증서번호·이수일은 가상값으로 치환했으며 PDF 원본은 포함하지 않음.",
+  "cases": [
+    {
+      "file": "report.pdf",
+      "text": "제 A990000001-900000001 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 10 기 개인정보 안정성 확보조치\n       기 간 : 2026.05.07. ~ 2026.05.07.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 05월 07일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 10 기 개인정보 안정성 확보조치",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000001-900000001",
+        "completedOn": "2026-05-07",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    },
+    {
+      "file": "report (1).pdf",
+      "text": "제 A990000002-900000002 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 평등한 일상, 폭력예방교육(일반)\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 4시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 평등한 일상, 폭력예방교육(일반)",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000002-900000002",
+        "completedOn": "2026-04-06",
+        "hours": 4,
+        "hoursText": "4시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    },
+    {
+      "file": "report (2).pdf",
+      "text": "제 A990000003-900000003 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 인권의 이해 입문편\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 인권의 이해 입문편",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000003-900000003",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    },
+    {
+      "file": "report (3).pdf",
+      "text": "제 A990000004-900000004 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 [mobile겸용] 긴급복지지원 신고의무 교육\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 [mobile겸용] 긴급복지지원 신고의무 교육",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000004-900000004",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    },
+    {
+      "file": "report (4).pdf",
+      "text": "제 A990000005-900000005 호\n\n\n\n\n                     수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 [Mobile 겸용] 사례로 알아보는 사업\n             성별영향평가\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                    ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 [Mobile 겸용] 사례로 알아보는 사업 성별영향평가",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000005-900000005",
+        "completedOn": "2026-04-06",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    },
+    {
+      "file": "report (5).pdf",
+      "text": "제 A990000006-900000006 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 8 기 2026 공직자 안보교육 (2025년 개발)\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 8 기 2026 공직자 안보교육 (2025년 개발)",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000006-900000006",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      }
+    }
+  ]
+}

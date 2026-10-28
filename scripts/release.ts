@@ -29,6 +29,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { ZipArchive } from 'archiver';
+import { buildWindowsExe, writeProgramManifest } from './windows-exe.ts';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const TARGETS = ['win-x64', 'linux-x64', 'darwin-arm64', 'darwin-x64'] as const;
@@ -39,6 +40,7 @@ const { values } = parseArgs({
     target: { type: 'string' },
     'download-node': { type: 'boolean', default: false },
     desktop: { type: 'boolean', default: false },
+    exe: { type: 'boolean', default: false },
   },
 });
 const hostTarget = `${process.platform === 'win32' ? 'win' : process.platform}-${process.arch}`;
@@ -46,6 +48,7 @@ const target = (values.target ?? hostTarget) as Target;
 if (!TARGETS.includes(target)) throw new Error(`지원하지 않는 대상입니다: ${target} (가능: ${TARGETS.join(', ')})`);
 const desktop = values.desktop;
 if (desktop && target !== 'win-x64') throw new Error('PC 설치판(--desktop)은 win-x64용만 만듭니다.');
+if (values.exe && !desktop) throw new Error('EXE는 --target win-x64 --desktop과 함께 만듭니다.');
 // npm·Node가 쓰는 이름 (win-x64 → win32, x64)
 const [targetOs, targetCpu] = [target.startsWith('win') ? 'win32' : target.split('-')[0], target.split('-')[1]];
 
@@ -307,7 +310,7 @@ if (desktop) {
 if (desktop) {
   step('PC 설치판: 설치·실행·제거 스크립트와 안내');
   const source = join(ROOT, 'deploy', 'windows-desktop');
-  for (const script of ['common.ps1', 'launch.ps1', 'uninstall.ps1']) {
+  for (const script of ['common.ps1', 'maintenance.ps1', 'launch.ps1', 'uninstall.ps1']) {
     writeWindowsText(join(programDir, script), readFileSync(join(source, script), 'utf8'), true);
   }
   copyFileSync(join(source, 'app.ico'), join(programDir, 'app.ico'));
@@ -317,6 +320,13 @@ if (desktop) {
   writeWindowsText(join(outDir, '설치.bat'), readFileSync(join(source, 'install.bat'), 'utf8'), false);
   // 메모장으로 바로 열리게 .txt로
   writeWindowsText(join(outDir, 'PC설치안내.txt'), readFileSync(join(ROOT, 'docs', 'PC설치안내.md'), 'utf8'), true);
+  if (values.exe) {
+    step('Windows EXE 실행기·설치 파일 컴파일 (NSIS 필요)');
+    const exe = buildWindowsExe(ROOT, outDir, programDir, pkg.version);
+    const sha256 = createHash('sha256').update(readFileSync(exe)).digest('hex');
+    writeFileSync(`${exe}.sha256`, `${sha256}  ${exe.split(/[\\/]/).at(-1)}\n`);
+    console.log(`  EXE: ${exe}\n  SHA-256 ${sha256}`);
+  } else { writeProgramManifest(programDir, pkg.version); }
   await finish(false);
   process.exit(0);
 }

@@ -5,6 +5,7 @@ import { currentUser, departmentScope, requireAdmin, requireUser } from '../auth
 import type { Deps } from '../deps.ts';
 import { audit } from '../lib/audit.ts';
 import { HttpError, notFound } from '../lib/errors.ts';
+import { RosterSelection, trashRoster } from '../roster/trash.ts';
 
 const DepartmentBody = z.object({
   name: z.string().trim().min(1, '부서 이름을 입력해 주세요.').max(100),
@@ -18,14 +19,16 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
   async function ensureUniqueName(name: string, exceptId?: number) {
     const same = await db
       .selectFrom('departments')
-      .select('id')
+      .select(['id', 'deleted_at'])
       .where('name', '=', name)
       .$if(exceptId !== undefined, (qb) => qb.where('id', '!=', exceptId!))
       .executeTakeFirst();
-    if (same) throw new HttpError(409, '같은 이름의 부서가 이미 있습니다.');
+    if (same) throw new HttpError(409, same.deleted_at ? '같은 이름의 부서가 휴지통에 있습니다. 삭제한 부서 보기에서 먼저 복원해 주세요.' : '같은 이름의 부서가 이미 있습니다.');
   }
 
   app.get('/api/departments', { preHandler: requireUser }, async (req): Promise<Department[]> => {
+    const { trash } = z.object({ trash: z.enum(['1']).optional() }).parse(req.query);
+    if (trash && currentUser(req).role !== 'admin') throw new HttpError(403, '휴지통은 관리자만 볼 수 있습니다.');
     const scope = departmentScope(currentUser(req));
     if (scope && scope.length === 0) return [];
     const rows = await db
@@ -35,11 +38,15 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
         'd.name',
         'd.sort_order',
         'd.active',
+        'd.deleted_at',
+        eb.selectFrom('employees as m').select(eb.fn.countAll<number>().as('n'))
+          .whereRef('m.department_id', '=', 'd.id').where('m.deleted_at', 'is', null).as('member_count'),
         eb
           .selectFrom('employees as e')
           .select(eb.fn.countAll<number>().as('n'))
           .whereRef('e.department_id', '=', 'd.id')
           .where('e.status', '!=', 'retired')
+          .where('e.deleted_at', 'is', null)
           .as('employee_count'),
         eb
           .selectFrom('user_departments as ud')
@@ -49,6 +56,7 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
           .where('u.active', '=', 1)
           .as('clerk_count'),
       ])
+      .where('d.deleted_at', trash ? 'is not' : 'is', null)
       .$if(scope !== null, (qb) => qb.where('d.id', 'in', scope!))
       .orderBy('d.sort_order')
       .orderBy('d.name')
@@ -60,6 +68,8 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
       active: r.active === 1,
       employeeCount: Number(r.employee_count ?? 0),
       clerkCount: Number(r.clerk_count ?? 0),
+      memberCount: Number(r.member_count ?? 0),
+      deletedAt: r.deleted_at,
     }));
   });
 
@@ -86,7 +96,7 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
   app.patch('/api/departments/:id', { preHandler: requireAdmin }, async (req) => {
     const { id } = IdParams.parse(req.params);
     const body = DepartmentBody.partial().parse(req.body);
-    const before = await db.selectFrom('departments').selectAll().where('id', '=', id).executeTakeFirst();
+    const before = await db.selectFrom('departments').selectAll().where('id', '=', id).where('deleted_at', 'is', null).executeTakeFirst();
     if (!before) throw notFound('부서를 찾을 수 없습니다.');
     if (body.name !== undefined && body.name !== before.name) await ensureUniqueName(body.name, id);
 
@@ -103,17 +113,19 @@ export async function departmentRoutes(app: FastifyInstance, { db }: Deps) {
     return { ok: true };
   });
 
-  // 직원이나 서무가 연결된 부서는 지우지 않고 '사용 안 함'으로 바꾸게 한다
+  for (const restore of [false, true]) {
+    app.post(`/api/departments/bulk-${restore ? 'restore' : 'delete'}`, { preHandler: requireAdmin }, async req => {
+      const { ids } = RosterSelection.parse(req.body);
+      const result = await trashRoster(db, 'departments', ids, restore);
+      await audit(db, req, restore ? 'department.restore' : 'department.bulk-delete', undefined, { ids, ...result });
+      return result;
+    });
+  }
+
   app.delete('/api/departments/:id', { preHandler: requireAdmin }, async (req) => {
     const { id } = IdParams.parse(req.params);
-    const employee = await db.selectFrom('employees').select('id').where('department_id', '=', id).executeTakeFirst();
-    const clerk = await db.selectFrom('user_departments').select('user_id').where('department_id', '=', id).executeTakeFirst();
-    if (employee || clerk) {
-      throw new HttpError(409, '직원이나 서무 계정이 연결된 부서는 삭제할 수 없습니다. 대신 "사용 안 함"으로 바꿔 주세요.');
-    }
-    const result = await db.deleteFrom('departments').where('id', '=', id).executeTakeFirst();
-    if (Number(result.numDeletedRows) === 0) throw notFound('부서를 찾을 수 없습니다.');
-    await audit(db, req, 'department.delete', { type: 'department', id });
+    const result = await trashRoster(db, 'departments', [id]);
+    await audit(db, req, 'department.delete', { type: 'department', id }, { ...result });
     return { ok: true };
   });
 }

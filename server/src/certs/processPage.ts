@@ -1,11 +1,12 @@
 import type { Kysely } from 'kysely';
-import type { Training } from '../../../shared/types.ts';
+import type { CertificateFlag, Training } from '../../../shared/types.ts';
 import type { DB } from '../db/schema.ts';
 import { nowIso } from '../db/sqlite.ts';
 import { matchEmployee, type MatchableEmployee, type MatchResult } from './employeeMatcher.ts';
 import { recognizePage, type Recognition, type RecognizeDeps } from './recognize.ts';
 import { classifiable, loadLearned, loadMatchables, loadTrainings, refreshFlags, scopeOfUser } from './review.ts';
 import { classifyTrainings, splitHours } from './trainingClassifier.ts';
+import { getSetting, setSetting } from '../db/seed.ts';
 
 // 대기열에서 쪽 하나를 꺼내 처리한다:
 //   1) 값 읽기 (recognize.ts — PDF 글자층 또는 OCR, 규칙 판독)
@@ -14,18 +15,21 @@ import { classifyTrainings, splitHours } from './trainingClassifier.ts';
 
 export type ProcessDeps = RecognizeDeps;
 
-export async function processPage(deps: ProcessDeps, pageId: number): Promise<void> {
+export async function processPage(deps: ProcessDeps, pageId: number, expectedGeneration?: number): Promise<void> {
   const { db } = deps;
   const page = await db
     .selectFrom('pages as p')
     .innerJoin('files as f', 'f.id', 'p.file_id')
     .innerJoin('batches as b', 'b.id', 'f.batch_id')
-    .select(['p.id', 'p.file_id', 'p.page_no', 'p.text_layer', 'p.ocr_text', 'p.ocr_engine', 'b.id as batch_id', 'b.year', 'b.created_by'])
+    .select(['p.id', 'p.file_id', 'p.page_no', 'p.text_layer', 'p.ocr_text', 'p.ocr_engine', 'p.review_generation', 'b.id as batch_id', 'b.year', 'b.created_by'])
     .where('p.id', '=', pageId)
     .executeTakeFirst();
   if (!page) return; // 그사이 지워진 쪽
+  if (expectedGeneration !== undefined && page.review_generation !== expectedGeneration) return;
 
-  await db.updateTable('pages').set({ state: 'processing', error: null }).where('id', '=', pageId).execute();
+  const started = await db.updateTable('pages').set({ state: 'processing', error: null }).where('id', '=', pageId)
+    .where('review_generation', '=', page.review_generation).executeTakeFirst();
+  if (Number(started.numUpdatedRows) === 0) return;
 
   const recognition = await recognizePage(deps, page);
   const scope = await scopeOfUser(db, page.created_by);
@@ -39,16 +43,21 @@ export async function processPage(deps: ProcessDeps, pageId: number): Promise<vo
   const { read, match, trainingIds } = draft;
 
   const certificateId = await db.transaction().execute(async (trx) => {
+    const current = await trx.selectFrom('pages').select('review_generation').where('id', '=', pageId).executeTakeFirst();
+    if (!current || current.review_generation !== page.review_generation) return null;
     const existing = await trx.selectFrom('certificates').select(['id', 'status']).where('page_id', '=', pageId).execute();
     const done = () => trx.updateTable('pages').set({ state: 'done', route: recognition.route, error: null }).where('id', '=', pageId).execute();
     if (existing.some((c) => c.status !== 'draft')) {
       await done();
       return null;
     }
+    const maximum = await trx.selectFrom('certificates').select(eb => eb.fn.max('id').as('maximum')).executeTakeFirst();
+    const nextId = Math.max(Number(maximum?.maximum ?? 0), await getSetting(trx, 'certificateIdFloor', 0)) + 1;
     await trx.deleteFrom('certificates').where('page_id', '=', pageId).execute();
     const created = await trx
       .insertInto('certificates')
       .values({
+        id: nextId,
         batch_id: page.batch_id,
         page_id: pageId,
         employee_id: match.employeeId,
@@ -63,9 +72,11 @@ export async function processPage(deps: ProcessDeps, pageId: number): Promise<vo
         hours_text: read.hoursText,
         year: read.completedOn ? Number(read.completedOn.slice(0, 4)) : page.year,
         source: 'rules',
+        notes: JSON.stringify(draft.notes),
       })
       .returning('id')
       .executeTakeFirstOrThrow();
+    await setSetting(trx, 'certificateIdFloor', nextId);
     if (trainingIds.length > 0) {
       const credited = splitHours(read.hours, trainingIds.length);
       await trx
@@ -81,15 +92,18 @@ export async function processPage(deps: ProcessDeps, pageId: number): Promise<vo
   await refreshFlags(db, certificateId, scope);
   await db.updateTable('certificates').set({ updated_at: nowIso() }).where('id', '=', certificateId).execute();
 
-  // 같은 직원·이수일로 먼저 들어와 있던 검수 대기 이수증에도 "중복" 표시가 붙도록 다시 계산한다
-  if (match.employeeId && read.completedOn) {
+  // 파일 바이트가 달라도 증서번호 또는 직원·이수일이 같은 대기 건에 중복 표시를 갱신한다.
+  if (match.employeeId && (read.completedOn || (read.certNo && read.provider))) {
     const others = await db
       .selectFrom('certificates')
       .select('id')
       .where('id', '!=', certificateId)
       .where('status', '=', 'draft')
       .where('employee_id', '=', match.employeeId)
-      .where('completed_on', '=', read.completedOn)
+      .where(eb => eb.or([
+        ...(read.completedOn ? [eb('completed_on', '=', read.completedOn)] : []),
+        ...(read.certNo && read.provider ? [eb.and([eb('cert_no', '=', read.certNo), eb('provider', '=', read.provider)])] : []),
+      ]))
       .execute();
     for (const other of others) await refreshFlags(db, other.id, scope);
   }
@@ -99,6 +113,7 @@ export interface Draft {
   read: Recognition['read'];
   match: MatchResult;
   trainingIds: number[];
+  notes: CertificateFlag[];
 }
 
 /** 읽은 값으로 직원을 찾고 교육을 정한다 (DB에 쓰지 않음 — 정확도 점검 스크립트도 쓴다) */
@@ -108,6 +123,21 @@ export function buildDraft(
 ): Draft {
   const { read, text } = recognition;
   const match = matchEmployee({ name: read.personName, birth: read.personBirth, dept: read.personDept, text }, ctx.employees, ctx.scope);
-  const { trainingIds } = classifyTrainings(read.courseTitle, text, classifiable(ctx.trainings, ctx.year), ctx.learned);
-  return { read, match, trainingIds };
+  const classification = read.looksLikeCertificate
+    ? classifyTrainings(read.courseTitle, text, classifiable(ctx.trainings, ctx.year), ctx.learned)
+    : { trainingIds: [], source: null, inactiveMatches: [] };
+  const notes = [...read.notes];
+  if ('scopeConflicts' in classification && classification.scopeConflicts?.length) {
+    notes.push({ code: 'training-scope-conflict', level: 'warning', message: `서로 다른 주제의 기존 연결을 자동 적용하지 않았습니다. ${classification.scopeConflicts.join(' ')}` });
+  }
+  if (classification.source === 'name') {
+    const training = ctx.trainings.find(t => t.id === classification.trainingIds[0]);
+    notes.push({ code: 'training-name-suggestion', level: 'warning', message: `교육과정 이름을 비교해 '${training?.name ?? '교육'}'을 후보로 채웠습니다. 교육 내용과 인정 범위를 확인해 주세요.` });
+  } else if (classification.source === 'text') {
+    notes.push({ code: 'training-text-suggestion', level: 'warning', message: '과정명을 읽지 못해 문서 전체의 단어로 교육을 채웠습니다. 원본의 과정명과 인정 교육을 확인해 주세요.' });
+  }
+  if ('ignoredKeywords' in classification && classification.ignoredKeywords?.length) {
+    notes.push({ code: 'training-weak-keyword', level: 'warning', message: `'${classification.ignoredKeywords.join(', ')}' 같은 공통 단어만 일치해 교육을 자동 선택하지 않았습니다. 현재 관리 대상인지 확인해 주세요.` });
+  }
+  return { read, match, trainingIds: classification.trainingIds, notes };
 }

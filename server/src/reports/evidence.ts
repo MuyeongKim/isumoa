@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { ZipArchive } from 'archiver';
 import { PDFDocument } from 'pdf-lib';
 import type { ZipLayout } from '../../../shared/types.ts';
+import { personalTitle } from '../../../shared/exportTitles.ts';
 import { originalPath, pageImagePath } from '../storage.ts';
 import { certificateBaseName, safeName, UniqueNames } from './fileNames.ts';
 import type { CertificateRecord } from './records.ts';
@@ -85,7 +86,7 @@ export class CertificatePages {
 export function zipEntryNames(records: CertificateRecord[], layout: ZipLayout): string[] {
   const names = new UniqueNames();
   return records.map((r) => {
-    const folder = safeName(layout === 'training' ? r.trainingName : (r.departmentName ?? '부서없음'));
+    const folder = safeName(layout === 'training' ? r.trainingName : layout === 'employee' ? `${r.departmentName ?? '부서없음'}_${r.employeeName}${r.empNo ? `_${r.empNo}` : `_${r.employeeId}`}` : (r.departmentName ?? '부서없음'));
     return names.take(folder, certificateBaseName(r), '.pdf');
   });
 }
@@ -138,4 +139,36 @@ export async function buildMergedPdf(records: CertificateRecord[], title: string
     await pages.appendTo(doc, rec);
   }
   return doc.save();
+}
+
+/** 직원 한 명당 합본 하나. 통합과정의 중복 인정 쪽은 한 번만 넣는다. */
+export function buildPersonalZip(records: CertificateRecord[], template: string, year: number, dataDir: string) {
+  const archive = new ZipArchive({ zlib: { level: 1 } });
+  const groups = new Map<number, CertificateRecord[]>();
+  for (const r of records) { const group = groups.get(r.employeeId) ?? []; group.push(r); groups.set(r.employeeId, group); }
+  const names = new UniqueNames();
+  const pages = new CertificatePages(dataDir);
+  void (async () => {
+    try {
+      for (const group of groups.values()) {
+        if (archive.destroyed) break;
+        const person = group[0];
+        const title = personalTitle(template, { 연도: String(year), 부서: person.departmentName ?? '부서없음', 성명: person.employeeName, 사번: person.empNo ?? String(person.employeeId) });
+        const doc = await PDFDocument.create(); doc.setTitle(title);
+        const seen = new Set<number>();
+        for (const rec of group) { if (seen.has(rec.certificateId)) continue; seen.add(rec.certificateId); await pages.appendTo(doc, rec); }
+        const pdf = await doc.save();
+        await new Promise<void>((resolve, reject) => {
+          const cleanup = () => { archive.off('entry', done).off('error', fail).off('close', closed); };
+          const done = () => { cleanup(); resolve(); };
+          const fail = (err: Error) => { cleanup(); reject(err); };
+          const closed = () => fail(new Error('내려받기가 중단되었습니다.'));
+          archive.once('entry', done).once('error', fail).once('close', closed);
+          archive.append(Buffer.from(pdf), { name: names.take('', safeName(title), '.pdf') });
+        });
+      }
+      if (!archive.destroyed) await archive.finalize();
+    } catch (err) { archive.destroy(err instanceof Error ? err : new Error(String(err))); }
+  })();
+  return archive;
 }

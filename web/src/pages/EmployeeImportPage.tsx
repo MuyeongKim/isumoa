@@ -554,10 +554,11 @@ function DoneStep({ result, onAgain }: { result: RosterApplyResult; onAgain: () 
           </div>
         ))}
       </dl>
-      <div className="mt-6 flex gap-2">
-        <Link to="/employees" viewTransition className={buttonClass('primary')}>
+      <div className="mt-6 flex flex-wrap gap-2">
+        <Link to="/employees" className={buttonClass('primary')}>
           직원 명단 보기
         </Link>
+        <Link to="/trainings" className={buttonClass('secondary')}>교육 기준 확인하기</Link>
         <Button onClick={onAgain}>다른 파일 올리기</Button>
       </div>
     </div>

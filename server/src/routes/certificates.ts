@@ -10,6 +10,8 @@ import {
 } from '../../../shared/types.ts';
 import { currentUser, requireUser } from '../auth/guard.ts';
 import { hasBlockingFlag } from '../certs/flags.ts';
+import { bulkExclude, previewBulkExclude } from '../certs/bulkExclude.ts';
+import { previewReviewReset, resetReviewDrafts } from '../certs/reset.ts';
 import {
   canViewCertificate,
   evaluateFlags,
@@ -41,7 +43,7 @@ const ListQuery = z.object({
   year: z.coerce.number().int().optional(),
 });
 
-const text = (max: number) => z.string().max(max).nullable().transform((v) => cleanOrNull(v));
+const text = (max: number, label: string) => z.string().max(max, `${label}은 ${max}자 이내로 입력해 주세요.`).nullable().transform((v) => cleanOrNull(v));
 
 const CertificateBody = z.object({
   employeeId: z.number().int().positive().nullable(),
@@ -61,9 +63,9 @@ const CertificateBody = z.object({
       return parsed;
     }),
   hours: z.number().min(0, '교육시간은 0 이상이어야 합니다.').max(1000).nullable(),
-  courseTitle: text(300),
-  provider: text(100),
-  certNo: text(100),
+  courseTitle: text(300, '과정명'),
+  provider: text(100, '교육기관'),
+  certNo: text(100, '증서번호'),
   year: z.number().int().min(2000).max(2100).nullable(),
 });
 type CertificateBody = z.infer<typeof CertificateBody>;
@@ -71,6 +73,8 @@ type CertificateBody = z.infer<typeof CertificateBody>;
 const ExcludeBody = z.object({ reason: z.string().trim().min(1, '제외 사유를 골라 주세요.').max(200) });
 
 const BulkConfirmBody = z.object({ ids: z.array(z.number().int().positive()).min(1).max(500) });
+const BulkExcludeBody = BulkConfirmBody.extend({ token: z.string().regex(/^[a-f0-9]{64}$/), reason: ExcludeBody.shape.reason });
+const ResetScope = z.object({ batchId: z.coerce.number().int().positive().optional() });
 
 /** 확정으로 바꾸고, 다음에 같은 과정명이 오면 같은 교육으로 정하도록 기억한다 (가장 최근 확정이 기준) */
 async function markConfirmed(trx: Kysely<DB>, saved: CertificateRow, flags: CertificateFlag[], trainingIds: number[], userId: number) {
@@ -123,8 +127,8 @@ export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
   /** 검수 대기 이수증에 입력값을 저장한다 (확정 전 단계) */
   async function saveDraft(trx: Kysely<DB>, row: CertificateRow, body: CertificateBody, scope: number[] | null) {
     if (row.status !== 'draft') throw new HttpError(409, '확정하거나 제외한 이수증은 고칠 수 없습니다. 먼저 "검수 대기로 되돌리기"를 해 주세요.');
-    if (body.employeeId !== null && body.employeeId !== row.employee_id) {
-      const e = await trx.selectFrom('employees').select('department_id').where('id', '=', body.employeeId).executeTakeFirst();
+    if (body.employeeId !== null) {
+      const e = await trx.selectFrom('employees').select('department_id').where('id', '=', body.employeeId).where('deleted_at', 'is', null).executeTakeFirst();
       if (!e) throw badRequest('없는 직원입니다.');
       if (scope && (e.department_id === null || !scope.includes(e.department_id))) {
         throw new HttpError(403, '담당 부서 직원만 고를 수 있습니다.');
@@ -132,8 +136,8 @@ export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
     }
     const trainingIds = [...new Set(body.credits.map((c) => c.trainingId))];
     if (trainingIds.length > 0) {
-      const found = await trx.selectFrom('trainings').select('id').where('id', 'in', trainingIds).execute();
-      if (found.length !== trainingIds.length) throw badRequest('없는 교육이 포함되어 있습니다.');
+      const found = await trx.selectFrom('trainings').select('id').where('id', 'in', trainingIds).where('deleted_at', 'is', null).execute();
+      if (found.length !== trainingIds.length) throw badRequest('없거나 삭제된 교육이 포함되어 있습니다. 교육을 복원하거나 다시 골라 주세요.');
     }
     await trx
       .updateTable('certificates')
@@ -167,6 +171,30 @@ export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
 
   app.get('/api/certificates', { preHandler: requireUser }, async (req): Promise<CertificateListItem[]> => {
     return listCertificates(db, ListQuery.parse(req.query), currentUser(req));
+  });
+
+  app.get('/api/certificates/reset-preview', { preHandler: requireUser }, async req => {
+    const { batchId } = ResetScope.parse(req.query);
+    return previewReviewReset(db, currentUser(req), batchId);
+  });
+
+  app.post('/api/certificates/reset-drafts', { preHandler: requireUser }, async req => {
+    const { batchId, token } = ResetScope.extend({ token: z.string().regex(/^[a-f0-9]{64}$/) }).parse(req.body);
+    const result = await resetReviewDrafts(db, currentUser(req), token, batchId);
+    await audit(db, req, 'certificate.reset-drafts', undefined, { batchId: batchId ?? null, ...result });
+    return result;
+  });
+
+  app.post('/api/certificates/bulk-exclude-preview', { preHandler: requireUser }, async req => {
+    return previewBulkExclude(db, currentUser(req), BulkConfirmBody.parse(req.body).ids);
+  });
+
+  app.post('/api/certificates/bulk-exclude', { preHandler: requireUser }, async req => {
+    const { ids, token, reason } = BulkExcludeBody.parse(req.body);
+    const { result, previous } = await bulkExclude(db, currentUser(req), ids, token, reason);
+    for (const item of previous) await audit(db, req, 'certificate.exclude', { type: 'certificate', id: item.id }, { reason, from: item.status, bulk: true });
+    await audit(db, req, 'certificate.bulk-exclude', undefined, { reason, ids: result.ids, excluded: result.excluded });
+    return result;
   });
 
   app.get('/api/certificates/:id', { preHandler: requireUser }, async (req): Promise<CertificateDetail> => {

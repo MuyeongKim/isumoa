@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { FileSpreadsheet, Search, UserPlus } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { FileSpreadsheet, Search, UserPlus, Trash2, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
@@ -8,13 +9,15 @@ import {
   type Department,
   type Employee,
   type EmployeeStatus,
+  type RosterTrashResult,
 } from '@shared/types.ts';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Field';
 import { Pager, Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Tag, type Tone } from '@/components/ui/Tag';
-import { api } from '@/lib/api';
+import { api, errorMessage } from '@/lib/api';
 import { formatNumber } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
 import { EmployeeDialog } from './EmployeeDialog';
@@ -32,15 +35,20 @@ type StatusFilter = EmployeeStatus | 'current' | 'all';
 
 export function EmployeesPage() {
   const me = useCurrentUser();
+  const queryClient = useQueryClient();
+  const isAdmin = me.role === 'admin';
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('current');
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<Employee | 'new' | null>(null);
+  const [trash, setTrash] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [confirming, setConfirming] = useState(false);
   const departmentId = Number(params.get('departmentId')) || null;
 
-  const employees = useQuery({ queryKey: ['employees'], queryFn: () => api.get<Employee[]>('/employees') });
+  const employees = useQuery({ queryKey: ['employees', { trash }], queryFn: () => api.get<Employee[]>(`/employees${trash ? '?trash=1' : ''}`) });
   const departments = useQuery({ queryKey: ['departments'], queryFn: () => api.get<Department[]>('/departments') });
 
   const filtered = useMemo(() => {
@@ -58,18 +66,37 @@ export function EmployeesPage() {
   const currentPage = Math.min(page, pageCount);
   const rows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const total = employees.data?.length ?? 0;
+  const chosen = filtered.filter(e => selected.has(e.id));
+  const allPageSelected = rows.length > 0 && rows.every(e => selected.has(e.id));
+  const remove = useMutation({
+    mutationFn: (ids: number[]) => api.post<RosterTrashResult>(`/employees/bulk-${trash ? 'restore' : 'delete'}`, { ids }),
+    onSuccess: result => {
+      toast.success(`직원 ${result.changed}명을 ${trash ? '복원했습니다.' : '휴지통으로 옮겼습니다.'}`);
+      setSelected(new Set()); setConfirming(false);
+      void queryClient.invalidateQueries();
+    },
+    onError: err => toast.error(errorMessage(err)),
+  });
+  function select(id: number, checked: boolean) {
+    setSelected(previous => { const next = new Set(previous); if (checked) next.add(id); else next.delete(id); return next; });
+  }
 
   return (
     <>
       <PageHeader
-        title="직원 명단"
+        title={trash ? '삭제한 직원' : '직원 명단'}
         description={
-          me.role === 'admin'
+          trash ? '삭제한 직원을 선택해 복원합니다. 부서와 함께 삭제했다면 부서를 먼저 복원해 주세요.' : me.role === 'admin'
             ? '이수 현황을 셀 직원 명단입니다. 인사 명단 엑셀을 올리면 한 번에 등록하고 바뀐 내용을 반영합니다.'
             : '담당 부서 직원 명단입니다. 새로 온 직원은 직접 추가할 수 있습니다.'
         }
         actions={
           <>
+            {isAdmin && <Button disabled={remove.isPending} onClick={() => { setTrash(!trash); setSelected(new Set()); setPage(1); setStatusFilter(trash ? 'current' : 'all'); }}>
+              {trash ? <RotateCcw className="size-4" aria-hidden /> : <Trash2 className="size-4" aria-hidden />}
+              {trash ? '직원 명단으로' : '삭제한 직원 보기'}
+            </Button>}
+            {!trash && <>
             <Button onClick={() => setEditing('new')}>
               <UserPlus className="size-4" aria-hidden />
               직원 추가
@@ -80,6 +107,7 @@ export function EmployeesPage() {
                 엑셀로 일괄 등록
               </Button>
             )}
+            </>}
           </>
         }
       />
@@ -92,6 +120,7 @@ export function EmployeesPage() {
             onChange={(e) => {
               setKeyword(e.target.value);
               setPage(1);
+              setSelected(new Set());
             }}
             placeholder="이름 또는 사번"
             className="pl-8"
@@ -108,6 +137,7 @@ export function EmployeesPage() {
             else next.delete('departmentId');
             setParams(next, { replace: true });
             setPage(1);
+            setSelected(new Set());
           }}
         >
           <option value="">{me.role === 'admin' ? '전체 부서' : '담당 부서 전체'}</option>
@@ -124,6 +154,7 @@ export function EmployeesPage() {
           onChange={(e) => {
             setStatusFilter(e.target.value as StatusFilter);
             setPage(1);
+            setSelected(new Set());
           }}
         >
           <option value="current">퇴직자 제외</option>
@@ -135,19 +166,28 @@ export function EmployeesPage() {
           ))}
         </Select>
       </div>
+      {isAdmin && <div className="mb-4 flex flex-wrap items-center gap-3 text-[14px]">
+        <span className="text-ink-soft" role="status">{chosen.length}명 선택</span>
+        <Button variant={trash ? 'secondary' : 'danger'} size="sm" disabled={!chosen.length} loading={remove.isPending}
+          onClick={() => trash ? remove.mutate(chosen.map(e => e.id)) : setConfirming(true)}>{trash ? '선택 복원' : '선택 삭제'}</Button>
+        {chosen.length > 0 && <Button size="sm" onClick={() => setSelected(new Set())}>선택 해제</Button>}
+        {allPageSelected && filtered.length > rows.length && filtered.length <= 1000 && chosen.length < filtered.length &&
+          <Button size="sm" onClick={() => setSelected(new Set(filtered.map(e => e.id)))}>검색 결과 {filtered.length}명 모두 선택</Button>}
+        <span className="text-[12.5px] text-ink-faint">{trash ? '부서도 삭제했다면 설정에서 부서를 먼저 복원해 주세요.' : '삭제한 직원의 이수증은 보관하며, 휴지통에서 복원할 수 있습니다.'}</span>
+      </div>}
 
       {employees.isPending ? (
         <LoadingRows />
       ) : total === 0 ? (
         <EmptyState
-          title="등록된 직원이 없습니다"
+          title={trash ? '삭제한 직원이 없습니다' : '등록된 직원이 없습니다'}
           description={
-            me.role === 'admin'
+            trash ? '삭제한 직원은 이곳에서 복원할 수 있습니다.' : me.role === 'admin'
               ? '인사 명단 엑셀(.xlsx)이나 CSV를 올리면 부서와 직원을 한 번에 등록합니다.'
               : '관리자가 인사 명단을 올리면 담당 부서 직원이 여기에 나타납니다.'
           }
           action={
-            me.role === 'admin' && (
+            !trash && me.role === 'admin' && (
               <Button variant="primary" onClick={() => navigate('/employees/import')}>
                 엑셀로 일괄 등록
               </Button>
@@ -159,6 +199,9 @@ export function EmployeesPage() {
           <Table>
             <thead>
               <tr>
+                {isAdmin && <Th className="w-12"><input type="checkbox" className="size-4 accent-navy" aria-label="이 페이지 직원 전체 선택" checked={allPageSelected}
+                  ref={el => { if (el) el.indeterminate = rows.some(e => selected.has(e.id)) && !allPageSelected; }}
+                  onChange={e => setSelected(previous => { const next = new Set(previous); rows.forEach(row => e.target.checked ? next.add(row.id) : next.delete(row.id)); return next; })} /></Th>}
                 <Th className="w-24">사번</Th>
                 <Th>성명</Th>
                 <Th>부서</Th>
@@ -174,6 +217,7 @@ export function EmployeesPage() {
             <tbody>
               {rows.map((e) => (
                 <Tr key={e.id} className={e.status === 'retired' ? 'text-ink-faint' : undefined}>
+                  {isAdmin && <Td><input type="checkbox" className="size-4 accent-navy" aria-label={`${e.name}${e.empNo ? ` (${e.empNo})` : ''} 선택`} checked={selected.has(e.id)} onChange={event => select(e.id, event.target.checked)} /></Td>}
                   <Td className="tabular-nums text-ink-soft">{e.empNo ?? '-'}</Td>
                   <Td className="font-medium">{e.name}</Td>
                   <Td>{e.departmentName ?? '-'}</Td>
@@ -184,19 +228,21 @@ export function EmployeesPage() {
                     <Tag tone={STATUS_TONES[e.status]}>{EMPLOYEE_STATUS_LABELS[e.status]}</Tag>
                   </Td>
                   <Td className="text-right whitespace-nowrap">
-                    <button
+                    {!trash && <button
                       type="button"
                       className="rounded px-2 py-1 text-[13px] text-link hover:bg-navy-soft"
                       onClick={() => setEditing(e)}
                     >
                       수정
-                    </button>
+                    </button>}
+                    {isAdmin && <button type="button" className="rounded px-2 py-1 text-[13px] text-seal hover:bg-seal-soft"
+                      onClick={() => { if (trash) remove.mutate([e.id]); else { setSelected(new Set([e.id])); setConfirming(true); } }}>{trash ? '복원' : '삭제'}</button>}
                   </Td>
                 </Tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <Td colSpan={8} className="py-10 text-center text-ink-faint">
+                  <Td colSpan={isAdmin ? 9 : 8} className="py-10 text-center text-ink-faint">
                     조건에 맞는 직원이 없습니다.
                   </Td>
                 </tr>
@@ -217,11 +263,15 @@ export function EmployeesPage() {
       )}
 
       <EmployeeDialog
+        key={editing === 'new' ? 'new' : (editing?.id ?? 'closed')}
         open={editing !== null}
         employee={editing === 'new' ? null : editing}
         departments={(departments.data ?? []).filter((d) => d.active)}
         onClose={() => setEditing(null)}
       />
+      <ConfirmDialog open={confirming} title="선택한 직원을 삭제할까요?"
+        description={<p>직원 {chosen.length}명을 휴지통으로 옮깁니다. 이수증과 과거 기록은 보관하고, 이수 현황·직원 매칭·내보내기에서는 제외합니다. 삭제한 직원 보기에서 복원할 수 있습니다.</p>}
+        confirmLabel="휴지통으로 이동" busy={remove.isPending} onClose={() => { if (!remove.isPending) setConfirming(false); }} onConfirm={() => remove.mutate(chosen.map(e => e.id))} />
     </>
   );
 }

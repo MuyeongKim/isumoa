@@ -80,6 +80,22 @@ describe('수식 안의 칸 주소', () => {
 });
 
 describe('양식 읽기', () => {
+  it('테두리가 없어도 연번만 이어진 빈 자리는 재사용하고 합계와 기존 내용은 보존한다', async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('제출');
+    ws.addRow(['연번', '부서', '성명', '청렴교육(시간)']);
+    ws.addRow([1]); ws.addRow([2]); ws.addRow(['합계']);
+    let a = await analyzeForm(Buffer.from(await wb.xlsx.writeBuffer()), TRAININGS);
+    expect(a.layout).toMatchObject({ dataFirst: 2, footerRow: 4 });
+    const result = await fillForm({ file: Buffer.from(await wb.xlsx.writeBuffer()), layout: a.layout, columns: a.columns, markStyle: 'ox', people: people(2), placeholders: {} });
+    const out = new ExcelJS.Workbook(); await out.xlsx.load(result as unknown as ArrayBuffer);
+    expect(out.worksheets[0].getCell('C2').value).toBe('직원1');
+    expect(out.worksheets[0].getCell('C3').value).toBe('직원2');
+    expect(out.worksheets[0].getCell('A4').value).toBe('합계');
+    ws.getCell('C3').value = '기존 내용';
+    a = await analyzeForm(Buffer.from(await wb.xlsx.writeBuffer()), TRAININGS);
+    expect(a.layout.footerRow).toBe(3);
+  });
   it('엑셀(.xlsx)이 아니면 거절', () => {
     expect(() => assertXlsx(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0, 0]), 'a.xls')).toThrow(/xlsx/);
     expect(() => assertXlsx(Buffer.from('PK\x03\x04'), 'a.xlsm')).toThrow(/매크로/);

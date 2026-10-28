@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { useEffect, useRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 import { cn } from '@/lib/format';
 
 const control =
@@ -58,10 +58,16 @@ export function Field({ label, htmlFor, required, hint, error, className, childr
 }
 
 /** 폼 위쪽에 보여주는 오류 상자 */
-export function FormError({ message }: { message: string | null }) {
+export function FormError({ message, attentionKey }: { message: string | null; attentionKey?: number }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!message) return;
+    ref.current?.focus({ preventScroll: true });
+    ref.current?.scrollIntoView({ block: 'nearest' });
+  }, [message, attentionKey]);
   if (!message) return null;
   return (
-    <p role="alert" className="animate-pop-in rounded-lg border border-seal/25 bg-seal-soft px-3.5 py-2.5 text-[13.5px] text-seal">
+    <p ref={ref} tabIndex={-1} role="alert" className="animate-pop-in rounded-lg border border-seal/25 bg-seal-soft px-3.5 py-2.5 text-[13.5px] text-seal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-seal">
       {message}
     </p>
   );

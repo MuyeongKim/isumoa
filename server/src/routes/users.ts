@@ -34,7 +34,7 @@ const IdParams = z.object({ id: z.coerce.number().int().positive() });
 
 async function assertDepartmentsExist(db: Kysely<DB>, ids: number[]) {
   if (ids.length === 0) return;
-  const found = await db.selectFrom('departments').select('id').where('id', 'in', ids).execute();
+  const found = await db.selectFrom('departments').select('id').where('id', 'in', ids).where('deleted_at', 'is', null).execute();
   if (found.length !== new Set(ids).size) throw badRequest('없는 부서가 포함되어 있습니다.');
 }
 
@@ -55,6 +55,7 @@ export async function userRoutes(app: FastifyInstance, { db }: Deps) {
       .selectFrom('user_departments as ud')
       .innerJoin('departments as d', 'd.id', 'ud.department_id')
       .select(['ud.user_id', 'd.id', 'd.name'])
+      .where('d.deleted_at', 'is', null)
       .orderBy('d.sort_order')
       .execute();
     const now = nowIso();

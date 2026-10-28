@@ -1,0 +1,425 @@
+{
+  "description": "추가 수료증 20개로 만든 회귀 자료. 이름·소속·증서번호·이수일은 가상값으로 치환. 현재 교육목록 밖 과정과 재발급 중복을 구분한다.",
+  "cases": [
+    {
+      "file": "report (6).pdf",
+      "text": "제 Z880000006-880000006 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 1 기 감염병 교육 [기본]\n       기 간 : 2026.02.12. ~ 2026.01.12.\n       상시학습인정시간 : 1시간 30분\n\n\n\n\n         위 사람은 행정안전부 가상지방자치인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 12일\n\n\n\n\n                 가상지방자치인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 1 기 감염병 교육 [기본]",
+        "provider": "가상지방자치인재개발원",
+        "certNo": "Z880000006-880000006",
+        "completedOn": "2026-01-12",
+        "hours": 1.5,
+        "hoursText": "1시간 30분",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "감염병 예방관리및위기대응",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (7).pdf",
+      "text": "제 Z880000007-880000007 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 정보공개제도 교육\n       기 간 : 2026.01.12. ~ 2026.01.12.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 12일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 정보공개제도 교육",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000007-880000007",
+        "completedOn": "2026-01-12",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "정보공개교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (8).pdf",
+      "text": "제 Z880000008-880000008 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 알기 쉬운 이해충돌방지법\n       기 간 : 2026.01.12. ~ 2026.01.12.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 12일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 알기 쉬운 이해충돌방지법",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000008-880000008",
+        "completedOn": "2026-01-12",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "이해충돌방지법",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (9).pdf",
+      "text": "제 Z880000009-880000009 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 생명지킴이교육 보고듣고말하기 2.0 기본편\n       기 간 : 2026.01.12. ~ 2026.01.12.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 12일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 생명지킴이교육 보고듣고말하기 2.0 기본편",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000009-880000009",
+        "completedOn": "2026-01-12",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "자살예방교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (10).pdf",
+      "text": "제 Z880000010-880000010 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 1 기 적극행정 법제 가이드라인 2.0(지방자치단체)\n       기 간 : 2026.02.12. ~ 2026.01.13.\n       상시학습인정시간 : 1시간\n\n\n\n\n         위 사람은 행정안전부 가상지방자치인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                         2026년 01월 13일\n\n\n\n\n                 가상지방자치인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 1 기 적극행정 법제 가이드라인 2.0(지방자치단체)",
+        "provider": "가상지방자치인재개발원",
+        "certNo": "Z880000010-880000010",
+        "completedOn": "2026-01-13",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "적극행정실천 교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (11).pdf",
+      "text": "제 Z880000011-880000011 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 1 기 청렴판단력 키우기\n       기 간 : 2026.01.15. ~ 2026.01.15.\n       상시학습인정시간 : 5시간\n\n\n\n\n       위 사람은 국민권익위원회 가상청렴교육원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 15일\n\n\n\n\n     국민권익위원회 가상청렴교육원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 1 기 청렴판단력 키우기",
+        "provider": "가상청렴교육원",
+        "certNo": "Z880000011-880000011",
+        "completedOn": "2026-01-15",
+        "hours": 5,
+        "hoursText": "5시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "청탁금지법등반부패·청렴교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (12).pdf",
+      "text": "제 Z880000012-880000012 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 긴급자동차 교통안전교육(정기)\n       기 간 : 2026.01.15. ~ 2026.01.15.\n       상시학습인정시간 : 2시간\n\n\n\n\n               위 사람은 소방청 가상중앙소방학교에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 15일\n\n\n\n\n                     가상중앙소방학교장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 긴급자동차 교통안전교육(정기)",
+        "provider": "가상중앙소방학교",
+        "certNo": "Z880000012-880000012",
+        "completedOn": "2026-01-15",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": null,
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (13).pdf",
+      "text": "제 Z880000013-880000013 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 장애인식개선교육 (인식의 새로고침)\n       기 간 : 2026.01.18. ~ 2026.01.18.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 18일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 장애인식개선교육 (인식의 새로고침)",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000013-880000013",
+        "completedOn": "2026-01-18",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "장애인식개선 교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (14).pdf",
+      "text": "제 Z880000014-880000014 호\n\n\n\n\n                     수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 2 기 아동학대 신고의무자 및 공공부문 아동학대\n             예방교육\n       기 간 : 2026.01.18. ~ 2026.01.18.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 01월 18일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                    ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 2 기 아동학대 신고의무자 및 공공부문 아동학대 예방교육",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000014-880000014",
+        "completedOn": "2026-01-18",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "아동학대 예방 교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (15).pdf",
+      "text": "제 Z880000015-880000015 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 1 기 생활안전구조\n       기 간 : 2026.02.01. ~ 2026.02.01.\n       상시학습인정시간 : 5시간\n\n\n\n\n               위 사람은 소방청 가상중앙소방학교에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 02월 01일\n\n\n\n\n                     가상중앙소방학교장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 1 기 생활안전구조",
+        "provider": "가상중앙소방학교",
+        "certNo": "Z880000015-880000015",
+        "completedOn": "2026-02-01",
+        "hours": 5,
+        "hoursText": "5시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": null,
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (16).pdf",
+      "text": "제 Z880000016-880000016 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 4 기 공무원이 알아야 할 정보보안 기초\n       기 간 : 2026.02.12. ~ 2026.02.12.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 02월 12일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 4 기 공무원이 알아야 할 정보보안 기초",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000016-880000016",
+        "completedOn": "2026-02-12",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": null,
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (17).pdf",
+      "text": "제 Z880000017-880000017 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 3 기 보고듣고말하기 2.0 기본편\n       기 간 : 2026.08.15. ~ 2026.03.01.\n       상시학습인정시간 : 2시간\n\n\n\n\n               위 사람은 소방청 가상중앙소방학교에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 03월 01일\n\n\n\n\n                     가상중앙소방학교장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 3 기 보고듣고말하기 2.0 기본편",
+        "provider": "가상중앙소방학교",
+        "certNo": "Z880000017-880000017",
+        "completedOn": "2026-03-01",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "자살예방교육",
+      "requiresReview": true,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (18).pdf",
+      "text": "제 Z880000018-880000018 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 8 기 통일미래비전과 과제\n       기 간 : 2026.03.04. ~ 2026.03.04.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 03월 04일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 8 기 통일미래비전과 과제",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000018-880000018",
+        "completedOn": "2026-03-04",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "통일의식 교육",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (19).pdf",
+      "text": "제 A990000006-900000006 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 8 기 2026 공직자 안보교육 (2025년 개발)\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 8 기 2026 공직자 안보교육 (2025년 개발)",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000006-900000006",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "공직자안보교육",
+      "requiresReview": false,
+      "duplicateOf": "report (5).pdf"
+    },
+    {
+      "file": "report (20).pdf",
+      "text": "제 A990000005-900000005 호\n\n\n\n\n                     수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 [Mobile 겸용] 사례로 알아보는 사업\n             성별영향평가\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                    ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 [Mobile 겸용] 사례로 알아보는 사업 성별영향평가",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000005-900000005",
+        "completedOn": "2026-04-06",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "성별영향평가",
+      "requiresReview": false,
+      "duplicateOf": "report (4).pdf"
+    },
+    {
+      "file": "report (21).pdf",
+      "text": "제 A990000004-900000004 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 [mobile겸용] 긴급복지지원 신고의무 교육\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 [mobile겸용] 긴급복지지원 신고의무 교육",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000004-900000004",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "긴급복지신고의무자교육",
+      "requiresReview": false,
+      "duplicateOf": "report (3).pdf"
+    },
+    {
+      "file": "report (22).pdf",
+      "text": "제 A990000003-900000003 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 인권의 이해 입문편\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 2시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 인권의 이해 입문편",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000003-900000003",
+        "completedOn": "2026-04-06",
+        "hours": 2,
+        "hoursText": "2시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "인권교육(도 조례)",
+      "requiresReview": true,
+      "duplicateOf": "report (2).pdf"
+    },
+    {
+      "file": "report (23).pdf",
+      "text": "제 Z880000023-880000023 호\n\n\n\n\n                     수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 [Mobile 겸용] 양성평등과 성인지 감수성\n             이해\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                    ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 [Mobile 겸용] 양성평등과 성인지 감수성 이해",
+        "provider": "가상광역시인재개발원",
+        "certNo": "Z880000023-880000023",
+        "completedOn": "2026-04-06",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "성인지 감수성",
+      "requiresReview": false,
+      "duplicateOf": null
+    },
+    {
+      "file": "report (24).pdf",
+      "text": "제 A990000002-900000002 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 9 기 평등한 일상, 폭력예방교육(일반)\n       기 간 : 2026.04.06. ~ 2026.04.06.\n       상시학습인정시간 : 4시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 04월 06일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 9 기 평등한 일상, 폭력예방교육(일반)",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000002-900000002",
+        "completedOn": "2026-04-06",
+        "hours": 4,
+        "hoursText": "4시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "4대 폭력예방교육",
+      "requiresReview": true,
+      "duplicateOf": "report (1).pdf"
+    },
+    {
+      "file": "report (25).pdf",
+      "text": "제 A990000001-900000001 호\n\n\n\n\n                      수 료 증\n\n       소 속 : 가상광역시 가상소방서\n       부 서 : 119구조대\n       직 급 : 소방교\n       성 명 : 홍길동\n       과 정 : 제 10 기 개인정보 안정성 확보조치\n       기 간 : 2026.05.07. ~ 2026.05.07.\n       상시학습인정시간 : 1시간\n\n\n\n\n           위 사람은 가상광역시 인재개발원에서\n       소정의 교육과정을 마쳤으므로 이 증을 수여합니다.\n\n\n\n\n                           2026년 05월 07일\n\n\n\n\n            가상광역시인재개발원장\n\n\n                                     ※ 본 수료증은 교육수료 증명용도로만 사용가능합니다.\n\f",
+      "expected": {
+        "personName": "홍길동",
+        "personBirth": null,
+        "personDept": "가상광역시 가상소방서 119구조대",
+        "courseTitle": "제 10 기 개인정보 안정성 확보조치",
+        "provider": "가상광역시인재개발원",
+        "certNo": "A990000001-900000001",
+        "completedOn": "2026-05-07",
+        "hours": 1,
+        "hoursText": "1시간",
+        "hoursInSessions": false,
+        "looksLikeCertificate": true,
+        "notes": []
+      },
+      "target": "개인정보보호 교육",
+      "requiresReview": false,
+      "duplicateOf": "report.pdf"
+    }
+  ]
+}

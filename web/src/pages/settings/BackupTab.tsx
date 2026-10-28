@@ -94,7 +94,7 @@ const FIELDS: { key: keyof RetentionSettings; label: string; unit: string; hint:
   { key: 'documentYears', label: '이수증 자료', unit: '년', hint: '원본 파일·쪽 이미지·이수 기록. 다음 해 1월 1일부터 셉니다. 기관 기록물 관리 지침에 맞추세요.' },
   { key: 'accessLogYears', label: '접속기록', unit: '년', hint: '최소 2년. 지나면 서버가 매일 스스로 지웁니다.' },
   { key: 'auditLogYears', label: '감사 로그', unit: '년', hint: '계정·권한 변경 이력이 들어 있어 최소 3년.' },
-  { key: 'backupKeep', label: 'DB 백업본', unit: '개', hint: '하루 1개씩 쌓이므로 30이면 30일치. 파기한 자료도 이 기간이 지나면 백업에서 사라집니다.' },
+  { key: 'backupKeep', label: 'DB 백업본', unit: '개', hint: '최근 DB 사본을 이 개수만큼 보관합니다. 수동 백업도 개수에 포함됩니다.' },
 ];
 
 function Retention({ view }: { view: RetentionView }) {

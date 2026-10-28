@@ -3,17 +3,15 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 
-# 아이콘을 여러 번 눌러도 서버는 한 번만 켜도록
-$mutex = New-Object System.Threading.Mutex($false, 'Local\IsumoaLaunch')
-try { $owned = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $owned = $true }
-if (-not $owned) { exit 0 }
-
+$gate = $null
 try {
+  $gate = Enter-DesktopOperation
   if (-not (Test-Server)) {
     if (-not (Test-Path -LiteralPath $ConfigFile)) {
-      Show-Message "설정 파일이 없습니다: $ConfigFile`n설치.bat을 다시 실행해 주세요." 'Error' | Out-Null
+      Show-Message "설정 파일이 없습니다: $ConfigFile`n이수모아 설치 EXE 또는 설치.bat을 다시 실행해 주세요." 'Error' | Out-Null
       exit 1
     }
+    Assert-DesktopStartAvailable
     $logDir = Join-Path $DataHome 'logs'
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     # 평소 기록은 logs\server-날짜.log에 남고, 켜지다 실패한 이유만 start-error.log에 남는다
@@ -44,6 +42,9 @@ try {
     }
   }
   Start-Process "http://127.0.0.1:$(Get-Port)/"
+} catch {
+  Show-Message $_.Exception.Message 'Error' | Out-Null
+  exit 1
 } finally {
-  $mutex.ReleaseMutex()
+  if ($null -ne $gate) { $gate.ReleaseMutex(); $gate.Dispose() }
 }

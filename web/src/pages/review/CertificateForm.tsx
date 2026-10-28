@@ -1,11 +1,14 @@
 import { CircleAlert, Info, TriangleAlert } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useOutletContext } from 'react-router';
 import type { CertificateDetail, CertificateFlag, CertificateInput, Employee, Training } from '@shared/types.ts';
+import { certificateInputKey, certificateInputOf } from '@shared/certificateInput.ts';
 import { ConfirmStamp } from '@/components/SealMark';
 import { Button } from '@/components/ui/Button';
 import { Field, FormError, Input } from '@/components/ui/Field';
 import { cn, formatDateTime, requirementText } from '@/lib/format';
 import { EmployeePicker } from './EmployeePicker';
+import type { EditGuard } from '@/lib/unsavedChanges';
 
 const FLAG_STYLE = {
   error: { icon: CircleAlert, className: 'border-seal/30 bg-seal-soft text-seal' },
@@ -40,10 +43,11 @@ function split(hours: string, count: number): string {
 }
 
 export interface FormActions {
-  save: (input: CertificateInput) => Promise<void>;
-  confirm: (input: CertificateInput) => Promise<void>;
-  exclude: () => void;
-  reopen: () => Promise<void>;
+  discard: (input: CertificateInput) => void;
+  save: (input: CertificateInput, next?: boolean) => Promise<boolean>;
+  confirm: (input: CertificateInput) => Promise<boolean>;
+  exclude: (input: CertificateInput, dirty: boolean) => void;
+  reopen: () => Promise<boolean>;
 }
 
 export function CertificateForm({
@@ -53,6 +57,9 @@ export function CertificateForm({
   busy,
   error,
   actions,
+  savedInput,
+  hasNext,
+  onDirtyChange,
 }: {
   detail: CertificateDetail;
   trainings: Training[];
@@ -60,7 +67,14 @@ export function CertificateForm({
   busy: boolean;
   error: string | null;
   actions: FormActions;
+  savedInput?: CertificateInput;
+  hasNext: boolean;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
+  const editGuard = useOutletContext<EditGuard>();
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  const initialInput = useRef(certificateInputOf(detail));
   const readOnly = detail.status !== 'draft';
   const [employeeId, setEmployeeId] = useState<number | null>(detail.employee?.id ?? null);
   const [credits, setCredits] = useState<Record<number, string>>(
@@ -106,9 +120,32 @@ export function CertificateForm({
     };
   }
 
+  const currentInput = input();
+  const inputKey = certificateInputKey(currentInput);
+  const dirty = !readOnly && inputKey !== certificateInputKey(savedInput ?? initialInput.current);
+
+  function discard() {
+    const saved = certificateInputOf(detail);
+    setEmployeeId(saved.employeeId);
+    setCredits(Object.fromEntries(saved.credits.map(c => [c.trainingId, c.creditedHours?.toString() ?? ''])));
+    setCompletedOn(saved.completedOn ?? ''); setHours(saved.hours?.toString() ?? '');
+    setYear(String(saved.year ?? detail.batchYear)); setCourseTitle(saved.courseTitle ?? '');
+    setProvider(saved.provider ?? ''); setCertNo(saved.certNo ?? '');
+    actions.discard(saved);
+  }
+
+  useEffect(() => {
+    // 성공한 깨끗한 입력은 보호를 해제한다. 실패 오류가 남으면 대기 중인 외부 이동을 자동 재개하지 않는다.
+    editGuard.setPendingEdits(!busy && !dirty && !error ? null : { dirty, busy, save: () => actions.save(currentInput), discard });
+  }, [editGuard, dirty, busy, error, inputKey, actions.save]);
+  // 저장 결과로 현재 행이 교체되는 동안에는 페이지의 요청 보호가 계속 유지되어야 한다.
+  useEffect(() => () => { if (!busyRef.current) editGuard.clearPendingEdits(); }, [editGuard]);
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!readOnly) void actions.confirm(input());
+    if (!readOnly && !busy) void actions.confirm(input());
   }
 
   const read = [detail.personName && `이름 ${detail.personName}`, detail.personBirth && `생년월일 ${detail.personBirth}`, detail.personDept && `소속 ${detail.personDept}`]
@@ -132,17 +169,20 @@ export function CertificateForm({
               </>
             ) : (
               <p className="text-[13.5px]">
-                <span className="font-medium">제외했습니다.</span> <span className="text-ink-soft">사유: {detail.excludeReason}</span>
+                <span className="font-medium">제외 완료 · 이수 현황에 합산하지 않습니다.</span> <span className="block text-ink-soft">사유: {detail.excludeReason}</span>
               </p>
             )}
           </div>
         )}
 
-        <FlagList flags={detail.flags} />
+        {readOnly ? detail.flags.length > 0 && <details className="rounded-lg border border-line bg-paper p-3 text-[13px]">
+          <summary className="cursor-pointer font-medium text-ink-soft">이전 검수 내용 {detail.flags.length}개 보기</summary>
+          <div className="mt-3"><FlagList flags={detail.flags} /></div>
+        </details> : <FlagList flags={detail.flags.filter(flag => flag.message !== error)} />}
         <FormError message={error} />
 
         <Field label="직원" required hint={read ? `이수증에서 읽은 값: ${read}` : '이수증에서 이름을 읽지 못했습니다.'}>
-          <EmployeePicker value={employeeId} employees={employees} candidates={detail.candidates} disabled={readOnly} onChange={setEmployeeId} />
+          <EmployeePicker value={employeeId} employees={employees} candidates={detail.candidates} disabled={readOnly || busy} onChange={setEmployeeId} />
         </Field>
 
         <fieldset>
@@ -160,7 +200,7 @@ export function CertificateForm({
                       type="checkbox"
                       className="size-4 accent-navy"
                       checked={checked}
-                      disabled={readOnly}
+                      disabled={readOnly || busy}
                       onChange={(e) => toggle(t.id, e.target.checked)}
                     />
                     <span className={cn('truncate', checked && 'font-medium')}>{t.name}</span>
@@ -172,9 +212,10 @@ export function CertificateForm({
                       <input
                         type="number"
                         min={0}
-                        step={0.5}
+                        max={1000}
+                        step="any"
                         value={credits[t.id]}
-                        disabled={readOnly}
+                        disabled={readOnly || busy}
                         onChange={(e) => setCredits({ ...credits, [t.id]: e.target.value })}
                         className="h-7 w-16 rounded border border-line-strong px-1.5 text-right text-[13px] tabular-nums disabled:bg-paper"
                         aria-label={`${t.name} 인정 시간`}
@@ -190,46 +231,52 @@ export function CertificateForm({
 
         <div className="grid grid-cols-3 gap-3">
           <Field label="이수일" htmlFor="f-date" required>
-            <Input id="f-date" value={completedOn} onChange={(e) => setCompletedOn(e.target.value)} placeholder="2026-03-31" disabled={readOnly} />
+            <Input id="f-date" value={completedOn} onChange={(e) => setCompletedOn(e.target.value)} placeholder="2026-03-31" disabled={readOnly || busy} />
           </Field>
           <Field label="교육시간" htmlFor="f-hours" hint={detail.hoursText && detail.hoursText !== hours ? `적힌 값: ${detail.hoursText}` : undefined}>
-            <Input id="f-hours" type="number" min={0} step={0.5} value={hours} onChange={(e) => changeHours(e.target.value)} disabled={readOnly} />
+            <Input id="f-hours" type="number" min={0} max={1000} step="any" value={hours} onChange={(e) => changeHours(e.target.value)} disabled={readOnly || busy} />
           </Field>
           <Field label="인정 연도" htmlFor="f-year">
-            <Input id="f-year" type="number" value={year} onChange={(e) => setYear(e.target.value)} disabled={readOnly} />
+            <Input id="f-year" type="number" value={year} onChange={(e) => setYear(e.target.value)} disabled={readOnly || busy} />
           </Field>
         </div>
         <Field label="과정명" htmlFor="f-course">
-          <Input id="f-course" value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)} disabled={readOnly} />
+            <Input id="f-course" value={courseTitle} maxLength={300} onChange={(e) => setCourseTitle(e.target.value)} disabled={readOnly || busy} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="교육기관" htmlFor="f-provider">
-            <Input id="f-provider" value={provider} onChange={(e) => setProvider(e.target.value)} disabled={readOnly} />
+            <Input id="f-provider" value={provider} maxLength={100} onChange={(e) => setProvider(e.target.value)} disabled={readOnly || busy} />
           </Field>
           <Field label="증서번호" htmlFor="f-certno">
-            <Input id="f-certno" value={certNo} onChange={(e) => setCertNo(e.target.value)} disabled={readOnly} />
+            <Input id="f-certno" value={certNo} maxLength={100} onChange={(e) => setCertNo(e.target.value)} disabled={readOnly || busy} />
           </Field>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+      <div className="mt-3 border-t border-line pt-2">
+        {!readOnly && <p role="status" className={cn('mb-2 text-[12.5px]', error ? 'font-medium text-seal' : dirty ? 'text-warn' : 'text-ink-faint')}>
+          {error ? '처리하지 못했습니다. 위의 오류를 확인해 주세요.' : dirty ? '저장하지 않은 수정값이 있습니다.' : savedInput ? '임시 저장됨 · 확정 전까지 현황에 반영하지 않습니다.' : '변경사항 없음 · ↑↓ 이동 / Ctrl+Enter 확정 / X 제외'}
+        </p>}
+        <div className="flex flex-wrap items-center gap-2">
         {readOnly ? (
           <Button onClick={() => void actions.reopen()} loading={busy}>
             검수 대기로 되돌리기
           </Button>
         ) : (
           <>
-            <Button variant="danger" onClick={actions.exclude} disabled={busy} title="단축키 X">
+            <Button id="certificate-exclude" size="sm" variant="danger" onClick={() => actions.exclude(input(), dirty)} disabled={busy} title="단축키 X">
               제외
             </Button>
-            <Button onClick={() => void actions.save(input())} disabled={busy} className="ml-auto">
-              저장
+            <Button size="sm" onClick={() => void actions.save(input())} disabled={busy} className="ml-auto">
+              임시 저장
             </Button>
-            <Button type="submit" variant="primary" loading={busy} title="단축키 Ctrl+Enter">
+            <Button size="sm" disabled={busy || !hasNext} title={hasNext ? '임시 저장한 뒤 다음 수료증으로 이동합니다' : '마지막 수료증입니다'} onClick={() => void actions.save(input(), true)}>저장하고 다음</Button>
+            <Button size="sm" type="submit" variant="primary" loading={busy} title="단축키 Ctrl+Enter">
               확정
             </Button>
           </>
         )}
+        </div>
       </div>
     </form>
   );

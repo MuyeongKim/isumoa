@@ -106,7 +106,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     desktop: Boolean(file.desktop ?? false),
     singleUser: file.singleUser === true,
     configPath: configPath && existsSync(configPath) ? configPath : null,
-    webDistDir: join(APP_ROOT, 'web', 'dist'),
+    webDistDir: path(env.WEB_DIST_DIR) ?? join(APP_ROOT, 'web', 'dist'),
   };
   assertSingleUserHost(config);
   return config;

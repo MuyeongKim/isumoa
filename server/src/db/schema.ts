@@ -10,6 +10,7 @@ export interface DepartmentsTable {
   sort_order: Generated<number>;
   active: Generated<number>;
   created_at: Generated<string>;
+  deleted_at: Generated<string | null>;
 }
 
 export interface UsersTable {
@@ -57,6 +58,8 @@ export interface EmployeesTable {
   note: string | null;
   created_at: Generated<string>;
   updated_at: Generated<string>;
+  deleted_at: Generated<string | null>;
+  deleted_department_id: Generated<number | null>;
 }
 
 export interface TrainingsTable {
@@ -76,6 +79,7 @@ export interface TrainingsTable {
   note: string | null;
   created_at: Generated<string>;
   updated_at: Generated<string>;
+  deleted_at: Generated<string | null>;
 }
 
 export interface ExemptionsTable {
@@ -158,6 +162,7 @@ export interface PagesTable {
   /** 어떤 OCR로 읽었는지 (kordoc / tesseract) */
   ocr_engine: string | null;
   created_at: Generated<string>;
+  review_generation: Generated<number>;
 }
 
 export interface CertificatesTable {
@@ -203,6 +208,7 @@ export interface CourseMappingsTable {
 }
 
 export interface JobsTable {
+  review_generation: Generated<number>;
   id: Generated<number>;
   kind: string;
   page_id: number;

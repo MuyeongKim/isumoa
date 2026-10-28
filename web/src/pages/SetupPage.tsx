@@ -47,7 +47,7 @@ export function SetupPage() {
     <AuthLayout orgName="">
       <h1 className="text-[26px] font-bold tracking-[-0.03em]">처음 설정</h1>
       <p className="mt-2 text-[13px] text-ink-soft">
-        기관 이름과 관리자 계정을 만듭니다. 서무 계정은 들어간 뒤 설정 화면에서 만듭니다.
+        기관 이름과 관리자 계정을 만듭니다. 관리자 한 계정으로 모든 부서를 관리할 수 있습니다.
       </p>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <FormError message={error} />

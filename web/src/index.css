@@ -111,33 +111,6 @@
   }
 }
 
-/* 화면 사이를 옮길 때 본문만 살짝 바뀐다 (메뉴는 그대로) */
-.view-main {
-  view-transition-name: main;
-}
-::view-transition-old(main) {
-  animation: 120ms ease-in both fade-out;
-}
-::view-transition-new(main) {
-  animation: 220ms var(--ease-out-quint) both rise-in;
-}
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
-
-@keyframes fade-out {
-  to {
-    opacity: 0;
-  }
-}
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
 /* 대시보드 직원 지도: 처음 열 때 칸이 차례로 찬다 (--i: 칸 순서) */
 @keyframes cell-in {
   from {

@@ -1,5 +1,8 @@
 import { X } from 'lucide-react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useOutletContext } from 'react-router';
+import type { EditGuard } from '@/lib/unsavedChanges';
+import { Button } from './Button';
 import { cn } from '@/lib/format';
 
 interface DialogProps {
@@ -9,13 +12,33 @@ interface DialogProps {
   description?: ReactNode;
   /** false면 바깥 클릭·Esc·닫기 버튼으로 닫을 수 없다 (예: 비밀번호 변경 강제) */
   dismissible?: boolean;
+  dirty?: boolean;
+  busy?: boolean;
+  onSave?: () => Promise<boolean>;
   width?: 'md' | 'lg';
   children: ReactNode;
 }
 
 /** 브라우저 기본 <dialog>를 쓰는 대화상자. 열릴 때마다 내용을 새로 그려서 입력값이 초기화된다 */
-export function Dialog({ open, onClose, title, description, dismissible = true, width = 'md', children }: DialogProps) {
+export function Dialog({ open, onClose, title, description, dismissible = true, dirty = false, busy = false, onSave, width = 'md', children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const guard = useOutletContext<EditGuard | undefined>();
+  const guarded = open && onSave !== undefined;
+  useLayoutEffect(() => {
+    if (!guarded) return;
+    guard?.setPendingEdits({ dirty, busy, save: onSave!, discard: onClose, saveDescription: '편집한 정보를 저장한 뒤 이동합니다.' });
+  }, [guarded, guard, dirty, busy, onSave, onClose]);
+  useEffect(() => {
+    if (!guarded) return;
+    return () => guard?.clearPendingEdits();
+  }, [guarded, guard]);
+  function requestClose() {
+    if (busy) return;
+    if (dirty) setDiscardOpen(true);
+    else onClose();
+  }
+
 
   useEffect(() => {
     const dialog = ref.current;
@@ -30,16 +53,16 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
-  return (
+  return (<>
     <dialog
       ref={ref}
       aria-label={title}
       onCancel={(e) => {
         e.preventDefault();
-        if (dismissible) onClose();
+        if (dismissible) requestClose();
       }}
       onClick={(e) => {
-        if (dismissible && e.target === ref.current) onClose();
+        if (dismissible && e.target === ref.current) requestClose();
       }}
       className={cn(
         'm-auto max-h-[calc(100vh-48px)] rounded-2xl border border-line/70 bg-sheet p-0 text-ink shadow-float',
@@ -53,10 +76,10 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
               <h2 className="text-[18px] font-bold">{title}</h2>
               {description && <div className="mt-1 text-[13.5px] text-ink-soft">{description}</div>}
             </div>
-            {dismissible && (
+            {dismissible && !busy && (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 className="-mt-0.5 -mr-2 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-ink/[0.06] hover:text-ink"
                 aria-label="닫기"
               >
@@ -68,7 +91,14 @@ export function Dialog({ open, onClose, title, description, dismissible = true, 
         </div>
       )}
     </dialog>
-  );
+    {dirty && <Dialog open={discardOpen} onClose={() => setDiscardOpen(false)} title="변경사항을 버릴까요?">
+      <p className="text-[14px] text-ink-soft">저장하지 않은 수정값이 있습니다. 계속 편집하거나 변경사항을 버리고 닫을 수 있습니다.</p>
+      <DialogActions>
+        <Button onClick={() => setDiscardOpen(false)} data-autofocus>계속 편집</Button>
+        <Button variant="danger" onClick={() => { setDiscardOpen(false); onClose(); }}>버리고 닫기</Button>
+      </DialogActions>
+    </Dialog>}
+  </>);
 }
 
 /** 대화상자 아래쪽 버튼 줄 */

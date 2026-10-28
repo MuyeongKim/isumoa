@@ -29,7 +29,7 @@ export interface Harness {
   config: AppConfig;
   /** 가짜 OCR이 돌려줄 글자 */
   ocr: { text: string };
-  send(method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, extra?: Record<string, string>): Promise<LightMyRequestResponse>;
+  send(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, payload?: unknown, extra?: Record<string, string>): Promise<LightMyRequestResponse>;
   uploadFile(batchId: number, file: Buffer, name: string, pageCount?: number): Promise<LightMyRequestResponse>;
   uploadPage(fileId: number, pageNo: number, text: string): Promise<number>;
   /** 대기열에 쌓인 쪽을 모두 처리한다 (실제 서버에서는 일꾼이 한다). 실패하면 일꾼처럼 다시 시도로 돌린다 */
@@ -106,8 +106,8 @@ export async function createHarness(overrides: Partial<AppConfig> = {}, extra: P
       const errors: string[] = [];
       for (let job = await claimNextJob(db); job; job = await claimNextJob(db)) {
         try {
-          await processPage({ db, dataDir, ocr }, job.page_id);
-          await finishJob(db, job.id);
+          await processPage({ db, dataDir, ocr }, job.page_id, job.review_generation);
+          await finishJob(db, job.id, job);
         } catch (err) {
           errors.push(err instanceof Error ? err.message : String(err));
           await failJob(db, job, errors.at(-1)!);

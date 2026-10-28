@@ -1,6 +1,8 @@
 // 이수증 글자(PDF 글자층 또는 OCR 결과)에서 성명·과정명·이수일·교육시간 등을 규칙으로 뽑는다.
-// AI 없이도 동작하는 기본 방식이고, AI를 쓸 때도 결과를 대조하는 데 쓴다.
+// PDF 글자층과 로컬 OCR이 같은 판독 규칙을 쓴다.
 // "성명 : 홍길동", "성 명   홍길동"처럼 "항목 이름 + 값" 형태를 찾는다.
+
+import type { CertificateFlag } from '../../../shared/types.ts';
 
 export interface ParsedCertificate {
   personName: string | null;
@@ -16,20 +18,22 @@ export interface ParsedCertificate {
   /** 교육시간이 차시 단위라 시간으로 바꾸지 못함 */
   hoursInSessions: boolean;
   looksLikeCertificate: boolean;
+  notes: CertificateFlag[];
 }
 
-type Field = 'name' | 'birth' | 'dept' | 'course' | 'period' | 'completed' | 'hours' | 'certNo' | 'provider';
+type Field = 'name' | 'birth' | 'org' | 'dept' | 'course' | 'period' | 'completed' | 'hours' | 'certNo' | 'provider';
 
 // 긴 이름을 먼저 둔다 ("교육과정명"이 "교육과정"보다 먼저 맞도록)
 const LABELS: [Field, string[]][] = [
-  ['course', ['교육과정명', '과정명', '교육과정', '교육명', '강좌명', '연수과정', '연수명']],
-  ['period', ['교육기간', '학습기간', '연수기간', '수강기간', '이수기간']],
+  ['course', ['교육과정명', '과정명', '교육과정', '교육명', '강좌명', '연수과정', '연수명', '과정']],
+  ['period', ['교육기간', '학습기간', '연수기간', '수강기간', '이수기간', '수료기간', '기간']],
   ['completed', ['이수일자', '수료일자', '교육일자', '이수일', '수료일', '교육일']],
-  ['hours', ['교육시간', '학습시간', '이수시간', '인정시간', '연수시간', '수강시간']],
+  ['hours', ['상시학습인정시간', '상시학습시간', '학습인정시간', '교육시간', '학습시간', '이수시간', '인정시간', '연수시간', '수강시간']],
   ['certNo', ['증서번호', '수료번호', '이수번호', '발급번호', '증명번호', '수료증번호']],
   ['provider', ['교육기관', '운영기관', '시행기관', '발급기관']],
   ['birth', ['생년월일']],
-  ['dept', ['소속기관', '소속부서', '소속', '부서']],
+  ['org', ['소속기관', '소속']],
+  ['dept', ['소속부서', '부서']],
   ['name', ['성명', '이름', '성함']],
 ];
 
@@ -109,10 +113,14 @@ function labelValues(line: string): [Field, string][] {
     const after = line.slice(end);
     // 문장 속 단어("위 교육과정을")가 아니라 항목 이름일 때만: 줄 맨 앞이거나 앞에 넓은 빈칸, 뒤에 콜론이나 빈칸
     const atStart = before.trim() === '';
-    const spacedBefore = /\s{2,}$|[|:]\s*$/.test(before);
-    const separatedAfter = /^\s*:|^\s+\S/.test(after);
+    const spacedBefore = /\s{2,}$|[|:]\s*$/.test(before) || (/\s$/.test(before) && /^\s*:/.test(after));
+    const separatedAfter = after.trim() === '' || /^\s*:|^\s+\S/.test(after);
+    // 짧은 머리글은 문장 속 "과정 안내" 등을 잘못 잡지 않도록 명시적인 구분이 있을 때만 쓴다.
+    const label = m[0].replace(/\s+/g, '');
+    const shortValue = label === '기간' ? /^\s+\d{4}\s*(?:[./-]|년)/.test(after) : /^\s+(?:제\s*)?\d+\s*기\s/.test(after);
+    if (['과정', '기간'].includes(label) && after.trim() !== '' && !/^\s*:|^\s{2,}\S/.test(after) && !shortValue) continue;
     if ((atStart || spacedBefore) && separatedAfter) {
-      found.push({ field: LABEL_FIELD.get(m[0].replace(/\s+/g, ''))!, start, end });
+      found.push({ field: LABEL_FIELD.get(label)!, start, end });
     }
   }
   return found.map((f, i) => [f.field, cleanValue(line.slice(f.end, found[i + 1]?.start ?? line.length))]);
@@ -134,7 +142,6 @@ function parseName(value: string): string | null {
 
 export function parseHours(value: string): { hours: number | null; text: string; sessions: boolean } | null {
   const session = /(\d+(?:\.\d+)?)\s*차시/.exec(value);
-  if (session) return { hours: null, text: session[0].replace(/\s+/g, ''), sessions: true };
   const hour = /(\d+(?:\.\d+)?)\s*(?:시간|hr|h|H)(?![가-힣])/.exec(value);
   const minute = /(\d+)\s*분/.exec(value);
   if (hour) {
@@ -142,6 +149,7 @@ export function parseHours(value: string): { hours: number | null; text: string;
     return { hours: Math.round(hours * 100) / 100, text: value.slice(hour.index, minute ? minute.index + minute[0].length : hour.index + hour[0].length).trim(), sessions: false };
   }
   if (minute) return { hours: Math.round((Number(minute[1]) / 60) * 100) / 100, text: minute[0], sessions: false };
+  if (session) return { hours: null, text: session[0].replace(/\s+/g, ''), sessions: true };
   return null;
 }
 
@@ -150,9 +158,33 @@ const PROVIDER_RE = /([가-힣A-Za-z0-9]{2,24}(?:원|센터|기관|연구소|학
 export function parseCertificateText(raw: string): ParsedCertificate {
   const lines = raw.split(/\r?\n/).map(cleanLine).map(unglue).filter((l) => l !== '');
   const values = new Map<Field, string>();
-  for (const line of lines) {
-    for (const [field, value] of labelValues(line)) {
-      if (value !== '' && !values.has(field)) values.set(field, value);
+  const notes: CertificateFlag[] = [];
+  let pending: Field | null = null;
+  for (const original of lines) {
+    // 일부 PDF 변환기는 같은 줄의 값 뒤에 머리글을 붙인다. 기수로 시작하는 명확한 경우만 복구한다.
+    const line = original.replace(/^(제\s*\d+\s*기\s*.+?)\s*(?:과\s*정\s*명|과\s*정)\s*:\s*$/, '과정 : $1');
+    if (line !== original && !notes.some(note => note.code === 'reading-order-recovered')) notes.push({ code: 'reading-order-recovered', level: 'warning', message: 'PDF 글자 순서가 뒤바뀐 과정명 항목을 복구했습니다. 원본과 대조해 주세요.' });
+    const pairs = labelValues(line);
+    if (pairs.length) {
+      pending = null;
+      for (const [index, [field, value]] of pairs.entries()) {
+        if (values.has(field)) continue;
+        if (value !== '') values.set(field, value);
+        if (index === pairs.length - 1 && (field === 'course' || value === '')) pending = field;
+      }
+    } else if (pending) {
+      // 과정명이 다음 줄로 이어질 수 있다. 다른 항목·증명 문구·날짜·기관장 이름에서 멈춘다.
+      const boundary = /^[가-힣A-Za-z\s]{1,20}\s*:|^(?:위\s*사람|상기|소정|성실히|본\s*수료증|※|https?:\/\/)/.test(line) ||
+        findDates(line).length > 0 || PROVIDER_RE.test(line) || /^(?:수\s*료\s*증|이\s*수\s*증)$/.test(line);
+      if (boundary) { pending = null; continue; }
+      if (pending === 'course') {
+        const joined = [values.get('course'), cleanValue(line)].filter(Boolean).join(' ');
+        if (joined.length <= 300) values.set('course', joined);
+        else pending = null;
+      } else {
+        values.set(pending, cleanValue(line));
+        pending = null;
+      }
     }
   }
   const text = lines.join('\n');
@@ -168,11 +200,12 @@ export function parseCertificateText(raw: string): ParsedCertificate {
     if (period.length >= 2) completedOn = period.at(-1)!;
   }
   if (!completedOn) {
-    const dateOnly = lines.find((l) => /^\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일\.?$/.test(l.replace(/[^\d년월일\s.]/g, '').trim()));
+    const dateOnly = lines.find(l => findDates(l).length === 1 && l.replace(DATE_RE, '').replace(/[\s_.·-]/g, '') === '');
     completedOn = dateOnly ? (findDates(dateOnly)[0] ?? null) : null;
   }
   if (!completedOn) {
     completedOn = findDates(text).filter((d) => d !== personBirth).sort().at(-1) ?? null;
+    if (completedOn) notes.push({ code: 'date-inferred', level: 'warning', message: '이수일·교육기간 항목을 확인하지 못해 문서의 날짜를 사용했습니다. 원본과 대조해 주세요.' });
   }
 
   // 교육시간: 시간 항목 → 글 속의 "(2시간)" 같은 표기
@@ -191,11 +224,16 @@ export function parseCertificateText(raw: string): ParsedCertificate {
   const provider = values.get('provider') ?? (providerLine ? PROVIDER_RE.exec(providerLine)![1] : null);
 
   const courseTitle = values.get('course') ?? null;
-  const hasCertificateWords = /수\s*료|이\s*수|증\s*서|증\s*명/.test(text);
+  const org = values.get('org');
+  const dept = values.get('dept');
+  const personDept = org && dept ? (org.replace(/\s/g, '').includes(dept.replace(/\s/g, '')) ? org : `${org} ${dept}`) : org ?? dept ?? null;
+  const hasCertificateHeading = lines.some(line => /^(?:(?:교\s*육|연\s*수|학\s*습)\s*)?(?:수\s*료\s*증|이\s*수\s*증|(?:수\s*료|이\s*수)\s*확\s*인\s*서)\s*[.!]?$/.test(line));
+  const completedStatement = /이수하였|이수했|수료하였|수료했|교육과정을마쳤|교육을마쳤|교육을완료하였/.test(text.replace(/\s/g, ''));
+  const identifiedEvidence = certNo !== null && provider !== null && personName !== null && courseTitle !== null;
   return {
     personName,
     personBirth,
-    personDept: values.get('dept') ?? null,
+    personDept,
     courseTitle,
     provider,
     certNo,
@@ -203,7 +241,8 @@ export function parseCertificateText(raw: string): ParsedCertificate {
     hours: hoursInfo?.hours ?? null,
     hoursText: hoursInfo?.text ?? null,
     hoursInSessions: hoursInfo?.sessions ?? false,
-    looksLikeCertificate: hasCertificateWords && completedOn !== null && (personName !== null || courseTitle !== null),
+    looksLikeCertificate: (hasCertificateHeading || completedStatement || identifiedEvidence) && completedOn !== null && (personName !== null || courseTitle !== null),
+    notes,
   };
 }
 

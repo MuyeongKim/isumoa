@@ -160,7 +160,6 @@ describe('백업과 복원', () => {
     expect(first.snapshots).toHaveLength(1);
     expect(readdirSync(join(backupDir, 'db')).some((f) => f.endsWith('.json'))).toBe(true);
 
-    await new Promise((r) => setTimeout(r, 1100)); // 사본 이름이 초 단위라서
     const second = (await h.send('POST', '/api/backups/run')).json() as BackupStatus;
     expect(second.last).toMatchObject({ ok: true, copiedFiles: 0 });
     expect(second.snapshots).toHaveLength(2);
@@ -193,7 +192,7 @@ describe('시스템 점검', () => {
     expect(sys.backup?.ok).toBe(true);
     expect(sys.warnings.some((w) => w.includes('같은 디스크'))).toBe(true); // 테스트는 임시 폴더라 같은 디스크
     const health = await h.app.inject({ method: 'GET', url: '/api/health' });
-    expect(health.json()).toEqual({ ok: true, version: 'test' });
+    expect(health.json()).toEqual({ ok: true, application: 'isumoa', protocol: 1, version: 'test' });
   });
 });
 

@@ -8,6 +8,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  confirmVariant = 'primary',
   busy = false,
   onConfirm,
   onClose,
@@ -16,16 +17,17 @@ export function ConfirmDialog({
   title: string;
   description: ReactNode;
   confirmLabel: string;
+  confirmVariant?: 'primary' | 'danger';
   busy?: boolean;
   onConfirm: () => void;
   onClose: () => void;
 }) {
   return (
-    <Dialog open={open} onClose={onClose} title={title}>
+    <Dialog open={open} onClose={onClose} title={title} dismissible={!busy}>
       <div className="text-[14px] text-ink-soft">{description}</div>
       <DialogActions>
-        <Button onClick={onClose}>취소</Button>
-        <Button variant="primary" loading={busy} onClick={onConfirm} data-autofocus>
+        <Button disabled={busy} onClick={onClose} data-autofocus={confirmVariant === 'danger' || undefined}>취소</Button>
+        <Button variant={confirmVariant} loading={busy} onClick={onConfirm} data-autofocus={confirmVariant === 'primary' || undefined}>
           {confirmLabel}
         </Button>
       </DialogActions>

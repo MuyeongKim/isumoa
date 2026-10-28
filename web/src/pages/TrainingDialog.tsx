@@ -1,8 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { toast } from 'sonner';
 import type { ReqType, Training } from '@shared/types.ts';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/Button';
 import { Dialog, DialogActions } from '@/components/ui/Dialog';
 import { Field, FormError, Input, Textarea } from '@/components/ui/Field';
@@ -64,16 +65,20 @@ function yearOrNull(value: FormDataEntryValue | null): number | null {
   return value && Number.isInteger(n) ? n : null;
 }
 
-export function TrainingDialog({ open, training, onClose }: { open: boolean; training: Training | null; onClose: () => void }) {
+export function TrainingDialog({ open, training, onClose, onImport }: { open: boolean; training: Training | null; onClose: () => void; onImport?: () => void }) {
   const queryClient = useQueryClient();
   const [reqType, setReqType] = useState<ReqType>(training?.reqType ?? 'count');
   const [keywords, setKeywords] = useState<string[]>(training?.keywords ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [dirty, setDirty] = useState(false);
+  const [confirmImport, setConfirmImport] = useState(false);
+  async function save(): Promise<boolean> {
+    if (savingRef.current || !formRef.current?.reportValidity()) return false;
+    const form = new FormData(formRef.current);
 
-  async function submit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
     const body = {
       name: String(form.get('name')),
       category: String(form.get('category') ?? '').trim() || null,
@@ -85,6 +90,7 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
       toYear: yearOrNull(form.get('toYear')),
       note: String(form.get('note') ?? '').trim() || null,
     };
+    savingRef.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -93,18 +99,27 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
       toast.success(training ? `${body.name}을(를) 저장했습니다.` : `${body.name}을(를) 추가했습니다.`);
       await queryClient.invalidateQueries({ queryKey: ['trainings'] });
       await queryClient.invalidateQueries({ queryKey: ['overview'] });
+      setDirty(false);
       onClose();
+      return true;
     } catch (err) {
       setError(errorMessage(err));
+      return false;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
-  return (
-    <Dialog open={open} onClose={onClose} title={training ? '교육 과정 수정' : '교육 과정 추가'} width="lg">
-      <form onSubmit={submit} className="space-y-4">
+  function submit(e: FormEvent<HTMLFormElement>) { e.preventDefault(); void save(); }
+  function requestClose() { formRef.current?.closest('dialog')?.dispatchEvent(new Event('cancel', { cancelable: true })); }
+
+  return (<>
+    <Dialog open={open} onClose={onClose} title={training ? '교육 기준 수정' : '교육 기준 추가'} width="lg" dirty={dirty} busy={saving} onSave={save}>
+      <form ref={formRef} onSubmit={submit} onChange={() => setDirty(true)} className="space-y-4">
+        <fieldset disabled={saving} className="space-y-4">
         <FormError message={error} />
+        {!training && onImport && <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-paper p-3 text-[13px] text-ink-soft"><span>교육 목록이 담긴 문서나 JPG·JPEG·PNG 사진이 있나요?</span><Button size="sm" onClick={() => dirty ? setConfirmImport(true) : onImport()}>교육 기준표 가져오기</Button></div>}
         <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
           <Field label="교육 이름" htmlFor="tr-name" required>
             <Input id="tr-name" name="name" defaultValue={training?.name} required autoFocus />
@@ -125,8 +140,9 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
             <Input
               name="reqValue"
               type="number"
-              min={0.5}
-              step={0.5}
+              min={reqType === 'count' ? 1 : 0.01}
+              max={1000}
+              step={reqType === 'count' ? 1 : 'any'}
               defaultValue={training?.reqValue ?? 1}
               required
               className="w-20"
@@ -144,7 +160,7 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
                   type="button"
                   role="radio"
                   aria-checked={reqType === value}
-                  onClick={() => setReqType(value)}
+                  onClick={() => { setReqType(value); setDirty(true); }}
                   className={cn('h-10 px-4 text-[14.5px] font-semibold transition-colors', reqType === value ? 'bg-navy text-white' : 'bg-sheet hover:bg-paper')}
                 >
                   {label}
@@ -159,9 +175,9 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
         </fieldset>
         <Field
           label="인식 키워드"
-          hint="이수증의 과정명에 이 단어가 있으면 이 교육으로 분류합니다. 띄어쓰기는 무시합니다. 여러 교육에 같은 단어를 넣으면 통합과정 한 장으로 함께 인정합니다."
+          hint="이수증의 과정명에 이 단어가 있으면 이 교육으로 분류합니다. 띄어쓰기는 무시합니다. ‘긴급·안전·교육’처럼 여러 주제에 겹치는 단어만으로는 자동 분류하지 않습니다. 여러 교육에 같은 단어를 넣으면 통합과정 한 장으로 함께 인정합니다."
         >
-          <KeywordInput value={keywords} onChange={setKeywords} />
+          <KeywordInput value={keywords} onChange={value => { setKeywords(value); setDirty(true); }} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="적용 시작 연도" htmlFor="tr-from" hint="비워 두면 제한 없음">
@@ -175,12 +191,14 @@ export function TrainingDialog({ open, training, onClose }: { open: boolean; tra
           <Textarea id="tr-note" name="note" defaultValue={training?.note ?? ''} rows={2} />
         </Field>
         <DialogActions>
-          <Button onClick={onClose}>취소</Button>
+          <Button disabled={saving} onClick={requestClose}>취소</Button>
           <Button type="submit" variant="primary" loading={saving}>
             {training ? '저장' : '추가'}
           </Button>
         </DialogActions>
+        </fieldset>
       </form>
     </Dialog>
-  );
+    <ConfirmDialog open={confirmImport} title="입력을 버리고 기준표를 가져올까요?" description="직접 입력한 내용은 저장되지 않습니다. 계속 편집하려면 취소하세요." confirmLabel="버리고 기준표 가져오기" confirmVariant="danger" onClose={() => setConfirmImport(false)} onConfirm={() => { setConfirmImport(false); onImport?.(); }} />
+  </>);
 }

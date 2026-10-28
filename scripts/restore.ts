@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { copyFileSync, createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { readdir, stat } from 'node:fs/promises';
@@ -9,6 +8,7 @@ import { loadConfig } from '../server/src/config.ts';
 import { openDatabase } from '../server/src/db/sqlite.ts';
 import { verifyChain } from '../server/src/lib/logChain.ts';
 import { checkSnapshot, listSnapshots } from '../server/src/ops/backup.ts';
+import { fileHash as sha256, snapshotAssets, verifyAssets } from '../server/src/ops/backupAssets.ts';
 
 // 백업 복원과 복원 연습.
 //   npm run restore -- --list                  백업 목록
@@ -55,19 +55,15 @@ if (!chosen) fail(`백업이 없습니다: ${join(config.backupDir, 'db')}`);
 const snapshotPath = join(config.backupDir, 'db', chosen);
 if (!existsSync(snapshotPath)) fail(`백업 파일이 없습니다: ${snapshotPath}`);
 
-async function sha256(file: string): Promise<string> {
-  const hash = createHash('sha256');
-  for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
-  return hash.digest('hex');
-}
-
 /** 백업본 검사: 체크섬, SQLite 무결성, 감사 로그·접속기록 이어짐, 원본 파일이 백업 폴더에 있는지 */
 async function check(): Promise<boolean> {
   console.log(`검사할 백업: ${snapshotPath}`);
   let ok = true;
+  let assetChecksums: unknown;
   const manifestPath = snapshotPath.replace(/\.db$/, '.json');
   if (existsSync(manifestPath)) {
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { sha256: string };
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { sha256: string; assets?: unknown };
+    assetChecksums = manifest.assets;
     const same = (await sha256(snapshotPath)) === manifest.sha256;
     console.log(`  체크섬(SHA-256)       ${same ? '일치' : '불일치 — 백업 뒤에 파일이 바뀌었습니다'}`);
     ok &&= same;
@@ -93,13 +89,14 @@ async function check(): Promise<boolean> {
       console.log(`  ${label}      ${chain.ok ? `정상 (${chain.checked}건)` : `이상: #${chain.brokenAt} ${chain.problem}`}`);
       ok &&= chain.ok;
     }
-    const files = await db.selectFrom('files').select(['id', 'stored_name', 'page_count']).execute();
-    const pages = await db.selectFrom('pages').select(['file_id', 'page_no']).execute();
-    const missingFiles = files.filter((f) => !existsSync(join(config.backupDir, 'files', f.stored_name))).length;
-    const missingPages = pages.filter((p) => !existsSync(join(config.backupDir, 'pages', String(p.file_id), `${p.page_no}.jpg`))).length;
-    console.log(`  백업 폴더의 원본 파일  ${missingFiles === 0 ? '모두 있음' : `${missingFiles}개 없음`} · 쪽 이미지 ${missingPages === 0 ? '모두 있음' : `${missingPages}개 없음`}`);
-    // 사본보다 나중에 파기한 자료는 파일이 없을 수 있다 (경고만)
     await db.destroy();
+    const assets = await snapshotAssets(snapshotPath, config.backupDir);
+    if (assetChecksums !== undefined) {
+      verifyAssets(assets, assetChecksums);
+      console.log(`  원본·쪽·미리보기 체크섬  정상 (${assets.length}개)`);
+    } else {
+      console.log('  원본 체크섬·쪽 존재     정상 (이전 백업은 쪽 이미지 체크섬이 없어 원본 대조가 필요합니다)');
+    }
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
@@ -112,14 +109,15 @@ async function copyMissing(source: string, target: string): Promise<number> {
   let entries: string[] = [];
   try {
     entries = await readdir(source, { recursive: true });
-  } catch {
-    return 0;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 0;
+    throw error;
   }
   for (const rel of entries) {
     const from = join(source, rel);
     if (!(await stat(from)).isFile()) continue;
     const to = join(target, rel);
-    if (existsSync(to) && (await stat(to)).size === (await stat(from)).size) continue;
+    if (existsSync(to) && (await stat(to)).size === (await stat(from)).size && await sha256(to) === await sha256(from)) continue;
     mkdirSync(dirname(to), { recursive: true });
     copyFileSync(from, to);
     n++;
@@ -127,17 +125,21 @@ async function copyMissing(source: string, target: string): Promise<number> {
   return n;
 }
 
-function serverRunning(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = connect({ host: '127.0.0.1', port: config.port });
+async function serverRunning(): Promise<boolean> {
+  const hosts = [...new Set(['127.0.0.1', '::1', ...(!['0.0.0.0', '::'].includes(config.host) ? [config.host] : [])])];
+  const attempts = hosts.map(host => new Promise<boolean>(resolve => {
+    const socket = connect({ host, port: config.port });
     socket.setTimeout(1000);
-    socket.once('connect', () => (socket.destroy(), resolve(true)));
-    socket.once('timeout', () => (socket.destroy(), resolve(false)));
+    socket.once('connect', () => { socket.destroy(); resolve(true); });
+    socket.once('timeout', () => { socket.destroy(); resolve(false); });
     socket.once('error', () => resolve(false));
-  });
+  }));
+  return (await Promise.all(attempts)).some(Boolean);
 }
 
-const healthy = await check();
+let healthy: boolean;
+try { healthy = await check(); }
+catch (error) { fail(`백업 검사 실패: ${error instanceof Error ? error.message : String(error)}`); }
 if (args.check) process.exit(healthy ? 0 : 1);
 
 // 실제 복원 ────────────────────────────────────────────────
@@ -147,16 +149,27 @@ if (await serverRunning()) fail(`서버가 실행 중입니다(포트 ${config.p
 
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 const keep = join(config.dataDir, `restore-before-${stamp}`);
-mkdirSync(keep, { recursive: true });
-for (const name of ['app.db', 'app.db-wal', 'app.db-shm']) {
-  const from = join(config.dataDir, name);
-  if (existsSync(from)) renameSync(from, join(keep, name));
-}
-copyFileSync(snapshotPath, join(config.dataDir, 'app.db'));
+mkdirSync(config.dataDir, { recursive: true });
+const staged = join(config.dataDir, `restore-staged-${stamp}.db`);
 let copied = 0;
-// 백업에 있는 원본 파일·쪽 이미지를 데이터 폴더로 (데이터 폴더에만 있는 파일은 지우지 않는다)
-for (const folder of ['files', 'pages']) copied += await copyMissing(join(config.backupDir, folder), join(config.dataDir, folder));
-
+const moved: string[] = [];
+let restoreError: unknown;
+try {
+  // 필요한 파일 복사와 DB 사본 준비가 끝나야 기존 DB를 교체한다.
+  for (const folder of ['files', 'pages']) copied += await copyMissing(join(config.backupDir, folder), join(config.dataDir, folder));
+  copyFileSync(snapshotPath, staged);
+  if (await sha256(staged) !== await sha256(snapshotPath)) throw new Error('복사한 DB 사본의 체크섬이 다릅니다.');
+  mkdirSync(keep, { recursive: true });
+  for (const name of ['app.db', 'app.db-wal', 'app.db-shm']) {
+    const from = join(config.dataDir, name);
+    if (existsSync(from)) { renameSync(from, join(keep, name)); moved.push(name); }
+  }
+  renameSync(staged, join(config.dataDir, 'app.db'));
+} catch (error) {
+  for (const name of moved.reverse()) renameSync(join(keep, name), join(config.dataDir, name));
+  restoreError = error;
+} finally { rmSync(staged, { force: true }); }
+if (restoreError) fail(`복원을 마치지 못했습니다. 기존 DB는 유지됩니다. ${restoreError instanceof Error ? restoreError.message : String(restoreError)}`);
 console.log(`\n✔ 복원했습니다: ${chosen}`);
 console.log(`  원래 DB는 ${keep} 에 옮겨 두었습니다.`);
 console.log(`  백업에서 되살린 파일 ${copied}개`);

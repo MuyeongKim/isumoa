@@ -15,11 +15,13 @@ function gb(bytes: number | null): string {
 export function SystemTab() {
   const { data } = useQuery({ queryKey: ['system'], queryFn: () => api.get<SystemCheck>('/system') });
   if (!data) return <LoadingRows />;
+  const addressHost = ['0.0.0.0', '::'].includes(data.host) ? '서버 IP'
+    : data.host.includes(':') && !data.host.startsWith('[') ? `[${data.host}]` : data.host;
 
   const rows: [string, string][] = [
     ['버전', `v${data.version} · Node ${data.node} · ${data.platform}`],
     ['서버 시작', formatDateTime(data.startedAt)],
-    ['접속 주소', `${data.https ? 'https' : 'http'}://${data.host === '0.0.0.0' ? '서버 IP' : data.host}:${data.port}`],
+    ['접속 주소', `${data.https ? 'https' : 'http'}://${addressHost}:${data.port}`],
     ['HTTPS', data.https ? '켜짐 (이 서버가 인증서로 암호화)' : '꺼짐'],
     ['쿠키 Secure 표시', data.cookieSecure ? '켜짐' : '꺼짐'],
     ['데이터 폴더', data.dataDir],

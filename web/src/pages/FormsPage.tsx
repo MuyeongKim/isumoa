@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Download, FileSpreadsheet, FileUp, Pencil, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useOutletContext } from 'react-router';
 import { toast } from 'sonner';
 import {
   FORM_MARK_STYLES,
@@ -25,6 +25,7 @@ import {
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
 import { Button, buttonClass } from '@/components/ui/Button';
+import { Dialog, DialogActions } from '@/components/ui/Dialog';
 import { Field, FormError, Input, Select } from '@/components/ui/Field';
 import { Table, Td, Th, Tr } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
@@ -32,6 +33,7 @@ import { api, errorMessage } from '@/lib/api';
 import { withBase } from '@/lib/base';
 import { cn, formatDateTime } from '@/lib/format';
 import { useCurrentUser } from '@/lib/session';
+import type { EditGuard } from '@/lib/unsavedChanges';
 
 // 제출 양식: 기관·부서가 정한 엑셀 양식을 올려 자리와 열을 맞춰 두면, 내보내기에서 그 양식에 채워 받는다.
 
@@ -104,6 +106,7 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
 function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: FormTemplate | null; onClose: () => void }) {
   const me = useCurrentUser();
   const queryClient = useQueryClient();
+  const editGuard = useOutletContext<EditGuard>();
   const [analysis, setAnalysis] = useState(initial);
   const [layout, setLayout] = useState<FormLayout>(form?.layout ?? initial.layout);
   // 저장한 양식을 고칠 때는 저장해 둔 열 설정을 쓴다 (머리글 이름은 다시 읽은 것으로)
@@ -118,6 +121,14 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
   const [departmentId, setDepartmentId] = useState<number | null>(form ? form.departmentId : me.role === 'admin' ? null : (me.departments[0]?.id ?? null));
   const [busy, setBusy] = useState<'detect' | 'save' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorAttempt, setErrorAttempt] = useState(0);
+  const [closeConfirm, setCloseConfirm] = useState(false);
+  const busyRef = useRef(false);
+  const savedFormRef = useRef(form);
+  const values = { name: name.normalize('NFC').replace(/\s+/g, ' ').trim(), departmentId, layout, columns, markStyle };
+  const valuesKey = JSON.stringify(values);
+  const savedKey = useRef<string | null>(form ? valuesKey : null);
+  const dirty = savedKey.current === null || savedKey.current !== valuesKey;
 
   const trainings = useQuery({ queryKey: ['trainings'], queryFn: () => api.get<Training[]>('/trainings') });
   const departments = useQuery({ queryKey: ['departments'], queryFn: () => api.get<Department[]>('/departments') });
@@ -129,11 +140,14 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
   });
 
   async function detect(overrides: Partial<FormLayout>) {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy('detect');
     setError(null);
+    setErrorAttempt(n => n + 1);
     try {
       const next = await api.post<FormAnalysis>('/forms/reanalyze', {
-        ...(form ? { formId: form.id } : { uploadId: analysis.uploadId }),
+        ...(savedFormRef.current ? { formId: savedFormRef.current.id } : { uploadId: analysis.uploadId }),
         ...overrides,
       });
       setAnalysis(next);
@@ -142,25 +156,56 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
     } catch (err) {
       setError(errorMessage(err));
     } finally {
+      busyRef.current = false;
       setBusy(null);
     }
   }
 
-  async function save() {
+  async function save(close = true): Promise<boolean> {
+    if (busyRef.current) return false;
+    setErrorAttempt(n => n + 1);
+    if (!name.trim()) { setError('양식 이름을 적어 주세요.'); return false; }
+    busyRef.current = true;
     setBusy('save');
     setError(null);
     try {
-      const body = { name, departmentId, layout, columns, markStyle };
-      if (form) await api.put(`/forms/${form.id}`, body);
-      else await api.post('/forms', { ...body, uploadId: analysis.uploadId });
+      const saved = savedFormRef.current
+        ? await api.put<FormTemplate>(`/forms/${savedFormRef.current.id}`, values)
+        : await api.post<FormTemplate>('/forms', { ...values, uploadId: analysis.uploadId });
+      savedFormRef.current = saved;
+      savedKey.current = valuesKey;
       await queryClient.invalidateQueries({ queryKey: ['forms'] });
       toast.success(`'${name}' 양식을 저장했습니다. 내보내기에서 이 양식에 채워 받을 수 있습니다.`);
-      onClose();
+      if (close) { editGuard.clearPendingEdits(); onClose(); }
+      return true;
     } catch (err) {
       setError(errorMessage(err));
+      return false;
+    } finally {
+      busyRef.current = false;
       setBusy(null);
     }
   }
+
+  function discard() {
+    const saved = savedFormRef.current;
+    if (!saved) { editGuard.clearPendingEdits(); onClose(); return; }
+    savedKey.current = JSON.stringify({ name: saved.name, departmentId: saved.departmentId, layout: saved.layout, columns: saved.columns, markStyle: saved.markStyle });
+    setName(saved.name); setDepartmentId(saved.departmentId); setLayout(saved.layout);
+    setColumns(saved.columns); setMarkStyle(saved.markStyle); setError(null);
+  }
+
+  function requestClose() {
+    if (busyRef.current) return;
+    if (dirty) setCloseConfirm(true);
+    else { editGuard.clearPendingEdits(); onClose(); }
+  }
+
+  useEffect(() => {
+    editGuard.setPendingEdits({ dirty, busy: busy !== null, save: () => save(false), discard,
+      saveDescription: '양식 이름과 열 설정을 저장한 뒤 이동할 수 있습니다. 버리고 이동하면 이번에 고친 값은 저장되지 않습니다.' });
+  }, [editGuard, dirty, busy, valuesKey]);
+  useEffect(() => () => editGuard.clearPendingEdits(), [editGuard]);
 
   const setFill = (col: number, fill: FormColumnFill) => setColumns((cs) => cs.map((c) => (c.col === col ? { ...c, fill } : c)));
   const prepared = layout.footerRow - layout.dataFirst;
@@ -174,14 +219,14 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
         title={form ? `${form.name} — 열 맞추기` : '새 제출 양식'}
         description="양식에서 찾은 자리와 열마다 넣을 내용입니다. 틀린 곳만 고치고 저장하세요."
         actions={
-          <Button onClick={onClose}>
+          <Button onClick={requestClose} disabled={busy !== null}>
             <ArrowLeft className="size-4" aria-hidden />
             목록으로
           </Button>
         }
       />
-      <div className="space-y-6">
-        <FormError message={error} />
+      <fieldset disabled={busy !== null} aria-busy={busy !== null} className="min-w-0 space-y-6 border-0 p-0">
+        <FormError message={error} attentionKey={errorAttempt} />
         {analysis.warnings.length > 0 && (
           <ul className="space-y-2">
             {analysis.warnings.map((w) => (
@@ -376,13 +421,22 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
             </Select>
           </Field>
           <div className="ml-auto flex gap-2">
-            <Button onClick={onClose}>취소</Button>
+            <Button onClick={requestClose}>취소</Button>
             <Button variant="primary" onClick={() => void save()} loading={busy === 'save'} disabled={!name.trim()}>
               양식 저장
             </Button>
           </div>
         </section>
-      </div>
+      </fieldset>
+      <p role="status" className="mt-3 text-[13px] text-ink-soft">{busy === 'save' ? '양식을 저장하는 중입니다.' : busy === 'detect' ? '양식을 다시 읽는 중입니다.' : dirty ? '아직 저장하지 않은 양식 설정이 있습니다.' : '변경사항이 없습니다.'}</p>
+      <Dialog open={closeConfirm} title="양식 설정을 저장할까요?" dismissible={busy === null} onClose={() => { if (!busyRef.current) setCloseConfirm(false); }}>
+        <p className="text-[14px] text-ink-soft">양식 이름과 열 설정을 저장한 뒤 목록으로 돌아갈 수 있습니다.</p>
+        <DialogActions>
+          <Button disabled={busy !== null} onClick={() => setCloseConfirm(false)} data-autofocus>계속 수정</Button>
+          <Button variant="danger" disabled={busy !== null} onClick={() => { editGuard.clearPendingEdits(); onClose(); }}>버리고 닫기</Button>
+          <Button variant="primary" disabled={busy !== null} onClick={() => { setCloseConfirm(false); void save(); }}>저장 후 닫기</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
@@ -391,7 +445,10 @@ export function FormsPage() {
   const queryClient = useQueryClient();
   const forms = useQuery({ queryKey: ['forms'], queryFn: () => api.get<FormTemplate[]>('/forms') });
   const [editing, setEditing] = useState<{ analysis: FormAnalysis; form: FormTemplate | null } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<{ kind: 'upload' } | { kind: 'edit' | 'delete'; id: number } | null>(null);
+  const busy = action !== null;
+  const busyRef = useRef(false);
+  const requestGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [deleting, setDeleting] = useState<FormTemplate | null>(null);
@@ -399,43 +456,68 @@ export function FormsPage() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [editing]);
+  useEffect(() => () => { requestGeneration.current++; }, []);
+
+  function begin(next: NonNullable<typeof action>): number | null {
+    // disabled 속성이 반영되기 전의 연속 클릭·드롭도 요청 하나로 제한한다.
+    if (busyRef.current) return null;
+    busyRef.current = true;
+    setAction(next);
+    setError(null);
+    return ++requestGeneration.current;
+  }
+
+  function finish(generation: number) {
+    if (generation !== requestGeneration.current) return;
+    busyRef.current = false;
+    setAction(null);
+  }
 
   async function upload(file: File | undefined) {
     if (!file) return;
-    setBusy(true);
-    setError(null);
+    const generation = begin({ kind: 'upload' });
+    if (generation === null) return;
     try {
       const body = new FormData();
       body.append('file', file);
-      setEditing({ analysis: await api.post<FormAnalysis>('/forms/analyze', body), form: null });
+      const analysis = await api.post<FormAnalysis>('/forms/analyze', body);
+      if (generation === requestGeneration.current) setEditing({ analysis, form: null });
     } catch (err) {
-      setError(errorMessage(err));
+      if (generation === requestGeneration.current) setError(errorMessage(err));
     } finally {
-      setBusy(false);
+      finish(generation);
     }
   }
 
   async function edit(form: FormTemplate) {
+    const generation = begin({ kind: 'edit', id: form.id });
+    if (generation === null) return;
     try {
-      setEditing({ analysis: await api.post<FormAnalysis>('/forms/reanalyze', { formId: form.id, ...form.layout }), form });
+      const analysis = await api.post<FormAnalysis>('/forms/reanalyze', { formId: form.id, ...form.layout });
+      if (generation === requestGeneration.current) setEditing({ analysis, form });
     } catch (err) {
-      toast.error(errorMessage(err));
+      if (generation === requestGeneration.current) toast.error(errorMessage(err));
+    } finally {
+      finish(generation);
     }
   }
 
   async function remove(form: FormTemplate) {
+    const generation = begin({ kind: 'delete', id: form.id });
+    if (generation === null) return;
     try {
       await api.delete(`/forms/${form.id}`);
       await queryClient.invalidateQueries({ queryKey: ['forms'] });
-      toast.success(`'${form.name}' 양식을 지웠습니다.`);
+      if (generation === requestGeneration.current) toast.success(`'${form.name}' 양식을 지웠습니다.`);
     } catch (err) {
-      toast.error(errorMessage(err));
+      if (generation === requestGeneration.current) toast.error(errorMessage(err));
     } finally {
-      setDeleting(null);
+      if (generation === requestGeneration.current) setDeleting(null);
+      finish(generation);
     }
   }
 
-  if (editing) return <FormEditor initial={editing.analysis} form={editing.form} onClose={() => setEditing(null)} />;
+  if (editing) return <FormEditor key={editing.form ? `form-${editing.form.id}` : `upload-${editing.analysis.uploadId}`} initial={editing.analysis} form={editing.form} onClose={() => setEditing(null)} />;
 
   return (
     <>
@@ -443,7 +525,7 @@ export function FormsPage() {
         title="제출 양식"
         description="기관·부서가 정한 엑셀 양식을 올려 두면, 내보내기에서 이수 현황을 그 양식 그대로 채워 받을 수 있습니다."
         actions={
-          <Link to="/export" viewTransition className={buttonClass('secondary')}>
+          <Link to="/export" className={buttonClass('secondary')}>
             <ArrowLeft className="size-4" aria-hidden />
             내보내기로
           </Link>
@@ -471,7 +553,7 @@ export function FormsPage() {
         <span className="grid size-12 place-items-center rounded-2xl bg-navy-soft text-navy transition-transform duration-200 group-hover:-translate-y-0.5">
           <FileUp className="size-6" aria-hidden />
         </span>
-        <span className="text-[16px] font-bold">{busy ? '양식을 읽는 중…' : '빈 제출 양식(.xlsx)을 끌어다 놓거나 눌러서 고르세요'}</span>
+        <span className="text-[16px] font-bold">{action?.kind === 'delete' ? '양식을 지우는 중…' : busy ? '양식을 읽는 중…' : '빈 제출 양식(.xlsx)을 끌어다 놓거나 눌러서 고르세요'}</span>
         <span className="text-[13.5px] text-ink-faint">
           한 사람이 한 줄인 명단형 양식을 읽습니다. 옛 엑셀(.xls)은 엑셀에서 &lsquo;다른 이름으로 저장 → .xlsx&rsquo;로 바꿔 올려 주세요.
         </span>
@@ -530,10 +612,10 @@ export function FormsPage() {
                       </a>
                       {f.canEdit && (
                         <>
-                          <Button variant="ghost" size="sm" onClick={() => void edit(f)}>
+                          <Button variant="ghost" size="sm" disabled={busy} loading={action?.kind === 'edit' && action.id === f.id} onClick={() => void edit(f)}>
                             <Pencil className="size-4" aria-hidden />열 맞추기
                           </Button>
-                          <Button variant="ghost" size="sm" className="hover:bg-seal-soft hover:text-seal" onClick={() => setDeleting(f)} aria-label={`${f.name} 지우기`}>
+                          <Button variant="ghost" size="sm" className="hover:bg-seal-soft hover:text-seal" disabled={busy} onClick={() => { if (!busyRef.current) setDeleting(f); }} aria-label={`${f.name} 지우기`}>
                             <Trash2 className="size-4" aria-hidden />
                           </Button>
                         </>
@@ -552,8 +634,9 @@ export function FormsPage() {
         title="양식 지우기"
         description={`'${deleting?.name ?? ''}' 양식을 지웁니다. 이미 받은 파일에는 영향이 없습니다.`}
         confirmLabel="지우기"
+        busy={action?.kind === 'delete'}
         onConfirm={() => deleting && void remove(deleting)}
-        onClose={() => setDeleting(null)}
+        onClose={() => { if (!busyRef.current) setDeleting(null); }}
       />
     </>
   );

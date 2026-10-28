@@ -110,10 +110,14 @@ function isFooterRow(ws: ExcelJS.Worksheet, merges: CellRange[], row: number, le
 }
 
 /** 사람을 다 쓴 뒤 이어지는 합계·서명란의 첫 줄 (그 위까지가 미리 그려 둔 빈 줄) */
-function detectFooterRow(ws: ExcelJS.Worksheet, merges: CellRange[], dataFirst: number, left: number, right: number): number {
+function detectFooterRow(ws: ExcelJS.Worksheet, merges: CellRange[], dataFirst: number, left: number, right: number, sequenceColumns: number[]): number {
   const last = Math.min(ws.rowCount, dataFirst + SCAN_ROWS);
   for (let r = dataFirst; r <= last; r++) {
-    if (isFooterRow(ws, merges, r, left, right) || !isTableRow(ws, r, left, right)) return r;
+    // 테두리 없는 양식도 연번만 1, 2, 3… 미리 적힌 줄은 사람을 쓸 자리다.
+    // 다른 칸에 글자가 있거나 연번이 이어지지 않으면 임의로 데이터 영역을 늘리지 않는다.
+    const sequenceOnly = sequenceColumns.some(col => cellText(ws, r, col).trim() === String(r - dataFirst + 1)
+      && Array.from({ length: right - left + 1 }, (_, i) => left + i).every(c => c === col || !cellText(ws, r, c).trim()));
+    if (isFooterRow(ws, merges, r, left, right) || (!isTableRow(ws, r, left, right) && !sequenceOnly)) return r;
   }
   return last + 1;
 }
@@ -218,7 +222,9 @@ export async function analyzeForm(buffer: Buffer | Uint8Array, trainings: Traini
   const right = tableCols.at(-1)!;
 
   const dataFirst = Math.max(headerLast + 1, options.dataFirst ?? headerLast + 1);
-  const footerRow = Math.max(dataFirst, options.footerRow ?? detectFooterRow(ws, merges, dataFirst, left, right));
+  const sequenceColumns = tableCols.filter(c => Array.from({ length: headerLast - headerFirst + 1 }, (_, i) =>
+    key(masterText(ws, headerFirst + i, c))).some(label => SEQ_WORDS.includes(label)));
+  const footerRow = Math.max(dataFirst, options.footerRow ?? detectFooterRow(ws, merges, dataFirst, left, right, sequenceColumns));
 
   // 제목 줄(머리글 위)에 교육이 하나만 나오면 그 양식의 교육으로 본다
   const titleText = Array.from({ length: headerFirst - 1 }, (_, i) => Array.from({ length: lastCol }, (_, c) => cellText(ws, i + 1, c + 1)).join(' ')).join(' ');

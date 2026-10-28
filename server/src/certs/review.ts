@@ -14,7 +14,7 @@ import { matchEmployee, type MatchableEmployee } from './employeeMatcher.ts';
 import { computeFlags, withNotes } from './flags.ts';
 import { hasUsableText, parseCertificateText } from './parseText.ts';
 import { applicableTrainings } from './status.ts';
-import { classifyTrainings, type ClassifiableTraining } from './trainingClassifier.ts';
+import { classifyTrainings, trainingScopeConflict, type ClassifiableTraining } from './trainingClassifier.ts';
 
 // 이수증 검수에 필요한 DB 읽기·쓰기 모음 (처리 대기열과 검수 API가 함께 쓴다)
 
@@ -23,6 +23,7 @@ export async function loadMatchables(db: Kysely<DB>): Promise<MatchableEmployee[
     .selectFrom('employees as e')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .select(['e.id', 'e.name', 'e.name_key', 'e.emp_no', 'e.department_id', 'd.name as department_name', 'e.birth_date', 'e.status'])
+    .where('e.deleted_at', 'is', null)
     .execute();
   return rows.map((r) => ({
     id: r.id,
@@ -37,7 +38,7 @@ export async function loadMatchables(db: Kysely<DB>): Promise<MatchableEmployee[
 }
 
 export async function loadTrainings(db: Kysely<DB>): Promise<Training[]> {
-  const rows = await db.selectFrom('trainings').selectAll().orderBy('sort_order').orderBy('id').execute();
+  const rows = await db.selectFrom('trainings').selectAll().where('deleted_at', 'is', null).orderBy('sort_order').orderBy('id').execute();
   return rows.map(toTraining);
 }
 
@@ -57,7 +58,7 @@ export async function loadLearned(db: Kysely<DB>): Promise<Map<string, number[]>
 export async function scopeOfUser(db: Kysely<DB>, userId: number): Promise<number[] | null> {
   const user = await db.selectFrom('users').select('role').where('id', '=', userId).executeTakeFirst();
   if (!user || user.role === 'admin') return null;
-  const rows = await db.selectFrom('user_departments').select('department_id').where('user_id', '=', userId).execute();
+  const rows = await db.selectFrom('user_departments').innerJoin('departments as d', 'd.id', 'user_departments.department_id').select('department_id').where('user_id', '=', userId).where('d.deleted_at', 'is', null).execute();
   return rows.map((r) => r.department_id);
 }
 
@@ -127,6 +128,7 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
         .leftJoin('departments as d', 'd.id', 'e.department_id')
         .select(['e.name', 'e.department_id', 'd.name as department_name', 'e.birth_date', 'e.status'])
         .where('e.id', '=', row.employee_id)
+        .where('e.deleted_at', 'is', null)
         .executeTakeFirst()
     : undefined;
 
@@ -143,23 +145,29 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
       : [];
 
   let duplicateIds: number[] = [];
-  if (row.employee_id && row.completed_on && selected.length > 0) {
+  let alreadyConfirmedDuplicate: number | null = null;
+  if (row.employee_id && ((row.completed_on && selected.length > 0) || (row.cert_no && row.provider))) {
     const dupes = await db
       .selectFrom('certificates as c')
-      .innerJoin('certificate_trainings as ct', 'ct.certificate_id', 'c.id')
-      .select('c.id')
-      .distinct()
+      .select(['c.id', 'c.status', 'c.cert_no', 'c.provider', 'c.completed_on', 'c.course_title'])
       .where('c.id', '!=', row.id)
       .where('c.status', '!=', 'excluded')
       .where('c.employee_id', '=', row.employee_id)
-      .where('c.completed_on', '=', row.completed_on)
-      .where(
-        'ct.training_id',
-        'in',
-        selected.map((t) => t.id),
-      )
+      .where(eb => eb.or([
+        ...(row.completed_on && selected.length ? [eb.and([
+          eb('c.completed_on', '=', row.completed_on),
+          eb.exists(eb.selectFrom('certificate_trainings as ct').select('ct.certificate_id')
+            .whereRef('ct.certificate_id', '=', 'c.id').where('ct.training_id', 'in', selected.map(t => t.id))),
+        ])] : []),
+        ...(row.cert_no && row.provider ? [eb.and([eb('c.cert_no', '=', row.cert_no), eb('c.provider', '=', row.provider)])] : []),
+      ]))
       .execute();
     duplicateIds = dupes.map((d) => d.id);
+    const sameText = (a: string, b: string) => a.normalize('NFC').replace(/\s/g, '').toLowerCase() === b.normalize('NFC').replace(/\s/g, '').toLowerCase();
+    if (row.status === 'draft' && row.cert_no && row.provider && row.completed_on && row.course_title) {
+      alreadyConfirmedDuplicate = dupes.find(d => d.status === 'confirmed' && d.cert_no === row.cert_no && d.provider === row.provider &&
+        d.completed_on === row.completed_on && d.course_title && sameText(d.course_title, row.course_title!))?.id ?? null;
+    }
   }
 
   const flags = computeFlags({
@@ -190,6 +198,13 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
     scope,
     today: new Date().toISOString().slice(0, 10),
   });
+  if (alreadyConfirmedDuplicate !== null) flags.push({ code: 'duplicate-confirmed', level: 'error', message: `같은 직원·기관·증서번호·이수일·과정의 수료증 #${alreadyConfirmedDuplicate}가 이미 확정되어 있습니다. 이 재발급본은 중복 제출로 제외해 주세요.` });
+  // 과정명을 비운 경우에도 원본에서 읽은 주제를 확인한다. 실제 판독 오류는 과정명을 올바르게 고쳐 해결할 수 있다.
+  const conflicts = selected.map(t => trainingScopeConflict(row.course_title ?? parsed.courseTitle, t)).filter((message): message is string => message !== null);
+  if (conflicts.length) flags.push({ code: 'training-scope-conflict', level: 'error', message: `${conflicts.join(' ')} 인정할 교육 또는 과정명을 바로잡아 주제 충돌을 해결한 뒤 확정해 주세요.` });
+  if (credits.some(c => !trainings.some(t => t.id === c.training_id))) {
+    flags.push({ code: 'deleted-training', level: 'error', message: '삭제된 교육이 연결되어 있습니다. 교육을 복원하거나 인정 교육을 다시 골라 주세요.' });
+  }
   // 인식할 때 남긴 확인할 점은 서무가 값을 고치기 전까지만 보인다
   return row.source === 'manual' ? flags : withNotes(flags, JSON.parse(row.notes) as CertificateFlag[]);
 }
@@ -236,6 +251,7 @@ export async function listCertificates(db: Kysely<DB>, filter: ListFilter, viewe
       'c.page_id',
       'c.status',
       'c.person_name',
+      'c.course_title',
       'c.employee_id',
       'c.completed_on',
       'c.hours',
@@ -280,6 +296,7 @@ export async function listCertificates(db: Kysely<DB>, filter: ListFilter, viewe
     pageCount: r.page_count,
     status: r.status,
     personName: r.person_name,
+    courseTitle: r.course_title,
     employee:
       r.employee_id && r.employee_name
         ? employeeRef(
