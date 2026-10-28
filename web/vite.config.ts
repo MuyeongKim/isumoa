@@ -35,7 +35,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { '/api': 'http://127.0.0.1:3000' },
+    // Origin 검사와 맞도록 개발 브라우저의 Host를 보존한다. URL 약식 설정은 changeOrigin=true가 된다.
+    proxy: { '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false } },
   },
   build: {
     outDir: 'dist',
