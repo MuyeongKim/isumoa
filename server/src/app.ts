@@ -1,3 +1,4 @@
+import { registerRequestBoundary } from './auth/requestBoundary.ts';
 import { updateRoutes } from './routes/updates.ts';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -38,6 +39,7 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
     ...(options.https ? { https: options.https } : {}),
   } as FastifyServerOptions) as unknown as FastifyInstance;
 
+  registerRequestBoundary(app, deps.config);
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 30 * 1024 * 1024, files: 1 } });
   registerAuth(app, deps);
