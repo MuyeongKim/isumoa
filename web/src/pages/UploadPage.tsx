@@ -14,6 +14,7 @@ import { Tag } from '@/components/ui/Tag';
 import { api, errorMessage } from '@/lib/api';
 import { cn, formatDateTime, formatNumber } from '@/lib/format';
 import { uploadFile } from '@/upload/uploadFile';
+import { isZip, readArchive, ZIP_LIMITS, type ArchiveResult } from '@/upload/readArchive';
 
 type ItemState =
   | { kind: 'waiting' }
@@ -24,7 +25,10 @@ type ItemState =
 
 interface UploadItem {
   key: string;
-  file: File;
+  file: File | null;
+  name: string;
+  size: number;
+  source?: string;
   state: ItemState;
 }
 
@@ -73,6 +77,9 @@ export function UploadPage() {
   const [batchId, setBatchId] = useState<number | null>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [unpacking, setUnpacking] = useState<string | null>(null);
+  const [archives, setArchives] = useState<(Omit<ArchiveResult, 'files'> & { count: number; error?: string })[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [reprocessing, setReprocessing] = useState<{ batch: BatchSummary; busy: boolean } | null>(null);
@@ -92,16 +99,33 @@ export function UploadPage() {
   }, [hash, batches.isPending]);
 
   function update(key: string, state: ItemState) {
-    setItems((list) => list.map((item) => (item.key === key ? { ...item, state } : item)));
+    setItems((list) => list.map((item) => (item.key === key ? { ...item, state, file: ['done', 'duplicate', 'error'].includes(state.kind) ? null : item.file } : item)));
   }
 
   async function start(files: File[]) {
-    if (files.length === 0 || busy) return;
-    const added = files.map((file, i) => ({ key: `${Date.now()}-${i}-${file.name}`, file, state: { kind: 'waiting' } as ItemState }));
-    setItems((list) => [...list, ...added]);
+    if (files.length === 0 || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
+      const added: UploadItem[] = [];
+      let archiveFiles = 0, archiveBytes = 0;
+      for (const file of files) {
+        if (isZip(file)) {
+          setUnpacking(file.name);
+          try {
+            const result = await readArchive(file, (path, done, total) => setUnpacking(`${file.name} · ${done}/${total}개 · ${path}`), { files: ZIP_LIMITS.files - archiveFiles, bytes: ZIP_LIMITS.totalBytes - archiveBytes });
+            archiveFiles += result.files.length; archiveBytes += result.files.reduce((n, entry) => n + entry.file.size, 0);
+            setArchives(list => [...list, { name: result.name, count: result.files.length, skipped: result.skipped }]);
+            for (const entry of result.files) added.push({ key: crypto.randomUUID(), file: entry.file, name: entry.file.name, size: entry.file.size, source: `${file.name} / ${entry.path}`, state: { kind: 'waiting' } });
+          } catch (err) {
+            setArchives(list => [...list, { name: file.name, count: 0, skipped: [], error: errorMessage(err) }]);
+          }
+        } else added.push({ key: crypto.randomUUID(), file, name: file.name, size: file.size, state: { kind: 'waiting' } });
+      }
+      setUnpacking(null);
+      setItems(list => [...list, ...added]);
+      if (added.length === 0) return;
       // 처음 올릴 때 묶음을 만든다. 같은 화면에서 더 올리면 같은 묶음에 넣는다
       let id = batchId;
       if (id === null) {
@@ -109,11 +133,12 @@ export function UploadPage() {
         setBatchId(id);
       }
       for (const item of added) {
+        const file = item.file!;
         update(item.key, { kind: 'uploading', done: 0, total: 1 });
         try {
-          const outcome = await uploadFile(id, item.file, (done, total) => update(item.key, { kind: 'uploading', done, total }));
+          const outcome = await uploadFile(id, file, (done, total) => update(item.key, { kind: 'uploading', done, total }));
           if (outcome.kind === 'duplicate') update(item.key, { kind: 'duplicate', fileName: outcome.fileName, batchId: outcome.batchId });
-          else if (outcome.skipped === outcome.pages) update(item.key, { kind: 'duplicate', fileName: item.file.name, batchId: id });
+          else if (outcome.skipped === outcome.pages) update(item.key, { kind: 'duplicate', fileName: item.name, batchId: id });
           else update(item.key, outcome);
         } catch (err) {
           update(item.key, { kind: 'error', message: errorMessage(err) });
@@ -122,8 +147,12 @@ export function UploadPage() {
         void queryClient.invalidateQueries({ queryKey: ['processing'] });
       }
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err);
+      setError(message);
+      setItems(list => list.map(item => item.state.kind === 'waiting' ? { ...item, file: null, state: { kind: 'error', message } } : item));
     } finally {
+      busyRef.current = false;
+      setUnpacking(null);
       setBusy(false);
       void queryClient.invalidateQueries({ queryKey: ['overview'] });
     }
@@ -185,16 +214,20 @@ export function UploadPage() {
   function newBatch() {
     setBatchId(null);
     setItems([]);
+    setArchives([]);
     setTitle('');
   }
 
   const doneCount = items.filter((i) => i.state.kind === 'done').length;
+  const duplicateCount = items.filter(i => i.state.kind === 'duplicate').length;
+  const failedCount = items.filter(i => i.state.kind === 'error').length;
+  const finishedCount = doneCount + duplicateCount + failedCount;
 
   return (
     <>
       <PageHeader
         title="수료증 올리기"
-        description="직원이 받은 수료증 PDF(여러 장을 한꺼번에 스캔한 파일도 됩니다)와 사진을 한꺼번에 올리세요. 쪽마다 나눠서 읽고, 읽은 것부터 검수함에 들어갑니다."
+        description="직원이 받은 수료증 PDF(여러 장을 한꺼번에 스캔한 파일도 됩니다)와 사진, 또는 이 파일들을 모은 ZIP을 한꺼번에 올리세요. 쪽마다 나눠서 읽고, 읽은 것부터 검수함에 들어갑니다."
       />
       <ProcessingBanner />
 
@@ -203,7 +236,7 @@ export function UploadPage() {
           <div className="flex flex-wrap items-end gap-4">
             <label className="block text-[13.5px]">
               <span className="mb-1.5 block font-semibold">대상 연도</span>
-              <Select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-32">
+              <Select value={year} disabled={busy} onChange={(e) => setYear(Number(e.target.value))} className="w-32">
                 {[thisYear, thisYear - 1].map((y) => (
                   <option key={y} value={y}>
                     {y}년
@@ -213,7 +246,7 @@ export function UploadPage() {
             </label>
             <label className="block min-w-0 flex-1 text-[13.5px]">
               <span className="mb-1.5 block font-semibold">메모 (선택)</span>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 상반기 폭력예방교육 제출분" maxLength={100} />
+              <Input value={title} disabled={busy} onChange={(e) => setTitle(e.target.value)} placeholder="예: 상반기 폭력예방교육 제출분" maxLength={100} />
             </label>
             <p className="w-full text-[12.5px] text-ink-faint">
               이수일이 대상 연도와 다르면 검수할 때 확인 표시가 붙습니다.
@@ -247,14 +280,14 @@ export function UploadPage() {
         <span className="grid size-14 place-items-center rounded-2xl bg-navy-soft text-navy transition-transform duration-200 group-hover:-translate-y-0.5">
           <FileUp className="size-7" aria-hidden />
         </span>
-        <span className="text-[17px] font-bold">{busy ? '올리는 중입니다. 창을 닫지 마세요.' : '수료증 파일을 끌어다 놓거나 눌러서 고르세요'}</span>
-        <span className="text-[14px] text-ink-faint">PDF·JPG·JPEG·PNG를 선택하면 바로 읽기를 시작합니다. 교육 목록·기준표는 ‘교육 기준’에서 가져오세요.</span>
+        <span className="text-[17px] font-bold">{busy ? unpacking ? 'ZIP을 푸는 중입니다. 창을 닫지 마세요.' : '올리는 중입니다. 창을 닫지 마세요.' : '수료증 파일을 끌어다 놓거나 눌러서 고르세요'}</span>
+        <span className="text-[14px] text-ink-faint">PDF·JPG·JPEG·PNG·ZIP을 선택하면 바로 읽기를 시작합니다. 교육 목록·기준표는 ‘교육 기준’에서 가져오세요.</span>
         <input
           ref={inputRef}
           id="cert-files"
           type="file"
           multiple
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+          accept=".pdf,.jpg,.jpeg,.png,.zip,application/pdf,image/jpeg,image/png,application/zip,application/x-zip-compressed"
           className="sr-only"
           disabled={busy}
           onChange={(e) => {
@@ -263,6 +296,17 @@ export function UploadPage() {
           }}
         />
       </label>
+      <p className="mt-2 text-[12.5px] text-ink-faint">ZIP 안의 폴더도 찾습니다. ZIP 300MB 이하 · 수료증 1,000개 이하 · 압축 해제 합계 500MB 이하 · 개별 파일 100MB 이하. 암호 ZIP·RAR·7z는 직접 풀어 올려 주세요.</p>
+      {unpacking && <p role="status" className="mt-3 break-all text-[13.5px] text-navy">압축 해제: {unpacking}</p>}
+      {archives.length > 0 && <section className="mt-4 rounded-2xl border border-line bg-sheet p-4" aria-label="압축파일 처리 결과">
+        <h2 className="text-[15px] font-semibold">압축파일 처리 결과</h2>
+        {archives.map((archive, i) => <div key={i} className="mt-3 space-y-1 text-[13.5px]">
+          <p className="break-all"><strong>{archive.name}</strong> · 꺼낸 파일 {archive.count}개 · 건너뜀 {archive.skipped.length}개</p>
+          {archive.error && <p role="alert" className="text-seal">{archive.error}</p>}
+          {!archive.error && archive.count === 0 && <p className="text-warn">읽을 수료증이 없습니다. ZIP 안의 파일과 건너뛴 사유를 확인하세요.</p>}
+          {archive.skipped.length > 0 && <details><summary className="cursor-pointer text-link">건너뛴 파일과 사유 보기</summary><ul className="mt-2 max-h-60 space-y-1 overflow-auto text-ink-soft">{archive.skipped.map((entry, j) => <li key={j} className="break-all">{entry.path} — {entry.reason}</li>)}</ul></details>}
+        </div>)}
+      </section>}
       {dragging && !busy && (
         <div
           className="fixed inset-0 z-40 grid place-items-center bg-navy/10 p-6 backdrop-blur-[2px]"
@@ -287,7 +331,7 @@ export function UploadPage() {
         <section className="mt-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-[15px] font-semibold">
-              이번에 올린 파일 <span className="font-normal text-ink-soft">{doneCount}/{items.length}</span>
+              이번에 고른 파일 <span className="font-normal text-ink-soft">{finishedCount}/{items.length} 처리</span>
             </h2>
             {batchId !== null && !busy && doneCount > 0 && (
               <Link to={`/review?batch=${batchId}`} className="text-[13.5px] font-medium text-link hover:underline">
@@ -295,6 +339,7 @@ export function UploadPage() {
               </Link>
             )}
           </div>
+          <p className="mb-2 text-[12.5px] text-ink-soft" role="status">올림 {doneCount}개 · 중복 {duplicateCount}개 · 실패 {failedCount}개</p>
           <Table>
             <thead>
               <tr>
@@ -306,10 +351,10 @@ export function UploadPage() {
             <tbody>
               {items.map((item) => (
                 <Tr key={item.key}>
-                  <Td className="max-w-0 truncate font-medium" title={item.file.name}>
-                    {item.file.name}
+                  <Td className="max-w-0 truncate font-medium" title={item.source ?? item.name}>
+                    {item.name}{item.source && <span className="mt-0.5 block truncate text-[12px] font-normal text-ink-faint">{item.source}</span>}
                   </Td>
-                  <Td className="text-right text-ink-soft tabular-nums">{formatSize(item.file.size)}</Td>
+                  <Td className="text-right text-ink-soft tabular-nums">{formatSize(item.size)}</Td>
                   <Td className="text-[13px]">
                     <ItemStatus state={item.state} />
                   </Td>
@@ -387,6 +432,7 @@ export function UploadPage() {
                       onClick={() => {
                         setBatchId(b.id);
                         setItems([]);
+                        setArchives([]);
                         inputRef.current?.click();
                       }}
                     >

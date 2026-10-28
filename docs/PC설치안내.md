@@ -78,4 +78,4 @@ ZIP 설치판을 받은 경우:
 
 ## 사용한 공개 소프트웨어
 
-Node.js(MIT), kordoc(MIT), PP-OCRv5 모델(Apache-2.0), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), SQLite(공용), React(MIT), Wanted Sans·Noto Serif KR 글꼴(OFL-1.1) 등.
+Node.js(MIT), kordoc(MIT), PP-OCRv5 모델(Apache-2.0), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), SQLite(공용), zip.js(BSD-3-Clause), React(MIT), Wanted Sans·Noto Serif KR 글꼴(OFL-1.1) 등.
