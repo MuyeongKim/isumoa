@@ -29,7 +29,7 @@ export interface Harness {
   dataDir: string;
   config: AppConfig;
   /** 가짜 OCR이 돌려줄 글자 */
-  ocr: { text: string };
+  ocr: OcrEngine & { text: string };
   send(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, payload?: unknown, extra?: Record<string, string>): Promise<LightMyRequestResponse>;
   uploadFile(batchId: number, file: Buffer, name: string, pageCount?: number): Promise<LightMyRequestResponse>;
   uploadPage(fileId: number, pageNo: number, text: string): Promise<number>;

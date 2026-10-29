@@ -1,0 +1,463 @@
+{
+  "verifiedOn": "2026-10-29",
+  "method": "Chrome actual public-course list, notice and downloaded official PDF, rendered pages 3-5 visually checked",
+  "providerNames": [
+    "국립평화통일민주교육원",
+    "국립통일교육원",
+    "통일교육원"
+  ],
+  "sourceNotice": "https://www.uniedu.go.kr/uniedu/home/brd/bbsatcl/notice/view.do?id=60651&mid=SM00000501",
+  "sourcePdf": "https://www.uniedu.go.kr/uniedu/atchfile/down/F000185658.pdf",
+  "sourceSha256": "0ebb1b704db887146d96651c0d9e0c2d2c2e45f954f1261f59a322617586eea1",
+  "scope": {
+    "year": 2026,
+    "term": 9,
+    "publishedOn": "2026-09-28",
+    "period": [
+      "2026-10-01",
+      "2026-10-25"
+    ],
+    "listedPublicCourses": 47,
+    "plannedAdditionalCourses": 1,
+    "noticeSaysAll47AcceptedForPublicSectorUnificationEducation": true,
+    "hoursRange": [
+      1,
+      8
+    ]
+  },
+  "courses": [
+    {
+      "number": 1,
+      "category": "통일정책",
+      "title": "통일 문제의 주요 쟁점",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 2,
+      "category": "북한이해",
+      "title": "북한의 교육제도와 직업 선택",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 3,
+      "category": "북한이해",
+      "title": "김정은 시대 북한 외교정책의 변화",
+      "recognizedHours": 3,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 4,
+      "category": "북한이해",
+      "title": "북한의 재정과 예산수입",
+      "recognizedHours": 1,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 5,
+      "category": "국제정세",
+      "title": "국제정세와 한반도 통일환경",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 6,
+      "category": "인문교양",
+      "title": "북한 문화유산 답사기",
+      "recognizedHours": 3,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 7,
+      "category": "인문교양",
+      "title": "DMZ가 들려주는 통일․생태이야기",
+      "recognizedHours": 4,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 8,
+      "category": "인문교양",
+      "title": "코리안 디아스포라와 통일교육",
+      "recognizedHours": 3,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 9,
+      "category": "인문교양",
+      "title": "우주에서 본 북한",
+      "recognizedHours": 1,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 10,
+      "category": "북한이해",
+      "title": "북한건축과 건설정치",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 11,
+      "category": "국제정세",
+      "title": "키워드로 보는 우크라이나 전쟁",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 12,
+      "category": "인문교양",
+      "title": "AI로 그려보는 통일 미래",
+      "recognizedHours": 2,
+      "developmentYear": 2025,
+      "status": "listed-2026-term-9",
+      "sourcePage": 3
+    },
+    {
+      "number": 13,
+      "category": "통일정책",
+      "title": "대북제재 알아보기",
+      "recognizedHours": 2,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 14,
+      "category": "통일정책",
+      "title": "북핵 문제와 동북아 안보 상황",
+      "recognizedHours": 2,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 15,
+      "category": "통일정책",
+      "title": "헌법으로 본 통일",
+      "recognizedHours": 1,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 16,
+      "category": "통일정책",
+      "title": "이산가족으로 본 통일",
+      "recognizedHours": 1,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 17,
+      "category": "북한이해",
+      "title": "디지털 경제 시대 북한의 전자상거래",
+      "recognizedHours": 2,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 18,
+      "category": "국제정세",
+      "title": "중국 개혁·개방의 과정과 전망",
+      "recognizedHours": 2,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 19,
+      "category": "국제정세",
+      "title": "반도체 전쟁",
+      "recognizedHours": 1,
+      "developmentYear": 2024,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 20,
+      "category": "북한이해",
+      "title": "북한군 정치사상교육과 조직생활",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 21,
+      "category": "북한이해",
+      "title": "북한 개발지원 과제와 한반도 경제통합",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 22,
+      "category": "북한이해",
+      "title": "북한 금융의 이해",
+      "recognizedHours": 4,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 23,
+      "category": "국제정세",
+      "title": "미중 에너지 패권 경쟁",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 24,
+      "category": "국제정세",
+      "title": "우크라이나 전쟁과 중러 협력",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 25,
+      "category": "북한이해",
+      "title": "북한이탈주민과 남북주민 접촉지대",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 26,
+      "category": "통일정책",
+      "title": "통일문제, 어떻게 볼 것인가",
+      "recognizedHours": 3,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 27,
+      "category": "북한이해",
+      "title": "북한, 어떻게 볼 것인가",
+      "recognizedHours": 3,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 28,
+      "category": "북한이해",
+      "title": "북한 핵문제와 우리의 대응",
+      "recognizedHours": 3,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 29,
+      "category": "통일정책",
+      "title": "한반도 통일과 법",
+      "recognizedHours": 2,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 30,
+      "category": "통일정책",
+      "title": "한반도 기후위기와 남북환경협력",
+      "recognizedHours": 3,
+      "developmentYear": 2023,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 31,
+      "category": "북한이해",
+      "title": "시장을 통해 본 북한의 식의주 생활",
+      "recognizedHours": 5,
+      "developmentYear": 2021,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 32,
+      "category": "북한이해",
+      "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅰ",
+      "recognizedHours": 6,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 33,
+      "category": "북한이해",
+      "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅱ",
+      "recognizedHours": 8,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 34,
+      "category": "북한이해",
+      "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅲ",
+      "recognizedHours": 6,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 35,
+      "category": "북한이해",
+      "title": "북한의 법체계 이해",
+      "recognizedHours": 4,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 4
+    },
+    {
+      "number": 36,
+      "category": "국제정세",
+      "title": "중국의 국가전략과 대외 전략 그리고 한반도",
+      "recognizedHours": 2,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 37,
+      "category": "북한이해",
+      "title": "북한 경제정책의 변화",
+      "recognizedHours": 3,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 38,
+      "category": "국제정세",
+      "title": "독일 통일 그 이후",
+      "recognizedHours": 4,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 39,
+      "category": "국제정세",
+      "title": "독일통일 다시보기",
+      "recognizedHours": 8,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 40,
+      "category": "인문교양",
+      "title": "남북의 밤하늘",
+      "recognizedHours": 1,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 41,
+      "category": "인문교양",
+      "title": "딸과 함께 떠나는 DMZ 문화유산 답사Ⅰ",
+      "recognizedHours": 4,
+      "developmentYear": 2020,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 42,
+      "category": "인문교양",
+      "title": "딸과 함께 떠나는 DMZ 문화유산 답사Ⅱ",
+      "recognizedHours": 4,
+      "developmentYear": 2020,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 43,
+      "category": "인문교양",
+      "title": "그림으로 떠나는 금강산 여행",
+      "recognizedHours": 2,
+      "developmentYear": 2021,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 44,
+      "category": "인문교양",
+      "title": "패션·메이크업으로 본 북한사회 변화",
+      "recognizedHours": 3,
+      "developmentYear": 2020,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 45,
+      "category": "국제정세",
+      "title": "디지털시대 K-Culture와 통일공공외교",
+      "recognizedHours": 3,
+      "developmentYear": 2022,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 46,
+      "category": "통일정책",
+      "title": "이재명 정부의 한반도 평화공존 정책",
+      "recognizedHours": 2,
+      "developmentYear": 2026,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 47,
+      "category": "민주시민",
+      "title": "평화시민성과 한반도 통일",
+      "recognizedHours": 3,
+      "developmentYear": 2026,
+      "status": "listed-2026-term-9",
+      "sourcePage": 5
+    },
+    {
+      "number": 48,
+      "category": "북한이해",
+      "title": "평화·통일 미디어 리터러시: 북한 정보·매체 읽기",
+      "recognizedHours": 2,
+      "developmentYear": 2026,
+      "status": "scheduled-2026-11",
+      "sourcePage": 5
+    }
+  ],
+  "implementation": "정확한 과정명과 발급기관·대상 연도 대조. 수료증 시간 우선. 예정·마이크로러닝 분리. 기존 확정 기록 자동 변경 없음."
+}

@@ -14,7 +14,7 @@ import { matchEmployee, type MatchableEmployee } from './employeeMatcher.ts';
 import { computeFlags, withNotes } from './flags.ts';
 import { hasUsableText, parseCertificateText } from './parseText.ts';
 import { applicableTrainings } from './status.ts';
-import { classifyTrainings, trainingScopeConflict, type ClassifiableTraining } from './trainingClassifier.ts';
+import { classifyTrainings, trainingScopeConflict, unieduCertificateFlags, type ClassifiableTraining } from './trainingClassifier.ts';
 
 // 이수증 검수에 필요한 DB 읽기·쓰기 모음 (처리 대기열과 검수 API가 함께 쓴다)
 
@@ -44,7 +44,7 @@ export async function loadTrainings(db: Kysely<DB>): Promise<Training[]> {
 
 export function classifiable(trainings: Training[], year: number): ClassifiableTraining[] {
   const applicable = new Set(applicableTrainings(trainings, year).map((t) => t.id));
-  return trainings.map((t) => ({ id: t.id, name: t.name, keywords: t.keywords, applicable: applicable.has(t.id) }));
+  return trainings.map((t) => ({ id: t.id, code: t.code, name: t.name, keywords: t.keywords, applicable: applicable.has(t.id) }));
 }
 
 export async function loadLearned(db: Kysely<DB>): Promise<Map<string, number[]>> {
@@ -139,9 +139,11 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
   }
 
   const year = row.year ?? row.batch_year;
+  const classificationContext = { provider: row.provider ?? parsed.provider,
+    year: row.completed_on ? Number(row.completed_on.slice(0, 4)) : year, fullText: text, hours: row.hours };
   const inactiveMatches =
     selected.length === 0
-      ? classifyTrainings(row.course_title, text, classifiable(trainings, year), new Map()).inactiveMatches
+      ? classifyTrainings(row.course_title, text, classifiable(trainings, year), new Map(), classificationContext).inactiveMatches
       : [];
 
   let duplicateIds: number[] = [];
@@ -200,8 +202,10 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
   });
   if (alreadyConfirmedDuplicate !== null) flags.push({ code: 'duplicate-confirmed', level: 'error', message: `같은 직원·기관·증서번호·이수일·과정의 수료증 #${alreadyConfirmedDuplicate}가 이미 확정되어 있습니다. 이 재발급본은 중복 제출로 제외해 주세요.` });
   // 과정명을 비운 경우에도 원본에서 읽은 주제를 확인한다. 실제 판독 오류는 과정명을 올바르게 고쳐 해결할 수 있다.
-  const conflicts = selected.map(t => trainingScopeConflict(row.course_title ?? parsed.courseTitle, t)).filter((message): message is string => message !== null);
+  const checkedTitle = row.course_title ?? parsed.courseTitle;
+  const conflicts = selected.map(t => trainingScopeConflict(checkedTitle, t, classificationContext)).filter((message): message is string => message !== null);
   if (conflicts.length) flags.push({ code: 'training-scope-conflict', level: 'error', message: `${conflicts.join(' ')} 인정할 교육 또는 과정명을 바로잡아 주제 충돌을 해결한 뒤 확정해 주세요.` });
+  flags.push(...unieduCertificateFlags(checkedTitle, classificationContext));
   if (credits.some(c => !trainings.some(t => t.id === c.training_id))) {
     flags.push({ code: 'deleted-training', level: 'error', message: '삭제된 교육이 연결되어 있습니다. 교육을 복원하거나 인정 교육을 다시 골라 주세요.' });
   }

@@ -124,13 +124,17 @@ export function buildDraft(
   const { read, text } = recognition;
   const match = matchEmployee({ name: read.personName, birth: read.personBirth, dept: read.personDept, text }, ctx.employees, ctx.scope);
   const classification = read.looksLikeCertificate
-    ? classifyTrainings(read.courseTitle, text, classifiable(ctx.trainings, ctx.year), ctx.learned)
+    ? classifyTrainings(read.courseTitle, text, classifiable(ctx.trainings, ctx.year), ctx.learned, {
+      provider: read.provider, year: read.completedOn ? Number(read.completedOn.slice(0, 4)) : ctx.year,
+    })
     : { trainingIds: [], source: null, inactiveMatches: [] };
   const notes = [...read.notes];
   if ('scopeConflicts' in classification && classification.scopeConflicts?.length) {
     notes.push({ code: 'training-scope-conflict', level: 'warning', message: `서로 다른 주제의 기존 연결을 자동 적용하지 않았습니다. ${classification.scopeConflicts.join(' ')}` });
   }
-  if (classification.source === 'name') {
+  if (classification.source === 'catalog' && classification.trainingIds.length === 1) {
+    notes.push({ code: 'training-catalog-match', level: 'info', message: '국립통일교육원 공식 공공과정 목록과 발급기관을 대조해 통일교육 후보로 연결했습니다. 직원·날짜·시간은 원본과 대조해 주세요.' });
+  } else if (classification.source === 'name') {
     const training = ctx.trainings.find(t => t.id === classification.trainingIds[0]);
     notes.push({ code: 'training-name-suggestion', level: 'warning', message: `교육과정 이름을 비교해 '${training?.name ?? '교육'}'을 후보로 채웠습니다. 교육 내용과 인정 범위를 확인해 주세요.` });
   } else if (classification.source === 'text') {
