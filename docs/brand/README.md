@@ -11,6 +11,8 @@
 | 파일 | 쓰는 곳 |
 |---|---|
 | `isumoa-mark.svg` · `isumoa-mark-1024.png` | 네모 로고만. 프로필, 표지, 큰 아이콘 |
+| `isumoa-repository-icon.png` | GitLab 프로젝트 아이콘과 저장소 README에 쓰는 512×512 PNG |
+| `isumoa-social-preview.png` | GitHub 링크 공유용 1280×640 미리보기 이미지 |
 | `isumoa-mark-compact.svg` | 작은 곳(가로 40px 이하)용. 괄호를 빼고 글자를 키움 |
 | `isumoa-lockup.svg` · `.png` | 로고 + 이름 + 부제, 밝은 바탕 (문서·발표 자료·공문) |
 | `isumoa-lockup-reverse.svg` · `.png` | 같은 가로 로고, 어두운 바탕용 (PNG는 장청색 바탕) |
@@ -37,3 +39,5 @@ SVG는 글꼴이 필요 없는 그림이라 어느 PC에서 열어도 똑같이 
 로고는 `scripts/brand/make-brand.ts` 한 곳에서만 그린다. 모양을 바꾸려면 이 파일을 고치고 `npm run brand`를 실행하면, 프로그램 화면의 로고·탭 아이콘·Windows 아이콘·이 폴더의 파일이 한꺼번에 새로 만들어진다.
 
 글자 윤곽은 [Wanted Sans](https://github.com/wanteddev/wanted-sans)(SIL Open Font License 1.1, © Wanted Lab)를 그림으로 옮긴 것이다.
+
+저장소용 PNG는 `node scripts/brand/make-repository-assets.ts`로 다시 만듭니다. 기존 compact SVG와 정식 가로 로고를 사용하며 앱·Windows 아이콘의 모양은 바꾸지 않습니다.
