@@ -27,11 +27,13 @@ export async function checkFinalExport(db: Kysely<DB>, filter: ReportScope, draf
 }
 
 /** 공식 16시트 양식: 수료증별 내역을 유지하고 이수 인원은 직원 ID로 중복 제거한다. */
-export async function buildStatutoryWorkbook(db: Kysely<DB>, filter: ReportScope): Promise<Buffer> {
+export async function buildStatutoryWorkbook(db: Kysely<DB>, filter: ReportScope, template?: Uint8Array): Promise<Buffer> {
   const report = await loadStatusReport(db, filter), records = await loadRecords(db, filter);
   const org = await getSetting(db, 'org', { name: '' });
   const details = new Map((await db.selectFrom('employees').select(['id', 'position']).execute()).map(e => [e.id, e]));
-  const wb = await loadWorkbook(await readFile(join(APP_ROOT, 'vendor/forms/statutory-2026.xlsx')));
+  const wb = await loadWorkbook(template ?? await readFile(join(APP_ROOT, 'vendor/forms/statutory-2026.xlsx')));
+  // 원본 서식에 남은 외부 통합문서 이름은 보고 파일에서 연결하지 않는다.
+  wb.definedNames.model = wb.definedNames.model.filter(n => n.ranges.every(r => !/\[[^\]]+\]/.test(r)));
   const eligible = new Set(report.rows.filter(row => report.trainings.some(t => row.cells[t.id].state !== 'exempt') && report.trainings.every(t => ['done', 'exempt'].includes(row.cells[t.id].state))).map(row => row.employeeId));
   for (const def of DEPLOYMENT_TRAININGS) {
     const ws = wb.getWorksheet(def.sheetName); if (!ws) throw Error(`기본 양식의 ${def.sheetName} 시트가 없습니다.`);
@@ -44,7 +46,7 @@ export async function buildStatutoryWorkbook(db: Kysely<DB>, filter: ReportScope
     for (const [i, rec] of rows.entries()) {
       const row = ws.getRow(first + i), date = rec.completedOn ? new Date(rec.completedOn + 'T00:00:00Z') : null;
       row.values = [i + 1, org.name, rec.departmentName, details.get(rec.employeeId)?.position ?? null, rec.employeeName, rec.provider, rec.courseTitle, rec.creditedHours, date, rec.certNo, rec.certNo ? null : '수료증 번호 미기재'];
-      row.getCell(8).numFmt = '0.##"시간"'; row.getCell(9).numFmt = 'yyyy.mm.dd'; row.getCell(10).numFmt = '@';
+      row.getCell(8).numFmt = Number.isInteger(rec.creditedHours) ? '0"시간"' : '0.##"시간"'; row.getCell(9).numFmt = 'yyyy-mm-dd'; row.getCell(10).numFmt = '@';
       row.alignment = { vertical: 'middle', wrapText: true };
       const lines = [2,3,6,7,10,11].map(col => Math.ceil([...String(row.getCell(col).value ?? '')].reduce((n,ch)=>n+(ch.charCodeAt(0)>127?2:1),0)/Math.max(8,ws.getColumn(col).width??10)));
       row.height = Math.min(409,Math.max(row.height??20,...lines.map(n=>n*15+6)));

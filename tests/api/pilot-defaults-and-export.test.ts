@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { multipart } from './harness.ts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import { createHarness, PDF, type Harness } from './harness.ts';
@@ -17,4 +19,15 @@ describe('시범운용 기본값과 공식 양식',()=>{
  it('모든 기준 충족 후 16시트에 기관·부서·번호를 정확히 쓰고 여러 증서의 인원은1명이다',async()=>{await complete();const pre=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(pre).toMatchObject({ready:true,employees:1,drafts:0,blockers:[],missingTrainings:[]});const out=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(out.statusCode, out.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(out.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const ws of wb.worksheets){expect(ws.getCell('B9').value).toBe('가람시');expect(ws.getCell('C9').value).toBe('총무과');expect(ws.getCell('D9').value).toBe('소방교');expect(ws.getCell('J9').value).toMatch(/^FINAL-/);expect(ws.getCell('B4').value).toBeNull();expect(ws.getCell('K4').value).toBe(1);expect(ws.getCell('E4').formula).toBe('IF(B4>0,K4/B4,"")');expect(ws.pageSetup.orientation).toBe('portrait');}const clean=wb.getWorksheet('반부패청렴')!;expect(Number(clean.getCell('H9').value)+Number(clean.getCell('H10').value)).toBe(5);expect(clean.getCell('J9').value).not.toBe(clean.getCell('J10').value);await h.db.updateTable('certificates').set({status:'excluded'}).where('id','=',1).execute();expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출')).statusCode).toBe(409);});
  it('개인정보보호가1회로 남아 있으면 양식의1시간과 다른 기준임을 안내한다',async()=>{await h.db.updateTable('trainings').set({req_type:'count'}).where('code','=','privacy').execute();const check=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(check.missingTrainings).toContain('개인정보보호 교육 (양식 기준 연 1시간 확인)');});
  it('인증과 출력 범위를 확인한다',async()=>{expect((await h.app.inject({url:'/api/employees/import/template'})).statusCode).toBe(401);expect((await h.app.inject({url:'/api/exports/statutory/check?year=2026'})).statusCode).toBe(401);expect((await h.send('GET','/api/exports/statutory/check?year=2026&departmentId=9999')).statusCode).toBe(404);});
+});
+
+describe('저장한 기관보고 양식',()=>{
+ it('등록한 원본 양식도 16시트를 채우며 미충족 출력을 막는다',async()=>{
+   const file=readFileSync(new URL('../../vendor/forms/statutory-2026.xlsx',import.meta.url));
+   const body=multipart([{name:'file',filename:'기관보고양식.xlsx',type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',value:file}]);
+   const analysis=(await h.send('POST','/api/forms/analyze',body.payload,body.headers)).json();expect(analysis.workbookKind).toBe('statutory16');
+   const form=(await h.send('POST','/api/forms',{name:'기관보고16시트',departmentId:null,uploadId:analysis.uploadId,layout:analysis.layout,columns:analysis.columns,markStyle:'ox'})).json();expect(form.workbookKind).toBe('statutory16');
+   const url='/api/exports/form?year=2026&reason=제출&formId='+form.id;expect((await h.send('GET',url)).statusCode).toBe(409);
+   await complete();const result=await h.send('GET',url);expect(result.statusCode,result.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(result.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const sheet of wb.worksheets){expect(sheet.getCell('E9').value).toBe('홍길동');expect(sheet.getCell('J9').value).toMatch(/^FINAL-/);expect(sheet.getCell('B4').value).toBeNull();}expect((await h.send('GET',url+'&onlyMissing=1')).statusCode).toBe(400);
+ });
 });

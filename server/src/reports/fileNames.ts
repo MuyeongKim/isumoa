@@ -3,26 +3,8 @@
 //  - 끝의 점·빈칸, CON·PRN 같은 예약 이름을 피하고
 //  - 너무 긴 파일명 구성요소는 자른다 (최대 80자·UTF-8 240바이트)
 
-const RESERVED = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])(?:\.|$)/i;
-const MAX_PART = 80;
-
-export function safeName(part: string, fallback = '이름없음'): string {
-  let name = part
-    .normalize('NFC')
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[. ]+$/, '');
-  let bounded = '';
-  for (const char of [...name].slice(0, MAX_PART)) {
-    if (Buffer.byteLength(bounded + char, 'utf8') > 240) break;
-    bounded += char;
-  }
-  name = bounded.replace(/[. ]+$/, '');
-  if (name === '') name = fallback;
-  if (RESERVED.test(name)) name = `_${name}`;
-  return name;
-}
+import { safeFileName } from '../../../shared/exportFileNames.ts';
+export const safeName = safeFileName;
 
 /** 같은 폴더 안에서 이름이 겹치면 "(2)", "(3)"을 붙인다 */
 export class UniqueNames {

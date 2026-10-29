@@ -498,6 +498,7 @@ export interface FormLayout {
 }
 
 export interface FormAnalysis {
+  workbookKind?: 'generic' | 'statutory16';
   uploadId: string;
   fileName: string;
   sheets: string[];
@@ -511,6 +512,7 @@ export interface FormAnalysis {
 }
 
 export interface FormTemplate {
+  workbookKind?: 'generic' | 'statutory16';
   id: number;
   name: string;
   /** 없으면 모든 부서가 함께 쓰는 양식 */

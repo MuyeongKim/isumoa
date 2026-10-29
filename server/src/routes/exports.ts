@@ -1,8 +1,10 @@
+import { loadWorkbook } from '../forms/analyze.ts';
+import { isStatutoryTemplate } from '../forms/statutoryTemplate.ts';
 import { ZipArchive } from 'archiver';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { ZIP_LAYOUTS, type ExportSummary, type FormMarkStyle } from '../../../shared/types.ts';
-import { DEFAULT_PERSONAL_TITLE, PERSONAL_TITLE_FIELDS } from '../../../shared/exportTitles.ts';
+import { DEFAULT_PERSONAL_TITLE, PERSONAL_TITLE_FIELDS, DEFAULT_CERTIFICATE_TITLE, certificateTitleError } from '../../../shared/exportTitles.ts';
 import { assertDepartmentInScope, currentUser, departmentScope, requireUser } from '../auth/guard.ts';
 import { getSetting } from '../db/seed.ts';
 import type { Deps } from '../deps.ts';
@@ -34,6 +36,8 @@ const DownloadQuery = ExportQuery.extend({
 });
 const ZipQuery = DownloadQuery.extend({
   layout: z.enum(ZIP_LAYOUTS).default('training'),
+  title: z.string().trim().max(150).default(DEFAULT_CERTIFICATE_TITLE).refine(v => !certificateTitleError(v), '수료증 파일명 규칙을 확인해 주세요.'),
+  archiveTitle: z.string().trim().min(1).max(100).optional(),
   trainingId: z.coerce.number().int().positive().optional(),
 });
 const PdfQuery = DownloadQuery.extend({ trainingId: z.coerce.number().int().positive() });
@@ -143,18 +147,18 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
   });
 
   app.get('/api/exports/certificates.zip', { preHandler: requireUser }, async (req, reply) => {
-    const { year, departmentId, layout, trainingId, reason } = ZipQuery.parse(req.query);
+    const { year, departmentId, layout, trainingId, reason, title, archiveTitle } = ZipQuery.parse(req.query);
     const { scope, label, filePart } = await resolveScope(req, departmentId);
     const records = await loadRecords(db, { year, scope, departmentId, trainingId });
     if (records.length === 0) throw badRequest('내보낼 확정 이수증이 없습니다.');
     const trainingPart = trainingId ? `_${safeName(records[0].trainingName)}` : '';
-    await audit(db, req, 'export.zip', undefined, { year, scope: label, layout, trainingId: trainingId ?? null, files: records.length, reason });
+    await audit(db, req, 'export.zip', undefined, { year, scope: label, layout, trainingId: trainingId ?? null, files: records.length, title, archiveTitle, reason });
     reply.header('Content-Type', 'application/zip');
     reply.header(
       'Content-Disposition',
-      contentDisposition(`${year}년_이수증_${layout === 'training' ? '교육별' : layout === 'employee' ? '개인별' : '부서별'}${filePart}${trainingPart}.zip`, 'certificates.zip'),
+      contentDisposition(`${archiveTitle ? safeName(archiveTitle.replace(/\.zip$/i, '')) : `${year}년_이수증_${layout === 'training' ? '교육별' : layout === 'employee' ? '개인별' : '부서별'}${filePart}${trainingPart}`}.zip`, 'certificates.zip'),
     );
-    return reply.send(buildEvidenceZip(records, layout, config.dataDir));
+    return reply.send(buildEvidenceZip(records, layout, config.dataDir, title, year));
   });
 
   app.get('/api/exports/employees.zip', { preHandler: requireUser }, async (req, reply) => {
@@ -188,12 +192,18 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     const { user, scope, label, filePart } = await resolveScope(req, departmentId);
     const form = await getForm(db, formId);
     if (!form || !canUseForm(user, form.department_id)) throw notFound('양식을 찾을 수 없습니다.');
+    const official = isStatutoryTemplate(await loadWorkbook(form.file));
+    if (official) {
+      if (onlyMissing) throw badRequest('16시트 최종 보고 양식에는 미이수 직원만 출력할 수 없습니다.');
+      const check = await checkFinalExport(db, { year, scope, departmentId }, await countDrafts(db, user, year, departmentId));
+      if (!check.ready) throw new HttpError(409, `최종 보고 기준이 충족되지 않았습니다. 교육 기준 확인 ${check.missingTrainings.length}개, 미충족 ${check.blockers.length}항목, 검수 대기 ${check.drafts}건을 먼저 확인해 주세요.`);
+    }
     const people = await loadFormPeople(db, { year, scope, departmentId, onlyMissing });
     if (people.length === 0) throw badRequest(onlyMissing ? '미이수·부분이수인 직원이 없습니다.' : '양식에 쓸 직원이 없습니다.');
 
     const org = await getSetting(db, 'org', { name: '' });
     const fill = (group: FormPersonRow[], departmentName: string) =>
-      fillForm({
+      official ? buildStatutoryWorkbook(db, { year, scope, departmentId: group.length && group.every(p => p.departmentId === group[0].departmentId) ? group[0].departmentId ?? undefined : departmentId }, form.file) : fillForm({
         file: form.file,
         layout: { sheetName: form.sheet_name, headerFirst: form.header_first, headerLast: form.header_last, dataFirst: form.data_first, footerRow: form.footer_row },
         columns: JSON.parse(form.columns),

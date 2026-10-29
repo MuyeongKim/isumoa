@@ -132,11 +132,13 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
 
   const trainings = useQuery({ queryKey: ['trainings'], queryFn: () => api.get<Training[]>('/trainings') });
   const departments = useQuery({ queryKey: ['departments'], queryFn: () => api.get<Department[]>('/departments') });
+  const official = analysis.workbookKind === 'statutory16';
   const year = new Date().getFullYear();
   const preview = useQuery({
     queryKey: ['form-preview', year, departmentId, markStyle, JSON.stringify(columns)],
     queryFn: () => api.post<FormPreview>('/forms/preview', { year, departmentId, columns, markStyle }),
     placeholderData: keepPreviousData,
+    enabled: !official,
   });
 
   async function detect(overrides: Partial<FormLayout>) {
@@ -217,7 +219,7 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
     <>
       <PageHeader
         title={form ? `${form.name} — 열 맞추기` : '새 제출 양식'}
-        description="양식에서 찾은 자리와 열마다 넣을 내용입니다. 틀린 곳만 고치고 저장하세요."
+        description={official ? '교육별 16시트 기관보고 양식입니다. 모든 시트를 자동으로 채우며 열 설정은 필요하지 않습니다.' : '양식에서 찾은 자리와 열마다 넣을 내용입니다. 틀린 곳만 고치고 저장하세요.'}
         actions={
           <Button onClick={requestClose} disabled={busy !== null}>
             <ArrowLeft className="size-4" aria-hidden />
@@ -244,11 +246,11 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
             <span className="text-[13.5px] text-ink-faint">{analysis.fileName}</span>
           </div>
           <p className="mt-1 text-[14px] text-ink-soft">
-            {prepared > 0
+            {official ? '교육별 16개 시트를 모두 채웁니다. 적용 교육기준을 충족하고 검수가 끝난 뒤 최종 보고서를 받습니다. 아래는 첫 시트입니다.' : prepared > 0
               ? `빈 줄 ${prepared}개(${layout.dataFirst}~${layout.footerRow - 1}행)에 한 사람씩 씁니다. 사람이 더 많으면 줄을 끼워 넣고, 아래 합계·서명란은 그만큼 내려갑니다.`
               : `빈 줄이 없어 ${layout.dataFirst}행부터 머리글 모양을 본뜬 줄을 만들어 씁니다.`}
           </p>
-          <div className="mt-4 flex flex-wrap items-end gap-4">
+          {!official && <div className="mt-4 flex flex-wrap items-end gap-4">
             {analysis.sheets.length > 1 && (
               <label className="block text-[13.5px]">
                 <span className="mb-1.5 block font-semibold">시트</span>
@@ -266,7 +268,7 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
             <Button onClick={() => void detect(layout)} loading={busy === 'detect'}>
               <RefreshCw className="size-4" aria-hidden />이 줄 번호로 다시 읽기
             </Button>
-          </div>
+          </div>}
           <div className="mt-4">
             <SheetPreview analysis={analysis} layout={layout} />
           </div>
@@ -286,7 +288,7 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
           </p>
         </section>
 
-        <section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
+        {!official && <><section className="rounded-2xl border border-line bg-sheet p-6 shadow-surface">
           <h2 className="text-[17px] font-bold">2. 열마다 넣을 내용</h2>
           <p className="mt-1 text-[14px] text-ink-soft">
             {filled}개 열을 채웁니다. &lsquo;비워 둠&rsquo; 열은 양식 그대로 둡니다.
@@ -406,6 +408,7 @@ function FormEditor({ initial, form, onClose }: { initial: FormAnalysis; form: F
           )}
         </section>
 
+        </>}
         <section className="flex flex-wrap items-end gap-4 rounded-2xl border border-line bg-sheet p-6 shadow-surface">
           <Field label="양식 이름" htmlFor="form-name" required className="w-72">
             <Input id="form-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
@@ -525,7 +528,7 @@ export function FormsPage() {
         title="제출 양식"
         description="기관·부서가 정한 엑셀 양식을 올려 두면, 내보내기에서 이수 현황을 그 양식 그대로 채워 받을 수 있습니다."
         actions={
-          <Link to="/export" className={buttonClass('secondary')}>
+          <Link to="/export?purpose=form" className={buttonClass('secondary')}>
             <ArrowLeft className="size-4" aria-hidden />
             내보내기로
           </Link>
@@ -555,7 +558,7 @@ export function FormsPage() {
         </span>
         <span className="text-[16px] font-bold">{action?.kind === 'delete' ? '양식을 지우는 중…' : busy ? '양식을 읽는 중…' : '빈 제출 양식(.xlsx)을 끌어다 놓거나 눌러서 고르세요'}</span>
         <span className="text-[13.5px] text-ink-faint">
-          한 사람이 한 줄인 명단형 양식을 읽습니다. 옛 엑셀(.xls)은 엑셀에서 &lsquo;다른 이름으로 저장 → .xlsx&rsquo;로 바꿔 올려 주세요.
+          명단형 양식과 교육별 16시트 기관보고 양식을 읽습니다. 옛 엑셀(.xls)은 엑셀에서 &lsquo;다른 이름으로 저장 → .xlsx&rsquo;로 바꿔 올려 주세요.
         </span>
         <input
           id="form-file"
@@ -603,7 +606,7 @@ export function FormsPage() {
                     <span className="block text-[12.5px] text-ink-faint">{f.fileName}</span>
                   </Td>
                   <Td>{f.departmentName ? f.departmentName : <Tag tone="navy">모든 부서 공용</Tag>}</Td>
-                  <Td className="tabular-nums">{f.columns.filter((c) => c.fill.kind !== 'none').length}개</Td>
+                  <Td className="tabular-nums">{f.workbookKind === 'statutory16' ? '16시트 자동' : f.columns.filter((c) => c.fill.kind !== 'none').length + '개'}</Td>
                   <Td className="whitespace-nowrap text-ink-soft">{formatDateTime(f.updatedAt)}</Td>
                   <Td>
                     <div className="flex justify-end gap-1 whitespace-nowrap">
@@ -613,7 +616,7 @@ export function FormsPage() {
                       {f.canEdit && (
                         <>
                           <Button variant="ghost" size="sm" disabled={busy} loading={action?.kind === 'edit' && action.id === f.id} onClick={() => void edit(f)}>
-                            <Pencil className="size-4" aria-hidden />열 맞추기
+                            <Pencil className="size-4" aria-hidden />{f.workbookKind === 'statutory16' ? '양식 확인' : '열 맞추기'}
                           </Button>
                           <Button variant="ghost" size="sm" className="hover:bg-seal-soft hover:text-seal" disabled={busy} onClick={() => { if (!busyRef.current) setDeleting(f); }} aria-label={`${f.name} 지우기`}>
                             <Trash2 className="size-4" aria-hidden />

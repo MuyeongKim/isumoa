@@ -1,9 +1,11 @@
+import { ReportDownload } from '@/components/ReportDownload';
+import { safeFileName } from '@shared/exportFileNames.ts';
 import { useQuery } from '@tanstack/react-query';
 import { FileArchive, FilePen, FileSpreadsheet, FileStack, Download } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import type { Department, ExportSummary, FinalExportCheck, FormTemplate, ZipLayout } from '@shared/types.ts';
-import { DEFAULT_PERSONAL_TITLE, personalArchiveTitleError, personalTitle, personalTitleError } from '@shared/exportTitles.ts';
+import { DEFAULT_PERSONAL_TITLE, personalArchiveTitleError, personalTitle, personalTitleError, DEFAULT_CERTIFICATE_TITLE, certificateTitle, certificateTitleError } from '@shared/exportTitles.ts';
 import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { withBase } from '@/lib/base';
@@ -70,82 +72,48 @@ function Card({ icon, title, description, children }: { icon: ReactNode; title: 
 }
 
 /** 제출 양식에 채우기: 고른 부서의 양식이 있으면 먼저 고른다 */
-function FormCard({ active, departmentId, downloadQuery, noReason, canSplit }: { active: boolean; departmentId: number | null; downloadQuery: string; noReason: boolean; canSplit: boolean }) {
+function FormCard({ active, year, departmentId, downloadQuery, noReason, canSplit }: { active: boolean; year: number; departmentId: number | null; downloadQuery: string; noReason: boolean; canSplit: boolean }) {
   const forms = useQuery({ queryKey: ['forms'], queryFn: () => api.get<FormTemplate[]>('/forms'), enabled: active });
   const [formId, setFormId] = useState<number | null>(null);
-  const [onlyMissing, setOnlyMissing] = useState(false);
-  const [split, setSplit] = useState(false);
-  const list = forms.data ?? [];
-
+  const [onlyMissing, setOnlyMissing] = useState(false), [split, setSplit] = useState(false);
+  const list = forms.data ?? [], official = list.find(f => f.id === formId)?.workbookKind === 'statutory16';
   useEffect(() => {
-    if (list.length === 0) return;
-    const preferred = list.find((f) => f.departmentId === departmentId) ?? list.find((f) => f.departmentId === null) ?? list[0];
-    setFormId((current) => (current !== null && list.some((f) => f.id === current) ? current : preferred.id));
+    if (!list.length) return;
+    const preferred = list.find(f => f.workbookKind === 'statutory16' && (f.departmentId === departmentId || f.departmentId === null)) ?? list.find(f => f.departmentId === departmentId) ?? list.find(f => f.departmentId === null) ?? list[0];
+    setFormId(current => current !== null && list.some(f => f.id === current) ? current : preferred.id);
   }, [list, departmentId]);
+  const href = withBase('/api/exports/form?' + downloadQuery + '&formId=' + formId + (!official && onlyMissing ? '&onlyMissing=1' : '') + (split && canSplit ? '&split=1' : ''));
+  return <Card icon={<FilePen className="size-5" aria-hidden />} title="제출 양식에 채우기" description={<>{official ? '교육별 16개 시트를 모두 채우는 기관보고 양식입니다.' : '기관·부서가 정한 엑셀 명단 양식에 이수 현황을 채웁니다.'}{' '}<Link to="/export/forms" className="font-semibold text-link hover:underline">양식 올리기·관리</Link></>}>
+    {forms.isError ? <><p role="alert" className="text-seal">{errorMessage(forms.error)}</p><Button onClick={() => void forms.refetch()}>다시 불러오기</Button></> : forms.isPending ? <p role="status">양식을 불러오고 있습니다.</p> : !list.length ? <Link to="/export/forms" className={buttonClass('secondary')}>제출 양식 올리기</Link> : <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-4">
+        <Select className="w-80" value={formId ?? ''} onChange={e => setFormId(Number(e.target.value))} aria-label="제출 양식">{list.map(f => <option key={f.id} value={f.id}>{f.name}{f.workbookKind === 'statutory16' ? ' (16시트 자동)' : ''}{f.departmentName ? ' (' + f.departmentName + ')' : ''}</option>)}</Select>
+        {!official && <label className="flex items-center gap-2 text-[14px] text-ink-soft"><input type="checkbox" className="size-4 accent-navy" checked={onlyMissing} onChange={e => setOnlyMissing(e.target.checked)}/>미이수·부분이수 직원만</label>}
+        {canSplit && <label className="flex items-center gap-2 text-[14px] text-ink-soft"><input type="checkbox" className="size-4 accent-navy" checked={split} onChange={e => setSplit(e.target.checked)}/>부서별 파일로 나누기 (ZIP)</label>}
+      </div>
+      {official ? <FinalReportPanel active={active} year={year} departmentId={departmentId} noReason={noReason} href={href}/> : <ReportDownload href={href} disabled={noReason || formId === null} disabledReason={noReason ? '내려받는 사유를 먼저 선택해 주세요.' : undefined} label="양식에 채워 받기"/>}
+    </div>}
+  </Card>;
+}
 
-  return (
-    <Card
-      icon={<FilePen className="size-5" aria-hidden />}
-      title="제출 양식에 채우기"
-      description={
-        <>
-          기관·부서가 정한 엑셀 양식에 직원 한 줄씩 이수 현황을 채웁니다. 양식의 제목·머리글·합계·서명란은 그대로 둡니다.{' '}
-          <Link to="/export/forms" className="font-semibold text-link hover:underline">
-            양식 올리기·관리
-          </Link>
-        </>
-      }
-    >
-      {forms.isPending ? null : list.length === 0 ? (
-        <Link to="/export/forms" className={buttonClass('secondary')}>
-          제출 양식 올리기
-        </Link>
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Select className="w-64" value={formId ?? ''} onChange={(e) => setFormId(Number(e.target.value))} aria-label="제출 양식">
-            {list.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-                {f.departmentName ? ` (${f.departmentName})` : ''}
-              </option>
-            ))}
-          </Select>
-          <label className="flex items-center gap-2 text-[14px] text-ink-soft">
-            <input type="checkbox" className="size-4 accent-navy" checked={onlyMissing} onChange={(e) => setOnlyMissing(e.target.checked)} />
-            미이수·부분이수 직원만
-          </label>
-          {canSplit && (
-            <label className="flex items-center gap-2 text-[14px] text-ink-soft">
-              <input type="checkbox" className="size-4 accent-navy" checked={split} onChange={(e) => setSplit(e.target.checked)} />
-              부서별 파일로 나누기 (ZIP)
-            </label>
-          )}
-          <DownloadLink
-            primary
-            href={withBase(`/api/exports/form?${downloadQuery}&formId=${formId}${onlyMissing ? '&onlyMissing=1' : ''}${split && canSplit ? '&split=1' : ''}`)}
-            disabled={noReason || formId === null}
-          >
-            양식에 채워 받기
-          </DownloadLink>
-        </div>
-      )}
-    </Card>
-  );
+function FinalReportPanel({ active, year, departmentId, href, noReason }: { active: boolean; year: number; departmentId: number | null; href: string; noReason: boolean }) {
+  const check = useQuery({ queryKey: ['exports', 'statutory', year, departmentId], queryFn: () => api.get<FinalExportCheck>('/exports/statutory/check?year=' + year + (departmentId ? '&departmentId=' + departmentId : '')), enabled: active });
+  if (!active) return null;
+  if (check.isPending) return <p role="status">제출 기준을 확인하고 있습니다.</p>;
+  if (check.isError) return <><p role="alert" className="text-seal">{errorMessage(check.error)}</p><Button onClick={() => void check.refetch()}>다시 확인</Button></>;
+  const result = check.data;
+  return <div className="space-y-3">
+    <p role="status" className={result.ready ? 'text-ok' : 'text-warn'}>{result.ready ? '직원 ' + result.employees + '명의 제출 기준을 모두 충족했습니다.' : '양식은 정상입니다. 최종 출력 전에 미충족 ' + result.blockers.length + '항목 · 검수 대기 ' + result.drafts + '건을 확인해 주세요.'}</p>
+    {!result.employees && <p>출력 범위에 교육 대상 직원이 없습니다.</p>}
+    {!!result.missingTrainings.length && <p className="text-seal">양식에 필요한 교육 기준: {result.missingTrainings.join(', ')}</p>}
+    {!!result.blockers.length && <ul className="max-h-64 overflow-y-auto rounded-lg bg-paper p-3 text-[13px]">{result.blockers.slice(0,30).map((b,i) => <li key={i}>{b.department} · {b.name} · {b.training} ({b.hours}/{b.required}{b.unit})</li>)}{result.blockers.length > 30 && <li>나머지는 이수 현황에서 확인하세요.</li>}</ul>}
+    <div className="flex flex-wrap gap-2"><Button onClick={() => void check.refetch()}>제출 기준 다시 확인</Button><Link className={buttonClass()} to={'/status?year=' + year + (departmentId ? '&departmentId=' + departmentId : '')}>이수 현황 보기</Link></div>
+    <ReportDownload href={href} disabled={noReason || !result.ready} disabledReason={noReason ? '내려받는 사유를 먼저 선택해 주세요.' : !result.ready ? '적용 교육기준 충족과 검수를 마친 뒤 다시 확인해 주세요.' : undefined} label="최종 명단 엑셀 받기"/>
+  </div>;
 }
 
 function StatutoryCard({ active, year, departmentId, query, noReason }: { active: boolean; year: number; departmentId: number | null; query: string; noReason: boolean }) {
-  const check = useQuery({ queryKey: ['exports', 'statutory', year, departmentId], queryFn: () => api.get<FinalExportCheck>(`/exports/statutory/check?year=${year}${departmentId ? `&departmentId=${departmentId}` : ''}`), enabled: active });
   if (!active) return null;
-  return <Card icon={<FileSpreadsheet className="size-5" aria-hidden />} title="법정 의무교육 수료자 명단" description="기본 양식의 교육별 16개 시트를 한 파일로 받습니다. 선택 범위의 직원이 적용 교육기준을 모두 충족하고 검수가 끝나야 최종 출력할 수 있습니다. 현원은 자동 집계하지 않습니다.">
-    {check.isPending ? <p role="status">제출 기준을 확인하고 있습니다.</p> : check.isError ? <><p role="alert" className="text-seal">{errorMessage(check.error)}</p><Button onClick={() => void check.refetch()}>다시 확인</Button></> : check.data && <div className="space-y-3">
-      <p role="status" className={check.data.ready ? 'text-ok' : 'text-seal'}>{check.data.ready ? `직원 ${check.data.employees}명의 제출 기준을 모두 충족했습니다.` : `최종 출력 전 확인이 필요합니다. 미충족 ${check.data.blockers.length}항목 · 검수 대기 ${check.data.drafts}건`}</p>
-      {!check.data.employees && <p>출력 범위에 교육 대상 직원이 없습니다.</p>}
-      {check.data.missingTrainings.length > 0 && <p className="text-seal">기본 양식에 필요한 교육 기준을 확인해 주세요: {check.data.missingTrainings.join(', ')}</p>}
-      {check.data.blockers.length > 0 && <ul className="max-h-64 overflow-y-auto rounded-lg bg-paper p-3 text-[13px]">{check.data.blockers.slice(0,30).map((b,i)=><li key={i}>{b.department} · {b.name} · {b.training} ({b.hours}/{b.required}{b.unit})</li>)}{check.data.blockers.length > 30 && <li>나머지 항목은 이수 현황에서 확인하세요.</li>}</ul>}
-      <div className="flex flex-wrap gap-2"><Button onClick={() => void check.refetch()}>제출 기준 다시 확인</Button><Link className={buttonClass()} to={`/status?year=${year}${departmentId ? `&departmentId=${departmentId}` : ''}`}>이수 현황 보기</Link>
-      <DownloadLink primary href={withBase(`/api/exports/statutory.xlsx?${query}`)} disabled={noReason || !check.data.ready} disabledReason={!check.data.ready ? '미충족 항목과 검수를 마친 뒤 다시 확인해 주세요.' : undefined}>최종 명단 엑셀 받기</DownloadLink></div>
-    </div>}
-  </Card>;
+  return <Card icon={<FileSpreadsheet className="size-5" aria-hidden />} title="법정 의무교육 수료자 명단" description="기본 양식의 교육별 16개 시트를 한 파일로 받습니다. 적용 교육기준을 모두 충족하고 검수가 끝나야 출력할 수 있습니다. 현원은 빈칸입니다."><FinalReportPanel active={active} year={year} departmentId={departmentId} href={withBase('/api/exports/statutory.xlsx?' + query)} noReason={noReason}/></Card>;
 }
 
 export function ExportPage() {
@@ -155,6 +123,10 @@ export function ExportPage() {
   const year = Number(params.get('year')) || thisYear;
   const departmentId = Number(params.get('departmentId')) || null;
   const purpose = PURPOSES.find(p => p.key === params.get('purpose'))?.key ?? 'statutory';
+  const [fileTemplate, setFileTemplate] = useState(DEFAULT_CERTIFICATE_TITLE);
+  const [filesArchiveTitle, setFilesArchiveTitle] = useState('');
+  const fileTemplateError = certificateTitleError(fileTemplate);
+  const filesArchiveError = personalArchiveTitleError(filesArchiveTitle);
   const [layout, setLayout] = useState<ZipLayout>('training');
   const [zipTraining, setZipTraining] = useState<number | null>(null);
   const [reasonChoice, setReasonChoice] = useState('');
@@ -284,6 +256,7 @@ export function ExportPage() {
 
           <div hidden={purpose !== 'form'}><FormCard
             active={purpose === 'form'}
+            year={year}
             departmentId={departmentId}
             downloadQuery={downloadQuery}
             noReason={noReason}
@@ -295,10 +268,17 @@ export function ExportPage() {
             title="이수증 ZIP"
             description={
               <>
-                확정한 이수증을 한 장씩 PDF로 담습니다. 파일 이름은 <code className="rounded bg-paper px-1">부서_성명_교육명_이수일.pdf</code>이고, 통합과정 이수증은 인정된 교육마다 들어갑니다.
+                확정한 이수증을 한 장씩 PDF로 담습니다. 아래에 입력한 규칙으로 각 PDF의 파일명을 만듭니다. 통합과정 이수증은 인정된 교육마다 들어갑니다.
               </>
             }
           >
+            <div className="mb-4 space-y-3">
+              <Field label="수료증 파일명 규칙" htmlFor="certificate-title" hint="{연도}, {부서}, {성명}, {사번}, {교육명}, {과정명}, {이수일}, {증서번호}를 사용할 수 있습니다. .pdf는 자동으로 붙고 같은 이름은 번호로 구분합니다.">
+                <Input id="certificate-title" value={fileTemplate} maxLength={150} onChange={e => setFileTemplate(e.target.value)} aria-invalid={Boolean(fileTemplateError)}/>{fileTemplateError && <p role="alert" className="text-[12.5px] text-seal">{fileTemplateError}</p>}
+              </Field>
+              <p aria-live="polite" className="rounded-lg bg-paper px-3 py-2 text-[13px] break-all text-ink-soft">파일명 예시: {safeFileName(certificateTitle(fileTemplate, {연도:String(year), 부서:examplePerson?.departmentName ?? '총무과', 성명:examplePerson?.name ?? '홍길동', 사번:examplePerson?.empNo ?? '001', 교육명:data.trainings.find(t => t.trainingId === zipTraining)?.name ?? '개인정보보호 교육', 과정명:'개인정보 안전성 확보조치', 이수일:String(year)+'-04-01', 증서번호:'CERT-001'}))}.pdf</p>
+              <Field label="ZIP 파일 제목" htmlFor="files-archive-title" hint="비워 두면 기본 ZIP 이름을 씁니다. 파일명에 쓸 수 없는 문자는 자동으로 바꿉니다."><Input id="files-archive-title" value={filesArchiveTitle} maxLength={100} onChange={e => setFilesArchiveTitle(e.target.value)} placeholder="예: 2026년_기관보고_수료증"/>{filesArchiveError && <p role="alert" className="text-seal">{filesArchiveError}</p>}</Field>
+            </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
               <fieldset className="flex gap-4 text-[14px]">
                 <legend className="sr-only">폴더 나누기</legend>
@@ -324,9 +304,9 @@ export function ExportPage() {
                 ))}
               </Select>
               <DownloadLink
-                href={withBase(`/api/exports/certificates.zip?${downloadQuery}&layout=${layout}${zipTraining ? `&trainingId=${zipTraining}` : ''}`)}
-                disabled={zipFiles === 0 || noReason}
-                disabledReason={noReason ? undefined : '선택한 범위에 확정한 수료증이 없습니다.'}
+                href={withBase(`/api/exports/certificates.zip?${downloadQuery}&layout=${layout}&title=${encodeURIComponent(fileTemplate)}${filesArchiveTitle.trim() ? `&archiveTitle=${encodeURIComponent(filesArchiveTitle.trim())}` : ''}${zipTraining ? `&trainingId=${zipTraining}` : ''}`)}
+                disabled={zipFiles === 0 || noReason || Boolean(fileTemplateError || filesArchiveError)}
+                disabledReason={noReason ? undefined : fileTemplateError ?? filesArchiveError ?? '선택한 범위에 확정한 수료증이 없습니다.'}
               >
                 ZIP 받기 ({formatNumber(zipFiles)}개 파일)
               </DownloadLink>

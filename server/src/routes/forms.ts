@@ -1,3 +1,4 @@
+import { isStatutoryTemplate } from '../forms/statutoryTemplate.ts';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Kysely, Selectable } from 'kysely';
@@ -18,7 +19,7 @@ import { loadTrainings } from '../certs/review.ts';
 import type { DB, FormTemplatesTable } from '../db/schema.ts';
 import { nowIso } from '../db/sqlite.ts';
 import type { Deps } from '../deps.ts';
-import { analyzeForm, assertXlsx, type AnalyzeOptions } from '../forms/analyze.ts';
+import { analyzeForm, assertXlsx, loadWorkbook, type AnalyzeOptions } from '../forms/analyze.ts';
 import { previewText } from '../forms/fill.ts';
 import { loadFormPeople } from '../forms/people.ts';
 import { audit } from '../lib/audit.ts';
@@ -106,8 +107,11 @@ export async function getForm(db: Kysely<DB>, id: number) {
 
 type FormRow = Selectable<FormTemplatesTable> & { department_name: string | null; created_by_name: string | null };
 
-function toForm(row: FormRow, user: SessionUser): FormTemplate {
+async function toForm(row: FormRow, user: SessionUser): Promise<FormTemplate> {
+  let workbookKind: 'generic' | 'statutory16' = 'generic';
+  try { workbookKind = isStatutoryTemplate(await loadWorkbook(row.file)) ? 'statutory16' : 'generic'; } catch { /* 목록은 보존하고 파일 오류는 편집·출력에서 안내한다. */ }
   return {
+    workbookKind,
     id: row.id,
     name: row.name,
     departmentId: row.department_id,
@@ -192,7 +196,7 @@ export async function formRoutes(app: FastifyInstance, { db }: Deps) {
       .orderBy('f.department_id')
       .orderBy('f.name')
       .execute();
-    return rows.filter((r) => canUseForm(user, r.department_id)).map((r) => toForm(r, user));
+    return Promise.all(rows.filter((r) => canUseForm(user, r.department_id)).map((r) => toForm(r, user)));
   });
 
   app.post('/api/forms', { preHandler: requireUser }, async (req): Promise<FormTemplate> => {

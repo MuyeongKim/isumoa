@@ -1,3 +1,4 @@
+import { isStatutoryTemplate } from './statutoryTemplate.ts';
 import ExcelJS from 'exceljs';
 import { HEADER_WORDS, normalizeHeader } from '../../../shared/rosterColumns.ts';
 import { shortTrainingName } from '../../../shared/trainingNames.ts';
@@ -17,6 +18,7 @@ export interface AnalyzeOptions {
 }
 
 export interface AnalyzedForm {
+  workbookKind: 'generic' | 'statutory16';
   sheets: string[];
   layout: FormLayout;
   columns: FormColumn[];
@@ -269,6 +271,7 @@ export async function analyzeForm(buffer: Buffer | Uint8Array, trainings: Traini
   }));
 
   return {
+    workbookKind: isStatutoryTemplate(wb) ? 'statutory16' : 'generic',
     sheets: sheets.map((s) => s.name),
     layout: { sheetName: ws.name, headerFirst, headerLast, dataFirst, footerRow },
     columns,

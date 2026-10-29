@@ -20,3 +20,16 @@ export function personalArchiveTitleError(value: string): string | null {
 export function personalTitle(template: string, values: Record<(typeof PERSONAL_TITLE_FIELDS)[number], string>): string {
   return template.replace(/\{(연도|부서|성명|사번)\}/g, (_, key: keyof typeof values) => values[key]);
 }
+
+export const DEFAULT_CERTIFICATE_TITLE = '{부서}_{성명}_{교육명}_{이수일}';
+export const CERTIFICATE_TITLE_FIELDS = ['연도', '부서', '성명', '사번', '교육명', '과정명', '이수일', '증서번호'] as const;
+export function certificateTitleError(value: string): string | null {
+  const title = value.trim();
+  if (!title || /^\.pdf$/i.test(title)) return '수료증 파일명 규칙을 입력해 주세요.';
+  if (title.length > 150) return '수료증 파일명 규칙은 150자 이내로 입력해 주세요.';
+  if ([...title.matchAll(/\{([^{}]+)\}/g)].some(m => !CERTIFICATE_TITLE_FIELDS.some(key => key === m[1]))) return '사용할 수 없는 파일명 항목입니다. 아래 안내의 항목을 사용해 주세요.';
+  return null;
+}
+export function certificateTitle(template: string, values: Record<(typeof CERTIFICATE_TITLE_FIELDS)[number], string>): string {
+  return template.trim().replace(/\{(연도|부서|성명|사번|교육명|과정명|이수일|증서번호)\}/g, (_, key: keyof typeof values) => values[key]).replace(/\.pdf$/i, '').trim();
+}

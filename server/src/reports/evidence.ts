@@ -2,9 +2,9 @@ import { readFile } from 'node:fs/promises';
 import { ZipArchive } from 'archiver';
 import { PDFDocument } from 'pdf-lib';
 import type { ZipLayout } from '../../../shared/types.ts';
-import { personalTitle } from '../../../shared/exportTitles.ts';
+import { personalTitle, certificateTitle, DEFAULT_CERTIFICATE_TITLE } from '../../../shared/exportTitles.ts';
 import { originalPath, pageImagePath } from '../storage.ts';
-import { certificateBaseName, safeName, UniqueNames } from './fileNames.ts';
+import { safeName, UniqueNames } from './fileNames.ts';
 import type { CertificateRecord } from './records.ts';
 
 // 증빙 자료: 이수증 ZIP과 교육별 합본 PDF.
@@ -83,11 +83,11 @@ export class CertificatePages {
 }
 
 /** ZIP 안 경로: 교육별이면 "교육명/…", 부서별이면 "부서/…" */
-export function zipEntryNames(records: CertificateRecord[], layout: ZipLayout): string[] {
+export function zipEntryNames(records: CertificateRecord[], layout: ZipLayout, template = DEFAULT_CERTIFICATE_TITLE, year?: number): string[] {
   const names = new UniqueNames();
   return records.map((r) => {
     const folder = safeName(layout === 'training' ? r.trainingName : layout === 'employee' ? `${r.departmentName ?? '부서없음'}_${r.employeeName}${r.empNo ? `_${r.empNo}` : `_${r.employeeId}`}` : (r.departmentName ?? '부서없음'));
-    return names.take(folder, certificateBaseName(r), '.pdf');
+    return names.take(folder, safeName(certificateTitle(template, { 연도: year ? String(year) : r.completedOn.slice(0, 4), 부서: r.departmentName ?? '부서없음', 성명: r.employeeName, 사번: r.empNo ?? String(r.employeeId), 교육명: r.trainingName, 과정명: r.courseTitle ?? r.trainingName, 이수일: r.completedOn || '이수일없음', 증서번호: r.certNo ?? '증서번호없음' })), '.pdf');
   });
 }
 
@@ -95,10 +95,10 @@ export function zipEntryNames(records: CertificateRecord[], layout: ZipLayout): 
  * 이수증 ZIP을 만들며 흘려보낸다. 파일 이름은 UTF-8 표시를 달아 Windows 탐색기에서 한글이 깨지지 않는다.
  * PDF·JPEG는 이미 압축되어 있어 빠르게 묶기만 한다.
  */
-export function buildEvidenceZip(records: CertificateRecord[], layout: ZipLayout, dataDir: string): ZipArchive {
+export function buildEvidenceZip(records: CertificateRecord[], layout: ZipLayout, dataDir: string, template = DEFAULT_CERTIFICATE_TITLE, year?: number): ZipArchive {
   const archive = new ZipArchive({ zlib: { level: 1 } });
   const pages = new CertificatePages(dataDir);
-  const names = zipEntryNames(records, layout);
+  const names = zipEntryNames(records, layout, template, year);
   // 한 장씩 써 넣은 뒤 다음 장을 만든다 (받는 쪽이 느려도 메모리에 쌓이지 않게)
   const written = () =>
     new Promise<void>((resolve, reject) => {

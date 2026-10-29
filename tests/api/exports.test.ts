@@ -173,6 +173,10 @@ describe('내보내기', () => {
     expect(new Set(byDept.map((e) => e.name.split('/')[0]))).toEqual(new Set(['총무과', '재무과']));
   });
 
+  it('개별 수료증 파일명 규칙과 ZIP 제목을 적용한다', async () => {
+ const result=await h.send('GET','/api/exports/certificates.zip?year=2026&layout=employee&reason='+REASON+'&title='+encodeURIComponent('제출_{연도}_{성명}.pdf')+'&archiveTitle='+encodeURIComponent('기관보고.zip'));
+ expect(result.statusCode).toBe(200);expect(result.headers['content-disposition']).toContain(encodeURIComponent('기관보고.zip'));expect(result.headers['content-disposition']).not.toContain('zip.zip');const entries=readZip(result.rawPayload);expect(entries).toHaveLength(6);expect(entries.every(e=>e.name.includes('/제출_2026_')&&!e.name.endsWith('.pdf.pdf'))).toBe(true);expect(entries.some(e=>e.name.endsWith(' (2).pdf'))).toBe(true);expect((await h.send('GET','/api/exports/certificates.zip?year=2026&reason='+REASON+'&title='+encodeURIComponent('{없는항목}'))).statusCode).toBe(400);
+ });
   it('교육별 합본 PDF: 그 교육의 이수증을 부서·성명 순서로 모은다', async () => {
     const s = (await h.send('GET', '/api/exports/summary?year=2026')).json() as ExportSummary;
     const integrity = s.trainings.find((t) => t.name === '청렴교육(부패방지교육)')!;
