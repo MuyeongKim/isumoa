@@ -1,3 +1,4 @@
+import { buildStatutoryWorkbook } from '../../server/src/reports/statutory.ts';
 import { readFileSync } from 'node:fs';
 import { multipart } from './harness.ts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -31,3 +32,5 @@ describe('저장한 기관보고 양식',()=>{
    await complete();const result=await h.send('GET',url);expect(result.statusCode,result.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(result.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const sheet of wb.worksheets){expect(sheet.getCell('E9').value).toBe('홍길동');expect(sheet.getCell('J9').value).toMatch(/^FINAL-/);expect(sheet.getCell('B4').value).toBeNull();}expect((await h.send('GET',url+'&onlyMissing=1')).statusCode).toBe(400);
  });
 });
+
+ it('부서 미지정 범위를 지정하면 다른 부서의 직원이 섞이지 않는다',async()=>{await complete();const file=await buildStatutoryWorkbook(h.db,{year:2026,scope:null},undefined,null);const wb=new ExcelJS.Workbook();await wb.xlsx.load(file as never);for(const sheet of wb.worksheets){expect(sheet.getCell('K4').value).toBe(0);expect(sheet.getCell('E9').value).toBeNull();}});

@@ -203,7 +203,7 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
 
     const org = await getSetting(db, 'org', { name: '' });
     const fill = (group: FormPersonRow[], departmentName: string) =>
-      official ? buildStatutoryWorkbook(db, { year, scope, departmentId: group.length && group.every(p => p.departmentId === group[0].departmentId) ? group[0].departmentId ?? undefined : departmentId }, form.file) : fillForm({
+      official ? buildStatutoryWorkbook(db, { year, scope, departmentId: group.length && group.every(p => p.departmentId === group[0].departmentId) ? group[0].departmentId ?? undefined : departmentId }, form.file, group.length && group.every(p => p.departmentId === group[0].departmentId) ? group[0].departmentId : undefined) : fillForm({
         file: form.file,
         layout: { sheetName: form.sheet_name, headerFirst: form.header_first, headerLast: form.header_last, dataFirst: form.data_first, footerRow: form.footer_row },
         columns: JSON.parse(form.columns),

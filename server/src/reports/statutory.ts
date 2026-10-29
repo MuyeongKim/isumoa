@@ -27,14 +27,14 @@ export async function checkFinalExport(db: Kysely<DB>, filter: ReportScope, draf
 }
 
 /** 공식 16시트 양식: 수료증별 내역을 유지하고 이수 인원은 직원 ID로 중복 제거한다. */
-export async function buildStatutoryWorkbook(db: Kysely<DB>, filter: ReportScope, template?: Uint8Array): Promise<Buffer> {
+export async function buildStatutoryWorkbook(db: Kysely<DB>, filter: ReportScope, template?: Uint8Array, onlyDepartment?: number | null): Promise<Buffer> {
   const report = await loadStatusReport(db, filter), records = await loadRecords(db, filter);
   const org = await getSetting(db, 'org', { name: '' });
   const details = new Map((await db.selectFrom('employees').select(['id', 'position']).execute()).map(e => [e.id, e]));
   const wb = await loadWorkbook(template ?? await readFile(join(APP_ROOT, 'vendor/forms/statutory-2026.xlsx')));
   // 원본 서식에 남은 외부 통합문서 이름은 보고 파일에서 연결하지 않는다.
   wb.definedNames.model = wb.definedNames.model.filter(n => n.ranges.every(r => !/\[[^\]]+\]/.test(r)));
-  const eligible = new Set(report.rows.filter(row => report.trainings.some(t => row.cells[t.id].state !== 'exempt') && report.trainings.every(t => ['done', 'exempt'].includes(row.cells[t.id].state))).map(row => row.employeeId));
+  const eligible = new Set(report.rows.filter(row => onlyDepartment === undefined || row.departmentId === onlyDepartment).filter(row => report.trainings.some(t => row.cells[t.id].state !== 'exempt') && report.trainings.every(t => ['done', 'exempt'].includes(row.cells[t.id].state))).map(row => row.employeeId));
   for (const def of DEPLOYMENT_TRAININGS) {
     const ws = wb.getWorksheet(def.sheetName); if (!ws) throw Error(`기본 양식의 ${def.sheetName} 시트가 없습니다.`);
     const training = report.trainings.find(t => t.code === def.code || normalized(t.name) === normalized(def.name));
