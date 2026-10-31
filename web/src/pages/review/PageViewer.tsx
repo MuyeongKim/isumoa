@@ -1,5 +1,5 @@
 import { RotateCw } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { withBase } from '@/lib/base';
 import { cn } from '@/lib/format';
 
@@ -8,6 +8,25 @@ export function PageViewer({ pageId, pageText, caption }: { pageId: number; page
   const [fit, setFit] = useState(true);
   const [rotation, setRotation] = useState(0);
   const [showText, setShowText] = useState(false);
+  const viewport = useRef<HTMLDivElement>(null);
+  const [available, setAvailable] = useState({ width: 0, height: 0 });
+  const [image, setImage] = useState({ pageId: 0, width: 0, height: 0 });
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setAvailable({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const sideways = rotation % 180 !== 0;
+  const knownImage = image.pageId === pageId && image.width > 0;
+  const scale = knownImage && available.width && available.height
+    ? fit ? Math.min(available.width / (sideways ? image.height : image.width), available.height / (sideways ? image.width : image.height)) : available.width / (sideways ? image.height : image.width)
+    : 0;
+  const width = scale * image.width;
+  const height = scale * image.height;
 
   const tool = 'rounded-md px-2.5 py-1 text-[13px] font-medium whitespace-nowrap text-ink-soft transition-colors hover:text-ink';
   const on = 'bg-sheet text-ink shadow-[0_1px_2px_rgb(22_27_38/0.12)]';
@@ -43,20 +62,23 @@ export function PageViewer({ pageId, pageText, caption }: { pageId: number; page
           읽은 글자
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto bg-paper/70 p-4">
+      <div ref={viewport} className="min-h-0 flex-1 overflow-auto bg-paper/70 p-4">
         {showText ? (
           <pre className="text-[12.5px] leading-relaxed whitespace-pre-wrap text-ink-soft">{pageText || '읽은 글자가 없습니다.'}</pre>
         ) : (
+          <div className="relative mx-auto" style={scale ? { width: sideways ? height : width, height: sideways ? width : height } : undefined}>
           <img
             key={pageId}
             src={withBase(`/api/pages/${pageId}/image`)}
             alt="이수증 원본"
             className={cn(
               'animate-pop-in mx-auto block bg-white shadow-[0_2px_12px_rgb(22_27_38/0.12)] transition-transform duration-300 ease-[var(--ease-out-quint)]',
-              fit ? 'w-full max-w-[780px]' : 'w-[1600px] max-w-none',
+              scale ? 'absolute max-w-none' : 'w-full',
             )}
-            style={{ transform: rotation ? `rotate(${rotation}deg)` : undefined }}
+            onLoad={e => setImage({ pageId, width: e.currentTarget.naturalWidth, height: e.currentTarget.naturalHeight })}
+            style={scale ? { width, height, left: '50%', top: '50%', transform: `translate(-50%, -50%) rotate(${rotation}deg)` } : undefined}
           />
+          </div>
         )}
       </div>
     </div>

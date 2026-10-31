@@ -173,6 +173,13 @@ export function parseCertificateText(raw: string): ParsedCertificate {
         if (index === pairs.length - 1 && (field === 'course' || value === '')) pending = field;
       }
     } else if (pending) {
+      // 항목 이름과 날짜가 다른 줄에 놓인 서식. 날짜 경계 검사보다 먼저 해당 항목에 연결한다.
+      if (['birth', 'completed', 'period'].includes(pending) && findDates(line).length > 0) {
+        const dateValue: string = pending === 'period' ? [values.get('period'), cleanValue(line)].filter(Boolean).join(' ') : cleanValue(line);
+        values.set(pending, dateValue);
+        pending = pending === 'period' && findDates(dateValue).length < 2 ? 'period' : null;
+        continue;
+      }
       // 과정명이 다음 줄로 이어질 수 있다. 다른 항목·증명 문구·날짜·기관장 이름에서 멈춘다.
       const boundary = /^[가-힣A-Za-z\s]{1,20}\s*:|^(?:위\s*사람|상기|소정|성실히|본\s*수료증|※|https?:\/\/)/.test(line) ||
         findDates(line).length > 0 || PROVIDER_RE.test(line) || /^(?:수\s*료\s*증|이\s*수\s*증)$/.test(line);
@@ -200,8 +207,10 @@ export function parseCertificateText(raw: string): ParsedCertificate {
     if (period.length >= 2) completedOn = period.at(-1)!;
   }
   if (!completedOn) {
-    const dateOnly = lines.find(l => findDates(l).length === 1 && l.replace(DATE_RE, '').replace(/[\s_.·-]/g, '') === '');
-    completedOn = dateOnly ? (findDates(dateOnly)[0] ?? null) : null;
+    const periodDates = findDates(values.get('period') ?? '');
+    const dateOnly = [...new Set(lines.filter(l => findDates(l).length === 1 && l.replace(DATE_RE, '').replace(/[\s_.·-]/g, '') === '')
+      .flatMap(findDates).filter(date => date !== personBirth && !(periodDates.length === 1 && periodDates[0] === date)))];
+    completedOn = dateOnly.length === 1 ? dateOnly[0] : null;
   }
   if (!completedOn) {
     completedOn = findDates(text).filter((d) => d !== personBirth).sort().at(-1) ?? null;
@@ -246,7 +255,8 @@ export function parseCertificateText(raw: string): ParsedCertificate {
   };
 }
 
-/** PDF 글자층이 쓸 만한지: 한글·영숫자가 30자 이상 */
+/** 글자층에 대체 문자·조합 설명 문자 같은 손상 흔적이 있으면 원본 이미지의 OCR로 전환한다. */
 export function hasUsableText(text: string | null): boolean {
+  if (text && /[\uFFFD\u2F00-\u2FFF]/u.test(text)) return false;
   return (text?.match(/[가-힣A-Za-z0-9]/g)?.length ?? 0) >= 30;
 }

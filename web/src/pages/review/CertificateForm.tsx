@@ -5,6 +5,7 @@ import type { CertificateDetail, CertificateFlag, CertificateInput, Employee, Tr
 import { certificateInputKey, certificateInputOf } from '@shared/certificateInput.ts';
 import { ConfirmStamp } from '@/components/SealMark';
 import { Button } from '@/components/ui/Button';
+import { Dialog, DialogActions } from '@/components/ui/Dialog';
 import { Field, FormError, Input } from '@/components/ui/Field';
 import { cn, formatDateTime, requirementText } from '@/lib/format';
 import { EmployeePicker } from './EmployeePicker';
@@ -86,6 +87,9 @@ export function CertificateForm({
   const [courseTitle, setCourseTitle] = useState(detail.courseTitle ?? '');
   const [provider, setProvider] = useState(detail.provider ?? '');
   const [certNo, setCertNo] = useState(detail.certNo ?? '');
+  const [choosingTraining, setChoosingTraining] = useState(false);
+  const [trainingQuery, setTrainingQuery] = useState('');
+  const [editingDetails, setEditingDetails] = useState(false);
 
   const targetYear = Number(year) || detail.batchYear;
   const options = trainings.filter(
@@ -152,132 +156,109 @@ export function CertificateForm({
     .filter(Boolean)
     .join(' · ');
 
+  const selected = Object.entries(credits).map(([id, value]) => ({
+    id: Number(id), value, name: trainings.find(t => t.id === Number(id))?.name ?? `삭제된 교육 #${id}`,
+  }));
+  const word = trainingQuery.replace(/\s/g, '').toLowerCase();
+  const filteredOptions = options.filter(t => [t.name, ...t.keywords].some(value => value.replace(/\s/g, '').toLowerCase().includes(word)));
+  const problems = detail.flags.filter(flag => flag.level !== 'info' && flag.message !== error);
+  const information = detail.flags.filter(flag => flag.level === 'info');
+  const firstProblem = problems.find(flag => flag.level === 'error') ?? problems[0];
+
   return (
-    <form id="certificate-form" onSubmit={submit} className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-        {readOnly && (
-          <div className="flex items-center gap-3 rounded-xl border border-line bg-sheet px-4 py-3">
-            {detail.status === 'confirmed' ? (
-              <>
-                <ConfirmStamp className="size-11 text-[12px]" />
-                <p className="text-[13.5px]">
-                  <span className="font-medium">확정했습니다.</span>
-                  <span className="block text-ink-soft">
-                    {detail.confirmedBy} · {formatDateTime(detail.confirmedAt)}
-                  </span>
-                </p>
-              </>
-            ) : (
-              <p className="text-[13.5px]">
-                <span className="font-medium">제외 완료 · 이수 현황에 합산하지 않습니다.</span> <span className="block text-ink-soft">사유: {detail.excludeReason}</span>
-              </p>
-            )}
+    <>
+    <form id="certificate-form" onSubmit={submit} className="flex h-full min-h-0 flex-col rounded-xl border border-line bg-sheet">
+      <div className="shrink-0 space-y-3 border-b border-line px-4 pt-4 pb-3">
+        <div>
+          <p className="text-[12px] font-medium text-ink-faint">과정명</p>
+          <p className="mt-0.5 line-clamp-2 text-[16px] leading-snug font-semibold" title={courseTitle}>{courseTitle || '과정명을 확인해 주세요'}</p>
+        </div>
+        <section aria-label="선택한 인정 교육">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h2 className="text-[14px] font-semibold">인정할 교육 <span className="text-seal">*</span></h2>
+            {!readOnly && <Button size="sm" variant="ghost" disabled={busy} aria-expanded={choosingTraining} aria-haspopup="dialog" onClick={() => setChoosingTraining(v => !v)}>{selected.length ? '교육 변경' : '교육 선택'}</Button>}
           </div>
-        )}
+          {selected.length ? <ul className="max-h-36 space-y-1 overflow-y-auto" aria-label="현재 인정 교육">
+            {selected.map(t => <li key={t.id} className="flex items-center gap-2 rounded-lg border border-navy/20 bg-navy-soft px-3 py-2">
+              <span className="min-w-0 flex-1 text-[13.5px] leading-snug font-semibold text-navy">{t.name}</span>
+              <label className="flex shrink-0 items-center gap-1 text-[12px] text-ink-soft">
 
-        {readOnly ? detail.flags.length > 0 && <details className="rounded-lg border border-line bg-paper p-3 text-[13px]">
-          <summary className="cursor-pointer font-medium text-ink-soft">이전 검수 내용 {detail.flags.length}개 보기</summary>
-          <div className="mt-3"><FlagList flags={detail.flags} /></div>
-        </details> : <FlagList flags={detail.flags.filter(flag => flag.message !== error)} />}
-        <FormError message={error} />
-
-        <Field label="직원" required hint={read ? `이수증에서 읽은 값: ${read}` : '이수증에서 이름을 읽지 못했습니다.'}>
-          <EmployeePicker value={employeeId} employees={employees} candidates={detail.candidates} disabled={readOnly || busy} onChange={setEmployeeId} />
-        </Field>
-
-        <fieldset>
-          <legend className="text-[13px] font-medium">
-            인정할 교육<span className="ml-0.5 text-seal">*</span>
-          </legend>
-          <p className="mt-0.5 text-[12.5px] text-ink-faint">통합과정이면 여러 개를 고르세요. 교육시간을 나눠 인정합니다.</p>
-          <ul className="mt-2 divide-y divide-line rounded-xl border border-line bg-sheet">
-            {options.map((t) => {
-              const checked = credits[t.id] !== undefined;
-              return (
-                <li key={t.id} className="flex items-center gap-3 px-3 py-1.5">
-                  <label className="flex min-w-0 flex-1 items-center gap-2 text-[13.5px]">
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-navy"
-                      checked={checked}
-                      disabled={readOnly || busy}
-                      onChange={(e) => toggle(t.id, e.target.checked)}
-                    />
-                    <span className={cn('truncate', checked && 'font-medium')}>{t.name}</span>
-                    <span className="shrink-0 text-[12px] text-ink-faint">{requirementText(t.reqType, t.reqValue)}</span>
-                  </label>
-                  {checked && (
-                    <label className="flex shrink-0 items-center gap-1 text-[12.5px] text-ink-soft">
-                      인정
-                      <input
-                        type="number"
-                        min={0}
-                        max={1000}
-                        step="any"
-                        value={credits[t.id]}
-                        disabled={readOnly || busy}
-                        onChange={(e) => setCredits({ ...credits, [t.id]: e.target.value })}
-                        className="h-7 w-16 rounded border border-line-strong px-1.5 text-right text-[13px] tabular-nums disabled:bg-paper"
-                        aria-label={`${t.name} 인정 시간`}
-                      />
-                      시간
-                    </label>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </fieldset>
-
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="이수일" htmlFor="f-date" required>
-            <Input id="f-date" value={completedOn} onChange={(e) => setCompletedOn(e.target.value)} placeholder="2026-03-31" disabled={readOnly || busy} />
-          </Field>
-          <Field label="교육시간" htmlFor="f-hours" hint={detail.hoursText && detail.hoursText !== hours ? `적힌 값: ${detail.hoursText}` : undefined}>
-            <Input id="f-hours" type="number" min={0} max={1000} step="any" value={hours} onChange={(e) => changeHours(e.target.value)} disabled={readOnly || busy} />
-          </Field>
-          <Field label="인정 연도" htmlFor="f-year">
-            <Input id="f-year" type="number" value={year} onChange={(e) => setYear(e.target.value)} disabled={readOnly || busy} />
-          </Field>
-        </div>
-        <Field label="과정명" htmlFor="f-course">
-            <Input id="f-course" value={courseTitle} maxLength={300} onChange={(e) => setCourseTitle(e.target.value)} disabled={readOnly || busy} />
-        </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="교육기관" htmlFor="f-provider">
-            <Input id="f-provider" value={provider} maxLength={100} onChange={(e) => setProvider(e.target.value)} disabled={readOnly || busy} />
-          </Field>
-          <Field label="증서번호" htmlFor="f-certno">
-            <Input id="f-certno" value={certNo} maxLength={100} onChange={(e) => setCertNo(e.target.value)} disabled={readOnly || busy} />
-          </Field>
-        </div>
+                <input aria-label={`${t.name} 인정 시간`} type="number" min={0} max={1000} step="any" value={t.value} disabled={readOnly || busy}
+                  onChange={e => setCredits({ ...credits, [t.id]: e.target.value })}
+                  className="h-8 w-16 rounded border border-line-strong bg-sheet px-2 text-right text-[13px] tabular-nums disabled:bg-paper" />
+                시간
+              </label>
+            </li>)}
+          </ul> : <p className="rounded-lg border border-seal/30 bg-seal-soft px-3 py-2 text-[13px] text-seal">인정할 교육을 골라 주세요.</p>}
+        </section>
       </div>
 
-      <div className="mt-3 border-t border-line pt-2">
-        {!readOnly && <p role="status" className={cn('mb-2 text-[12.5px]', error ? 'font-medium text-seal' : dirty ? 'text-warn' : 'text-ink-faint')}>
-          {error ? '처리하지 못했습니다. 위의 오류를 확인해 주세요.' : dirty ? '저장하지 않은 수정값이 있습니다.' : savedInput ? '임시 저장됨 · 확정 전까지 현황에 반영하지 않습니다.' : '변경사항 없음 · ↑↓ 이동 / Ctrl+Enter 확정 / X 제외'}
-        </p>}
-        <div className="flex flex-wrap items-center gap-2">
-        {readOnly ? (
-          <Button onClick={() => void actions.reopen()} loading={busy}>
-            검수 대기로 되돌리기
-          </Button>
-        ) : (
-          <>
-            <Button id="certificate-exclude" size="sm" variant="danger" onClick={() => actions.exclude(input(), dirty)} disabled={busy} title="단축키 X">
-              제외
-            </Button>
-            <Button size="sm" onClick={() => void actions.save(input())} disabled={busy} className="ml-auto">
-              임시 저장
-            </Button>
-            <Button size="sm" disabled={busy || !hasNext} title={hasNext ? '임시 저장한 뒤 다음 수료증으로 이동합니다' : '마지막 수료증입니다'} onClick={() => void actions.save(input(), true)}>저장하고 다음</Button>
-            <Button size="sm" type="submit" variant="primary" loading={busy} title="단축키 Ctrl+Enter">
-              확정
-            </Button>
-          </>
-        )}
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-label="교육 선택과 상세 수정">
+        <div>
+          <p className="mb-1 text-[12px] font-medium text-ink-soft">직원</p>
+          <EmployeePicker value={employeeId} employees={employees} candidates={detail.candidates} disabled={readOnly || busy} onChange={setEmployeeId} />
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="이수일" htmlFor="f-date" required>
+            <Input id="f-date" value={completedOn} onChange={e => setCompletedOn(e.target.value)} placeholder="2026-03-31" disabled={readOnly || busy} />
+          </Field>
+          <Field label="교육시간" htmlFor="f-hours">
+            <Input id="f-hours" type="number" min={0} max={1000} step="any" value={hours} onChange={e => changeHours(e.target.value)} disabled={readOnly || busy} />
+          </Field>
+        </div>
+
+        {readOnly && <div className="rounded-lg border border-line bg-paper p-3 text-[13px]">
+          {detail.status === 'confirmed' ? <div className="flex items-center gap-3"><ConfirmStamp className="size-9 text-[11px]" /><p>확정했습니다.<span className="block text-ink-soft">{detail.confirmedBy} · {formatDateTime(detail.confirmedAt)}</span></p></div>
+            : <p>제외 완료 · 현황에 합산하지 않습니다.<span className="block text-ink-soft">사유: {detail.excludeReason}</span></p>}
+        </div>}
+        {problems.length > 0 && <div aria-label="검수 확인 사항"><FlagList flags={problems} /></div>}
+        {information.length > 0 && <details className="rounded-lg border border-line bg-paper p-2.5 text-[12.5px]"><summary className="cursor-pointer text-ink-soft">판독 안내 {information.length}개</summary><div className="mt-2"><FlagList flags={information} /></div></details>}
+        <Button size="sm" variant="ghost" aria-haspopup="dialog" onClick={() => setEditingDetails(true)}>{readOnly ? '상세값 보기' : '상세값 수정'}</Button>
+      </div>
+
+      <div className="shrink-0 space-y-2 border-t border-line bg-paper/50 px-4 py-3">
+        {error ? <div className="max-h-24 overflow-y-auto"><FormError message={error} /></div>
+          : !readOnly && firstProblem && <p className={cn('max-h-20 overflow-y-auto text-[12.5px] leading-snug', firstProblem.level === 'error' ? 'text-seal' : 'text-warn')}>{firstProblem.level === 'error' ? '확정 전 수정 필요: ' : '원본 확인 필요: '}{firstProblem.message}</p>}
+        {readOnly ? <Button onClick={() => void actions.reopen()} loading={busy} className="w-full">검수 대기로 되돌리기</Button> : <>
+          <div className="grid grid-cols-[1fr_2fr] gap-2">
+            <Button id="certificate-exclude" variant="danger" onClick={() => actions.exclude(input(), dirty)} disabled={busy} title="단축키 X">제외</Button>
+            <Button type="submit" variant="primary" loading={busy} title="단축키 Ctrl+Enter">{hasNext ? '확정하고 다음' : '확정'}</Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <p role="status" className={cn('mr-auto text-[11.5px] leading-tight', error ? 'text-seal' : dirty ? 'text-warn' : 'text-ink-faint')}>{error ? '처리하지 못했습니다.' : dirty ? '수정값 저장 전' : savedInput ? '임시 저장됨' : '원본 대조 후 확정하세요'}</p>
+            <Button size="sm" variant="ghost" onClick={() => void actions.save(input())} disabled={busy}>임시 저장</Button>
+            <Button size="sm" variant="ghost" disabled={busy || !hasNext} onClick={() => void actions.save(input(), true)}>저장하고 다음</Button>
+          </div>
+        </>}
       </div>
     </form>
+    <Dialog open={choosingTraining && !readOnly} onClose={() => setChoosingTraining(false)} title="인정할 교육 선택" description="교육을 선택한 뒤 원본과 대조해 확정하세요. 닫아도 선택값은 편집 중인 화면에 유지됩니다." width="lg">
+        <fieldset className="space-y-2">
+          <legend className="text-[13px] font-semibold">교육 선택 · 여러 개 선택 가능</legend>
+          <Input aria-label="인정 교육 검색" value={trainingQuery} onChange={e => setTrainingQuery(e.target.value)} placeholder="교육명이나 검색어로 찾기" disabled={busy} />
+          <p className="text-[12px] text-ink-faint">통합과정은 여러 개를 고릅니다. 교육시간을 나눠 인정합니다.</p>
+          <ul className="grid max-h-[50dvh] grid-cols-2 gap-1.5 overflow-y-auto">
+            {filteredOptions.map(t => <li key={t.id}>
+              <label className={cn('flex h-full cursor-pointer items-start gap-2 rounded-lg border px-2 py-2 text-[12.5px]', credits[t.id] !== undefined ? 'border-navy/40 bg-navy-soft' : 'border-line bg-paper/50')}>
+                <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-navy" checked={credits[t.id] !== undefined} disabled={busy}
+                  onChange={e => toggle(t.id, e.target.checked)} aria-label={`${t.name} ${requirementText(t.reqType, t.reqValue)}`} />
+                <span><span className="block leading-snug">{t.name}</span><span className="mt-1 block text-[11.5px] text-ink-faint">{requirementText(t.reqType, t.reqValue)}</span></span>
+              </label>
+            </li>)}
+          </ul>
+          {!filteredOptions.length && <p className="py-2 text-[13px] text-ink-soft">검색한 교육이 없습니다.</p>}
+        </fieldset>
+      <DialogActions><Button variant="primary" onClick={() => setChoosingTraining(false)}>선택 완료 ({selected.length}개)</Button></DialogActions>
+    </Dialog>
+    <Dialog open={editingDetails} onClose={() => setEditingDetails(false)} title={readOnly ? '상세값 보기' : '상세값 수정'} description="수정값은 편집 중인 검수 화면에 유지됩니다. 원본과 대조한 뒤 임시 저장하거나 확정하세요.">
+          <div className="mt-3 space-y-3">
+            <p className="text-[12px] text-ink-faint">이수증에서 읽은 값: {read || '직원 정보를 읽지 못했습니다.'}{detail.hoursText ? ` · 적힌 시간 ${detail.hoursText}` : ''}</p>
+            <Field label="과정명" htmlFor="f-course"><Input id="f-course" value={courseTitle} maxLength={300} onChange={e => setCourseTitle(e.target.value)} disabled={readOnly || busy} /></Field>
+            <Field label="교육기관" htmlFor="f-provider"><Input id="f-provider" value={provider} maxLength={100} onChange={e => setProvider(e.target.value)} disabled={readOnly || busy} /></Field>
+            <Field label="증서번호" htmlFor="f-certno"><Input id="f-certno" value={certNo} maxLength={100} onChange={e => setCertNo(e.target.value)} disabled={readOnly || busy} /></Field>
+            <Field label="인정 연도" htmlFor="f-year"><Input id="f-year" type="number" value={year} onChange={e => setYear(e.target.value)} disabled={readOnly || busy} /></Field>
+          </div>      <DialogActions><Button variant="primary" onClick={() => setEditingDetails(false)}>검수 화면으로</Button></DialogActions>
+    </Dialog>
+    </>
   );
 }

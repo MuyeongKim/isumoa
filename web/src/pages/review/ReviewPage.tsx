@@ -20,7 +20,7 @@ import {
 import { shortTrainingName } from '@shared/trainingNames.ts';
 import { matchesReviewSearch } from '@shared/reviewSearch.ts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EmptyState, LoadingRows, PageHeader } from '@/components/PageHeader';
+import { EmptyState, LoadingRows } from '@/components/PageHeader';
 import { withBase } from '@/lib/base';
 import { ProcessingBanner, useProcessing } from '@/components/ProcessingBanner';
 import { Button, buttonClass } from '@/components/ui/Button';
@@ -78,6 +78,7 @@ export function ReviewPage() {
   const [bulkExcludeBusy, setBulkExcludeBusy] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showList, setShowList] = useState(false);
   const requestBusyRef = useRef(false);
   const mountedRef = useRef(true);
   const [formError, setFormError] = useState<string | null>(null);
@@ -129,7 +130,9 @@ export function ReviewPage() {
   const emptyStoredResults = status === 'draft' && counts.draft === 0 && missingResults > 0 && readingPages === 0 && failedPages === 0;
   const scopeYear = scopedBatches[0]?.year ?? new Date().getFullYear();
   const canReset = counts.draft + readingPages + failedPages > 0;
-  const nextId = visible[visible.findIndex(c => c.id === currentId) + 1]?.id ?? null;
+  const currentPosition = visible.findIndex(c => c.id === currentId);
+  const nextId = visible[currentPosition + 1]?.id ?? null;
+  const previousId = visible[currentPosition - 1]?.id ?? null;
 
   const detail = useQuery({
     queryKey: ['certificate', currentId],
@@ -402,35 +405,19 @@ export function ReviewPage() {
 
   return (
     <>
-      <PageHeader
-        title="검수함"
-        description="수료증 원본과 읽은 값을 대조한 뒤 확정하세요. 임시 저장은 검수 대기로 보관하고, 확정하면 이수 현황에 반영합니다."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-          <Select
-            className="w-72"
-            value={batchId ?? ''}
-            disabled={busy}
-            aria-label="묶음"
-            onChange={(e) => setParam({ batch: e.target.value || null, id: null })}
-          >
-            <option value="">모든 묶음</option>
-            {(batches.data ?? []).map((b) => (
-              <option key={b.id} value={b.id}>
-                #{b.id} {b.year}년{b.title ? ` · ${b.title}` : ''} ({formatNumber(b.drafts)}건 대기)
-              </option>
-            ))}
+      <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div><h1 className="text-[24px] leading-tight font-bold tracking-tight">검수함</h1><p className="mt-1 text-[13px] text-ink-soft">원본과 인정할 교육을 확인한 뒤 확정하세요.</p></div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select className="w-60" value={batchId ?? ''} disabled={busy} aria-label="묶음" onChange={e => setParam({ batch: e.target.value || null, id: null })}>
+            <option value="">모든 묶음</option>{(batches.data ?? []).map(b => <option key={b.id} value={b.id}>#{b.id} {b.year}년{b.title ? ` · ${b.title}` : ''} ({formatNumber(b.drafts)}건 대기)</option>)}
           </Select>
-          <Button variant="ghost" loading={resetBusy} disabled={busy || !canReset} title={canReset ? '선택한 범위의 대기 결과만 비웁니다' : '비울 검수 대기나 읽기 작업이 없습니다'} onClick={() => void prepareReset()}>
-            검수 대기 초기화
-          </Button>
-          </div>
-        }
-      />
+          <Button size="sm" variant="ghost" loading={resetBusy} disabled={busy || !canReset} onClick={() => void prepareReset()}>검수 대기 초기화</Button>
+        </div>
+      </header>
       <ProcessingBanner />
 
       {bulkError && <div className="mb-4"><FormError message={bulkError} /><Button size="sm" variant="ghost" onClick={() => setBulkError(null)}>안내 닫기</Button></div>}
-      <form role="search" aria-label="검수함 검색" className="mb-3 flex flex-wrap items-center gap-2" onSubmit={e => {
+      <form role="search" aria-label="검수함 검색" className="mb-2 flex flex-wrap items-center gap-2" onSubmit={e => {
         e.preventDefault(); setParam({ q: searchText.trim() || null, id: null });
       }}>
         <label htmlFor="review-search" className="sr-only">직원·교육명·파일명 검색</label>
@@ -441,7 +428,7 @@ export function ReviewPage() {
         <span className="text-[13px] text-ink-soft" role="status">검색 결과 {formatNumber(visible.length)}건{search ? ` · ${search}` : ''}</span>
       </form>
 
-      <div className="mb-3 flex flex-wrap items-center gap-4">
+      <div className="mb-2 flex flex-wrap items-center gap-3">
         <div className="flex rounded-xl bg-ink/[0.05] p-1" role="tablist">
           {(['draft', 'confirmed', 'excluded'] as const).map((s) => (
             <button
@@ -472,7 +459,7 @@ export function ReviewPage() {
         )}
       </div>
 
-      {status !== 'excluded' && <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
+      {showList && status !== 'excluded' && <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
         <label className="flex items-center gap-2">
           <input type="checkbox" className="size-4 accent-navy" aria-label="현재 검색 결과 전체 선택" checked={allSelected}
             disabled={busy || selectable.length === 0 || selectable.length > 500}
@@ -508,8 +495,15 @@ export function ReviewPage() {
           }
         />
       ) : (
-        <div className="grid h-[calc(100dvh-400px)] min-h-[320px] grid-cols-[minmax(200px,250px)_minmax(0,1fr)_minmax(340px,400px)] gap-4">
-          <ul className="min-h-0 space-y-0.5 overflow-y-auto rounded-xl border border-line bg-sheet p-1.5" aria-label="이수증 목록">
+        <>
+        <div className="mb-2 flex items-center gap-2">
+          <Button size="sm" aria-expanded={showList} aria-controls="review-certificate-list" onClick={() => setShowList(v => !v)}>{showList ? '목록 접기' : `목록 ${formatNumber(visible.length)}건 보기`}</Button>
+          <span className="ml-auto text-[13px] text-ink-soft">{formatNumber(currentPosition + 1)} / {formatNumber(visible.length)}</span>
+          <Button size="sm" disabled={busy || previousId === null} onClick={() => select(previousId)}>이전</Button>
+          <Button size="sm" disabled={busy || nextId === null} onClick={() => select(nextId)}>다음</Button>
+        </div>
+        <div className={cn('grid h-[calc(100dvh-290px)] min-h-[380px] gap-4', showList ? 'grid-cols-[minmax(160px,210px)_minmax(0,1fr)_minmax(360px,400px)]' : 'grid-cols-[minmax(0,1fr)_minmax(360px,400px)]')}>
+          {showList && <ul id="review-certificate-list" className="min-h-0 space-y-0.5 overflow-y-auto rounded-xl border border-line bg-sheet p-1.5" aria-label="이수증 목록">
             {visible.map((c) => (
               <li key={c.id} className="flex items-center gap-0.5">
                 {status !== 'excluded' && <input type="checkbox" className="ml-1 size-4 shrink-0 accent-navy"
@@ -543,7 +537,7 @@ export function ReviewPage() {
               </li>
             ))}
             {visible.length === 0 && <li className="px-4 py-10 text-center text-[13px] text-ink-faint">해당하는 이수증이 없습니다.</li>}
-          </ul>
+          </ul>}
 
           {current ? (
             <>
@@ -571,6 +565,7 @@ export function ReviewPage() {
             </div>
           )}
         </div>
+        </>
       )}
       <ExcludeDialog key={excluding ? `exclude-${currentId}` : 'closed'} open={excluding !== null} fileName={current?.fileName ?? ''} hasEdits={excluding?.dirty ?? false} onClose={() => setExcluding(null)} onExclude={exclude} />
       <ExcludeDialog key={bulkExclusion?.preview.token ?? 'bulk-closed'} open={bulkExclusion !== null} preview={bulkExclusion?.preview}

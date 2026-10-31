@@ -5,7 +5,7 @@ import type { OcrEngine } from '../ocr/engine.ts';
 import { pageImagePath } from '../storage.ts';
 import { hasUsableText, parseCertificateText, type ParsedCertificate } from './parseText.ts';
 
-// 쪽 하나에서 이수증 값을 읽는다. AI는 쓰지 않는다 — 모든 판독이 이 프로그램 안에서 끝난다.
+// 쪽 하나에서 이수증 값을 읽는다. 스캔 글자는 로컬 AI-OCR로 읽고, 항목 추출은 규칙으로 처리한다. 외부 생성형 AI를 호출하지 않는다.
 //   1) 글자 확보: PDF 글자층이 쓸 만하면 그대로, 아니면 쪽 이미지를 OCR
 //   2) 규칙 판독: "성명 : 홍길동"처럼 항목 이름과 값을 찾는다 (parseText.ts)
 
