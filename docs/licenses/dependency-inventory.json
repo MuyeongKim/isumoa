@@ -1,5 +1,5 @@
 {
-  "version": "0.5.6",
+  "version": "0.5.7",
   "scope": "잠금 파일의 전체 개발·빌드·런타임 의존성. UI 번들의 개발 의존성도 포함.",
   "notLegalClearance": true,
   "packages": [

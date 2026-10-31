@@ -16,21 +16,49 @@ async function complete(){const batch=(await h.send('POST','/api/batches',{year:
 describe('시범운용 기본값과 공식 양식',()=>{
  it('새 설치는 16개와 공통 매핑을 제공하며 기존 기준을 덮어쓰지 않는다',async()=>{const rows=await h.db.selectFrom('trainings').selectAll().execute();expect(rows).toHaveLength(16);expect(rows.find(t=>t.code==='privacy')).toMatchObject({req_type:'hours',req_value:1});expect(await h.db.selectFrom('course_mappings').selectAll().execute()).toHaveLength(4);await h.db.updateTable('trainings').set({req_value:2}).where('code','=','privacy').execute();await seedDefaults(h.db);expect((await h.db.selectFrom('trainings').select('req_value').where('code','=','privacy').executeTakeFirstOrThrow()).req_value).toBe(2);});
  it('빈 명단 템플릿은 예시 직원을 포함하지 않고 앞자리0·드롭다운을 제공한다',async()=>{const res=await h.send('GET','/api/employees/import/template');expect(res.statusCode).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.rawPayload as never);const ws=wb.worksheets[0];expect(ws.name).toBe('직원명단');expect(ws.getRow(1).values).toContain('성명');expect(ws.getCell('A2').numFmt).toBe('@');expect(ws.getCell('G2').dataValidation.formulae).toEqual(['"재직,휴직,파견,퇴직"']);expect(ws.getCell('B2').value).toBeNull();});
- it('기준 미충족 또는 대기 중에는 최종 명단을 내려받을 수 없다',async()=>{const result=(await h.send('GET','/api/exports/statutory/check?year=2026')).json() as FinalExportCheck;expect(result.ready).toBe(false);expect(result.blockers).toHaveLength(16);expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출')).statusCode).toBe(409);});
- it('모든 기준 충족 후 16시트에 기관·부서·번호를 정확히 쓰고 여러 증서의 인원은1명이다',async()=>{await complete();const pre=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(pre).toMatchObject({ready:true,employees:1,drafts:0,blockers:[],missingTrainings:[]});const out=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(out.statusCode, out.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(out.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const ws of wb.worksheets){expect(ws.getCell('B9').value).toBe('가람시');expect(ws.getCell('C9').value).toBe('총무과');expect(ws.getCell('D9').value).toBe('소방교');expect(ws.getCell('J9').value).toMatch(/^FINAL-/);expect(ws.getCell('B4').value).toBeNull();expect(ws.getCell('K4').value).toBe(1);expect(ws.getCell('E4').formula).toBe('IF(B4>0,K4/B4,"")');expect(ws.pageSetup.orientation).toBe('portrait');}const clean=wb.getWorksheet('반부패청렴')!;expect(Number(clean.getCell('H9').value)+Number(clean.getCell('H10').value)).toBe(5);expect(clean.getCell('J9').value).not.toBe(clean.getCell('J10').value);await h.db.updateTable('certificates').set({status:'excluded'}).where('id','=',1).execute();expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출')).statusCode).toBe(409);});
- it('개인정보보호가1회로 남아 있으면 양식의1시간과 다른 기준임을 안내한다',async()=>{await h.db.updateTable('trainings').set({req_type:'count'}).where('code','=','privacy').execute();const check=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(check.missingTrainings).toContain('개인정보보호 교육 (양식 기준 연 1시간 확인)');});
+ it('확정 내역이 없는 미충족 상태에서도 빈 16시트 명단을 받을 수 있다',async()=>{const result=(await h.send('GET','/api/exports/statutory/check?year=2026')).json() as FinalExportCheck;expect(result.ready).toBe(false);expect(result.blockers).toHaveLength(16);expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출')).statusCode).toBe(200);});
+ it('모든 기준 충족 후 16시트에 기관·부서·번호를 정확히 쓰고 여러 증서의 인원은1명이다',async()=>{await complete();const pre=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(pre).toMatchObject({ready:true,employees:1,drafts:0,blockers:[],missingTrainings:[]});const out=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(out.statusCode, out.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(out.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const ws of wb.worksheets){expect(ws.getCell('B9').value).toBe('가람시');expect(ws.getCell('C9').value).toBe('총무과');expect(ws.getCell('D9').value).toBe('소방교');expect(ws.getCell('J9').value).toMatch(/^FINAL-/);expect(ws.getCell('B4').value).toBeNull();expect(ws.getCell('K4').value).toBe(1);expect(ws.getCell('E4').formula).toBe('IF(B4>0,K4/B4,"")');expect(ws.pageSetup.orientation).toBe('portrait');}const clean=wb.getWorksheet('반부패청렴')!;expect(Number(clean.getCell('H9').value)+Number(clean.getCell('H10').value)).toBe(5);expect(clean.getCell('J9').value).not.toBe(clean.getCell('J10').value);await h.db.updateTable('certificates').set({status:'excluded'}).where('id','=',1).execute();const partial=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(partial.statusCode).toBe(200);const after=new ExcelJS.Workbook();await after.xlsx.load(partial.rawPayload as never);expect(after.getWorksheet('개인정보보호')!.getCell('E9').value).toBeNull();expect(after.getWorksheet('감염병예방')!.getCell('E9').value).toBe('홍길동');});
+ it('양식 기본값과 다른 기준은 경고하고 현재 기준에 맞는 제목으로 출력한다',async()=>{await h.db.updateTable('trainings').set({req_type:'count'}).where('code','=','privacy').execute();const check=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(check.missingTrainings).toEqual([]);expect(check.criteriaWarnings).toContain('개인정보보호 교육');const res=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=검증');expect(res.statusCode).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.rawPayload as never);expect(wb.getWorksheet('개인정보보호')!.getCell('B2').value).toContain('연 1회');});
  it('인증과 출력 범위를 확인한다',async()=>{expect((await h.app.inject({url:'/api/employees/import/template'})).statusCode).toBe(401);expect((await h.app.inject({url:'/api/exports/statutory/check?year=2026'})).statusCode).toBe(401);expect((await h.send('GET','/api/exports/statutory/check?year=2026&departmentId=9999')).statusCode).toBe(404);});
 });
 
 describe('저장한 기관보고 양식',()=>{
- it('등록한 원본 양식도 16시트를 채우며 미충족 출력을 막는다',async()=>{
+ it('등록한 원본 16시트 양식도 미충족 상태에서 출력하고 기존 완료 내역을 보존한다',async()=>{
    const file=readFileSync(new URL('../../vendor/forms/statutory-2026.xlsx',import.meta.url));
    const body=multipart([{name:'file',filename:'기관보고양식.xlsx',type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',value:file}]);
    const analysis=(await h.send('POST','/api/forms/analyze',body.payload,body.headers)).json();expect(analysis.workbookKind).toBe('statutory16');
    const form=(await h.send('POST','/api/forms',{name:'기관보고16시트',departmentId:null,uploadId:analysis.uploadId,layout:analysis.layout,columns:analysis.columns,markStyle:'ox'})).json();expect(form.workbookKind).toBe('statutory16');
-   const url='/api/exports/form?year=2026&reason=제출&formId='+form.id;expect((await h.send('GET',url)).statusCode).toBe(409);
+   const url='/api/exports/form?year=2026&reason=제출&formId='+form.id;expect((await h.send('GET',url)).statusCode).toBe(200);
    await complete();const result=await h.send('GET',url);expect(result.statusCode,result.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(result.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const sheet of wb.worksheets){expect(sheet.getCell('E9').value).toBe('홍길동');expect(sheet.getCell('J9').value).toMatch(/^FINAL-/);expect(sheet.getCell('B4').value).toBeNull();}expect((await h.send('GET',url+'&onlyMissing=1')).statusCode).toBe(400);
  });
 });
 
  it('부서 미지정 범위를 지정하면 다른 부서의 직원이 섞이지 않는다',async()=>{await complete();const file=await buildStatutoryWorkbook(h.db,{year:2026,scope:null},undefined,null);const wb=new ExcelJS.Workbook();await wb.xlsx.load(file as never);for(const sheet of wb.worksheets){expect(sheet.getCell('K4').value).toBe(0);expect(sheet.getCell('E9').value).toBeNull();}});
+
+async function partialCertificate(code:string,hours:number,status:'draft'|'confirmed'|'excluded',seq:number) {
+ const training=DEPLOYMENT_TRAININGS.find(t=>t.code===code)!;
+ const batch=(await h.send('POST','/api/batches',{year:2026})).json().id;
+ const file=(await h.uploadFile(batch,Buffer.concat([PDF,Buffer.from(String(seq))]),'부분이수'+seq+'.pdf')).json().fileId;
+ await h.uploadPage(file,1,['수료증','성명 : 홍길동','생년월일 : 1981-03-02','소속 : 총무과','과정명 : '+training.name,'이수일 : 2026-05-'+String(seq).padStart(2,'0'),'교육시간 : '+hours+'시간','증서번호 : PARTIAL-'+seq,'교육기관 : 가상교육원'].join('\n'));
+ expect(await h.drainQueue()).toEqual([]);
+ const row=await h.db.selectFrom('certificates').select('id').where('batch_id','=',batch).executeTakeFirstOrThrow();
+ const detail=(await h.send('GET','/api/certificates/'+row.id)).json() as CertificateDetail;
+ if(status==='confirmed')expect((await h.send('POST','/api/certificates/'+row.id+'/confirm',certificateInputOf(detail))).statusCode).toBe(200);
+ if(status==='excluded')expect((await h.send('POST','/api/certificates/'+row.id+'/exclude',{reason:'가상 검증 제외'})).statusCode).toBe(200);
+ return row.id;
+}
+it('부분이수와 다른 교육 미이수가 있어도 확정 내역을 쓰고 대기·제외를 합산하지 않는다',async()=>{
+ await partialCertificate('integrity',2,'confirmed',1);await partialCertificate('privacy',1,'confirmed',2);await partialCertificate('integrity',100,'draft',3);await partialCertificate('integrity',100,'excluded',4);
+ const check=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(check).toMatchObject({ready:false,drafts:1});
+ const before=await h.db.selectFrom('certificates').selectAll().orderBy('id').execute();
+ const res=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=진행상황');expect(res.statusCode).toBe(200);
+ const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.rawPayload as never);expect(wb.worksheets).toHaveLength(16);
+ const integrity=wb.getWorksheet('반부패청렴')!,privacy=wb.getWorksheet('개인정보보호')!;
+ expect(integrity.getCell('E9').value).toBe('홍길동');expect(integrity.getCell('H9').value).toBe(2);expect(integrity.getCell('K9').value).toContain('기준 미충족');expect(integrity.getCell('K4').value).toBe(0);expect(integrity.getCell('E10').value).toBeNull();
+ expect(privacy.getCell('E9').value).toBe('홍길동');expect(privacy.getCell('K4').value).toBe(1);
+ expect(await h.db.selectFrom('certificates').selectAll().orderBy('id').execute()).toEqual(before);
+});
+it('교육 연결이 누락되거나 중복되면 잘못된 명단을 생성하지 않는다',async()=>{
+ await h.db.updateTable('trainings').set({active:0}).where('code','=','privacy').execute();
+ expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=검증')).statusCode).toBe(409);
+});

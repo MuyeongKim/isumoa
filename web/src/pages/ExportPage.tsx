@@ -21,7 +21,7 @@ import { useCurrentUser } from '@/lib/session';
 const REASONS = ['연간 이수 현황 보고', '감사·점검 제출', '부서 미이수자 독려', '증빙 자료 보관'];
 const OTHER = '기타';
 const PURPOSES = [
-  { key: 'statutory', label: '최종 제출 명단 (16시트)' },
+  { key: 'statutory', label: '수료자 명단 (16시트)' },
   { key: 'status', label: '현황 엑셀' },
   { key: 'personal', label: '개인별 합본 PDF' },
   { key: 'training', label: '교육별 합본 PDF' },
@@ -102,18 +102,20 @@ function FinalReportPanel({ active, year, departmentId, href, noReason }: { acti
   if (check.isError) return <><p role="alert" className="text-seal">{errorMessage(check.error)}</p><Button onClick={() => void check.refetch()}>다시 확인</Button></>;
   const result = check.data;
   return <div className="space-y-3">
-    <p role="status" className={result.ready ? 'text-ok' : 'text-warn'}>{result.ready ? '직원 ' + result.employees + '명의 제출 기준을 모두 충족했습니다.' : '양식은 정상입니다. 최종 출력 전에 미충족 ' + result.blockers.length + '항목 · 검수 대기 ' + result.drafts + '건을 확인해 주세요.'}</p>
+    <p role="status" className={result.ready ? 'text-ok' : 'text-warn'}>{result.ready ? '직원 ' + result.employees + '명의 제출 기준을 모두 충족했습니다.' : result.missingTrainings.length ? '양식에 연결할 교육 기준을 확인해 주세요.' : '미충족 ' + result.blockers.length + '항목 · 검수 대기 ' + result.drafts + '건이 있습니다. 현재 확정된 내역으로 명단을 받을 수 있습니다.'}</p>
     {!result.employees && <p>출력 범위에 교육 대상 직원이 없습니다.</p>}
     {!!result.missingTrainings.length && <p className="text-seal">양식에 필요한 교육 기준: {result.missingTrainings.join(', ')}</p>}
-    {!!result.blockers.length && <ul className="max-h-64 overflow-y-auto rounded-lg bg-paper p-3 text-[13px]">{result.blockers.slice(0,30).map((b,i) => <li key={i}>{b.department} · {b.name} · {b.training} ({b.hours}/{b.required}{b.unit})</li>)}{result.blockers.length > 30 && <li>나머지는 이수 현황에서 확인하세요.</li>}</ul>}
+    {!!result.criteriaWarnings.length && <p className="text-warn">양식 기본값과 다른 기준: {result.criteriaWarnings.join(', ')}. 엑셀 제목과 이수인원에 현재 적용 기준을 반영합니다.</p>}
+    <p className="text-[13px] text-ink-soft">검수 대기·제외 건은 포함하지 않습니다. 기준이 부족한 확정 내역은 비고에 표시하며, 상단 이수인원은 교육별 기준을 충족한 직원만 셉니다.</p>
+    <ReportDownload href={href} disabled={noReason || result.missingTrainings.length > 0} disabledReason={noReason ? '내려받는 사유를 먼저 선택해 주세요.' : result.missingTrainings.length ? '누락되거나 중복 연결된 교육 기준을 확인해 주세요.' : undefined} label="명단 엑셀 받기"/>
+    {!!result.blockers.length && <details><summary className="cursor-pointer text-[13px] font-semibold">미충족 항목 {result.blockers.length}개 보기</summary><ul className="mt-2 max-h-64 overflow-y-auto rounded-lg bg-paper p-3 text-[13px]">{result.blockers.slice(0,30).map((b,i) => <li key={i}>{b.department} · {b.name} · {b.training} ({b.hours}/{b.required}{b.unit})</li>)}{result.blockers.length > 30 && <li>나머지는 이수 현황에서 확인하세요.</li>}</ul></details>}
     <div className="flex flex-wrap gap-2"><Button onClick={() => void check.refetch()}>제출 기준 다시 확인</Button><Link className={buttonClass()} to={'/status?year=' + year + (departmentId ? '&departmentId=' + departmentId : '')}>이수 현황 보기</Link></div>
-    <ReportDownload href={href} disabled={noReason || !result.ready} disabledReason={noReason ? '내려받는 사유를 먼저 선택해 주세요.' : !result.ready ? '적용 교육기준 충족과 검수를 마친 뒤 다시 확인해 주세요.' : undefined} label="최종 명단 엑셀 받기"/>
   </div>;
 }
 
 function StatutoryCard({ active, year, departmentId, query, noReason }: { active: boolean; year: number; departmentId: number | null; query: string; noReason: boolean }) {
   if (!active) return null;
-  return <Card icon={<FileSpreadsheet className="size-5" aria-hidden />} title="법정 의무교육 수료자 명단" description="기본 양식의 교육별 16개 시트를 한 파일로 받습니다. 적용 교육기준을 모두 충족하고 검수가 끝나야 출력할 수 있습니다. 현원은 빈칸입니다."><FinalReportPanel active={active} year={year} departmentId={departmentId} href={withBase('/api/exports/statutory.xlsx?' + query)} noReason={noReason}/></Card>;
+  return <Card icon={<FileSpreadsheet className="size-5" aria-hidden />} title="법정 의무교육 수료자 명단" description="기본 양식의 교육별 16개 시트를 한 파일로 받습니다. 기준 미충족이나 검수 대기가 있어도 현재 확정된 내역을 받을 수 있습니다. 현원은 빈칸입니다."><FinalReportPanel active={active} year={year} departmentId={departmentId} href={withBase('/api/exports/statutory.xlsx?' + query)} noReason={noReason}/></Card>;
 }
 
 export function ExportPage() {

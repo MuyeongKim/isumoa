@@ -92,9 +92,9 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     const { year, departmentId, reason } = DownloadQuery.parse(req.query);
     const { user, scope, label, filePart } = await resolveScope(req, departmentId);
     const check = await checkFinalExport(db, { year, scope, departmentId }, await countDrafts(db, user, year, departmentId));
-    if (!check.ready) throw new HttpError(409, `최종 제출 기준이 충족되지 않았습니다. 교육 기준 누락 ${check.missingTrainings.length}개, 미충족 ${check.blockers.length}항목, 검수 대기 ${check.drafts}건을 먼저 확인해 주세요.`);
+    if (check.missingTrainings.length) throw new HttpError(409, `양식에 연결할 교육 기준을 확인해 주세요: ${check.missingTrainings.join(', ')}`);
     const file = await buildStatutoryWorkbook(db, { year, scope, departmentId });
-    await audit(db, req, 'export.form', undefined, { year, scope: label, form: '법정 의무교육 수료자 명단 16시트', employees: check.employees, reason });
+    await audit(db, req, 'export.form', undefined, { year, scope: label, form: '법정 의무교육 수료자 명단 16시트', employees: check.employees, unmet: check.blockers.length, drafts: check.drafts, reason });
     reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     reply.header('Content-Disposition', contentDisposition(`${year}년_법정의무교육_수료자명단${filePart}.xlsx`, 'statutory.xlsx'));
     return reply.send(file);
@@ -196,7 +196,7 @@ export async function exportRoutes(app: FastifyInstance, { db, config }: Deps) {
     if (official) {
       if (onlyMissing) throw badRequest('16시트 최종 보고 양식에는 미이수 직원만 출력할 수 없습니다.');
       const check = await checkFinalExport(db, { year, scope, departmentId }, await countDrafts(db, user, year, departmentId));
-      if (!check.ready) throw new HttpError(409, `최종 보고 기준이 충족되지 않았습니다. 교육 기준 확인 ${check.missingTrainings.length}개, 미충족 ${check.blockers.length}항목, 검수 대기 ${check.drafts}건을 먼저 확인해 주세요.`);
+      if (check.missingTrainings.length) throw new HttpError(409, `양식에 연결할 교육 기준을 확인해 주세요: ${check.missingTrainings.join(', ')}`);
     }
     const people = await loadFormPeople(db, { year, scope, departmentId, onlyMissing });
     if (people.length === 0) throw badRequest(onlyMissing ? '미이수·부분이수인 직원이 없습니다.' : '양식에 쓸 직원이 없습니다.');

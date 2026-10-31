@@ -697,11 +697,12 @@ export interface ReviewResetResult {
   resetPages: number;
 }
 
-/** 선택 범위 전체가 해당 연도 교육기준을 충족해야 최종 제출할 수 있다. */
+/** 교육별 기준 충족 현황. ready는 안내용이며 미충족·검수 대기는 다운로드를 막지 않는다. */
 export interface FinalExportCheck {
   ready: boolean;
   employees: number;
   missingTrainings: string[];
+  criteriaWarnings: string[];
   blockers: { employeeId: number; name: string; department: string | null; training: string; hours: number; required: number; unit: string; state: CompletionState }[];
   drafts: number;
 }
