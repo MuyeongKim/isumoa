@@ -79,3 +79,8 @@ ZIP 설치판을 받은 경우:
 ## 사용한 공개 소프트웨어
 
 Node.js(MIT), kordoc(MIT), PP-OCRv5 모델(Apache-2.0), ONNX Runtime(MIT), sharp·libvips(Apache-2.0·LGPL-3.0), tesseract.js(Apache-2.0), SQLite(공용), zip.js(BSD-3-Clause), React(MIT), Wanted Sans·Noto Serif KR 글꼴(OFL-1.1) 등.
+
+
+## 0.5.8 검수 규칙·선택형 로컬 AI
+
+설정에서 JSON 문법 없이 사용자 규칙을 편집하고 JSON으로 가져오기·내보내기·이전 버전 복원을 할 수 있습니다. 로컬 AI는 기본 꺼짐이며 LLM이 없어도 기존 업무를 사용할 수 있습니다. AI 제안은 검수함에서 요청할 때만 생성하고 선택한 편집값에만 반영하며 자동 확정하지 않습니다. [상세 사용 안내](검수규칙과로컬AI.md)를 참고하세요.

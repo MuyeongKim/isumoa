@@ -6,6 +6,8 @@ import type { OcrEngine } from './ocr/engine.ts';
 
 /** 라우트 파일들이 함께 받는 의존성 */
 export interface Deps {
+  localAiTransport?:import('./assist/localAi.ts').LocalTransport;
+  ruleFetcher?:()=>Promise<{envelope:unknown;available:boolean}>;
   updateRuntime?: import('./updates/service.ts').UpdateRuntime;
   db: Kysely<DB>;
   config: AppConfig;

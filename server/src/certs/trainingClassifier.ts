@@ -1,6 +1,7 @@
 // 과정명으로 어떤 법정교육인지 정한다.
 // 공식 목록은 발급기관·연도를 함께 확인한다. 그 밖에는 확정 매핑 → 교육별 키워드 순서로 본다.
 // 통합과정(예: 4대폭력)은 여러 교육에 같은 키워드가 들어 있어 한 장으로 여러 교육이 정해진다.
+import type { RuleBundle, CourseRule } from '../../../shared/reviewTools.ts';
 import type { CertificateFlag } from '../../../shared/types.ts';
 import { UNIEDU_CATALOG_YEAR, UNIEDU_PUBLIC_COURSES, UNIEDU_SCHEDULED_COURSES } from '../../../shared/unieduCatalog.ts';
 
@@ -15,7 +16,7 @@ export interface ClassifiableTraining {
 
 export interface Classification {
   trainingIds: number[];
-  source: 'catalog' | 'learned' | 'keyword' | 'text' | 'name' | null;
+  source: 'pack-official' | 'pack-custom' | 'catalog' | 'learned' | 'keyword' | 'text' | 'name' | null;
   /** 키워드는 맞지만 사용하지 않는 교육 */
   inactiveMatches: string[];
   ignoredKeywords?: string[];
@@ -27,6 +28,7 @@ export interface ClassificationContext {
   year?: number | null;
   fullText?: string;
   hours?: number | null;
+  rules?:RuleBundle;
 }
 
 function squeeze(text: string): string {
@@ -68,7 +70,23 @@ function isUnieduProvider(provider: string | null | undefined): boolean {
 function isMicrolearning(context: ClassificationContext): boolean {
   return /마이크로러닝|(?:이수증|수료증)미발급/.test(semanticText(context.fullText ?? ''));
 }
+
+const compiledPacks=new WeakMap<CourseRule[],{rule:CourseRule;titles:Set<string>;keywords:string[];excluded:string[];providers:Set<string>}[]>();
+function matchingPackRules(title:string|null, context:ClassificationContext, list:CourseRule[]):CourseRule[]{
+ if(!title||!list.length)return [];
+ let compiled=compiledPacks.get(list);if(!compiled){compiled=list.map(rule=>({rule,titles:new Set(rule.courseTitles.map(courseTitleKey)),keywords:rule.keywords.map(semanticText),excluded:rule.excludeKeywords.map(semanticText),providers:new Set(rule.providers.map(p=>squeeze(p).replace(/장$/,'')))}));compiledPacks.set(list,compiled);}
+ const key=courseTitleKey(title),hay=semanticText(title),provider=squeeze(context.provider??'').replace(/장$/,''),year=context.year,full=semanticText(context.fullText??title);
+ const matches=compiled.filter(c=>c.rule.enabled&&(c.titles.has(key)||c.keywords.some(k=>hay.includes(k)))&&(c.rule.fromYear===null||(year!=null&&year>=c.rule.fromYear))&&(c.rule.toYear===null||(year!=null&&year<=c.rule.toYear))&&(!c.providers.size||c.providers.has(provider))&&!c.excluded.some(k=>full.includes(k)));
+ const exact=matches.filter(c=>c.titles.has(key));return (exact.length?exact:matches).map(c=>c.rule);
+}
+
+export function matchingConfiguredRules(title:string|null,context:ClassificationContext){const official=matchingPackRules(title,context,context.rules?.official.rules??[]),custom=matchingPackRules(title,context,context.rules?.custom.rules??[]);return {official,custom};}
+export function configuredRuleFlags(title:string|null,context:ClassificationContext):CertificateFlag[]{if(title&&context.year===UNIEDU_CATALOG_YEAR&&isUnieduProvider(context.provider)&&unieduCourses.has(unieduKey(title)))return [];const m=matchingConfiguredRules(title,context);return [...m.official,...m.custom].filter(r=>r.referenceHours!==null&&context.hours!=null&&r.referenceHours!==context.hours).map(r=>({code:'rule-reference-hours',level:'warning',message:r.title+'의 참고 시간('+r.referenceHours+'시간)과 수료증 시간('+context.hours+'시간)이 다릅니다. 수료증 값을 유지했으니 원본을 확인하세요.'}));}
+
 function verifiedUnieduCourse(title: string, context: ClassificationContext) {
+  if(isUnieduProvider(context.provider)&&context.year===UNIEDU_CATALOG_YEAR&&!isMicrolearning(context)&&unieduCourses.has(unieduKey(title)))return unieduCourses.get(unieduKey(title));
+  const added=matchingConfiguredRules(title,context).official.find(r=>r.trainingCode==='unification');
+  if(added&&!(context.year===UNIEDU_CATALOG_YEAR&&unieduCourses.has(unieduKey(title)))&&isUnieduProvider(context.provider)&&!isMicrolearning(context))return {title,recognizedHours:added.referenceHours};
   return isUnieduProvider(context.provider) && context.year === UNIEDU_CATALOG_YEAR && !isMicrolearning(context)
     ? unieduCourses.get(unieduKey(title)) : undefined;
 }
@@ -78,6 +96,8 @@ function isUnification(training: Pick<ClassifiableTraining, 'name' | 'code'>): b
 
 /** 공식 목록은 개인 이수의 증명이 아니다. 원본 값이 불명확하면 검수 표시를 남긴다. */
 export function unieduCertificateFlags(courseTitle: string | null, context: ClassificationContext): CertificateFlag[] {
+  const extension=courseTitle&&context.year===UNIEDU_CATALOG_YEAR&&unieduCourses.has(unieduKey(courseTitle))?undefined:matchingConfiguredRules(courseTitle,context).official.find(r=>r.trainingCode==='unification');
+  if(extension&&!(context.year===UNIEDU_CATALOG_YEAR&&courseTitle&&unieduCourses.has(unieduKey(courseTitle)))&&isUnieduProvider(context.provider)&&!isMicrolearning(context))return [];
   const key = courseTitle ? unieduKey(courseTitle) : '';
   const course = unieduCourses.get(key);
   const scheduled = scheduledUnieduCourses.has(key);
@@ -102,10 +122,10 @@ export function trainingScopeConflict(courseTitle: string | null, training: { na
   if (verifiedUnieduCourse(courseTitle, context) && (training.code === 'national-security' || /^(?:공직자)?안보교육$/.test(target))) {
     return `국립통일교육원 공식 통일교육 과정이 '${training.name}'에 연결되어 있습니다. 통일교육으로 연결하고, 안보교육 중복 인정은 별도 근거를 확인해 주세요.`;
   }
-  if (/정보공개/.test(target) && /정보보안|사이버보안|네트워크.*보안/.test(title) && !/정보공개/.test(title)) {
+  if ((training.code==='information-disclosure'||/정보공개/.test(target)) && /정보보안|사이버보안|네트워크.*보안/.test(title) && !/정보공개/.test(title)) {
     return `정보보안 과정이 '${training.name}'에 연결되어 있습니다. 정보공개 과정인지 원본과 교육 내용을 확인해 주세요.`;
   }
-  if (/긴급복지/.test(target) && /긴급자동차|교통안전/.test(title) && !/긴급복지/.test(title)) {
+  if ((training.code==='emergency-welfare'||/긴급복지/.test(target)) && /긴급자동차|교통안전/.test(title) && !/긴급복지/.test(title)) {
     return `교통안전 과정이 '${training.name}'에 연결되어 있습니다. 긴급복지 신고의무 교육인지 확인해 주세요.`;
   }
   return null;
@@ -137,7 +157,10 @@ export function classifyTrainings(
   const catalogTitle = unieduCourses.has(catalogKey) || scheduledUnieduCourses.has(catalogKey);
   const officialCourse = courseTitle ? verifiedUnieduCourse(courseTitle, context) : undefined;
   // 깨진 제목·예정 과정도 일반 키워드로 돌아가 자동 연결하지 않는다.
-  if (isUnieduProvider(context.provider) && !officialCourse) return { trainingIds: [], source: null, inactiveMatches: [] };
+  const configured=officialCourse?{official:[],custom:[]}:matchingConfiguredRules(courseTitle,context);
+  const packIds=(rules:CourseRule[])=>[...new Set(rules.flatMap(r=>trainings.filter(t=>t.applicable&&t.code===r.trainingCode&&!trainingScopeConflict(courseTitle,t,context)).map(t=>t.id)))];
+  if(!officialCourse&&configured.custom.length){const ids=packIds(configured.custom);if(ids.length)return {trainingIds:ids,source:'pack-custom',inactiveMatches:[]};}
+  if (isUnieduProvider(context.provider) && !officialCourse && !configured.official.length) return { trainingIds: [], source: null, inactiveMatches: [] };
   const scopeConflicts: string[] = [];
   const compatible = (id: number) => {
     const training = trainings.find(t => t.id === id);
@@ -168,6 +191,9 @@ export function classifyTrainings(
     }
     if (mapped.length > 0) return { trainingIds: mapped, source: 'learned', inactiveMatches: [], ...(scopeConflicts.length ? { scopeConflicts } : {}) };
   }
+
+  const officialIds=packIds(configured.official);
+  if(officialIds.length)return {trainingIds:officialIds,source:'pack-official',inactiveMatches:[]};
 
   // 과정명을 못 읽었으면 글 전체에서 찾는다 (정확도가 떨어져 확인 표시가 붙는다)
   const haystack = semanticText(courseTitle ?? fullText);

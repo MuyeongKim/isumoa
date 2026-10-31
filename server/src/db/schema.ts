@@ -239,7 +239,9 @@ export interface FormTemplatesTable {
   updated_at: Generated<string>;
 }
 
+export interface CertificateReviewsTable { id:Generated<number>; certificate_id:number; kind:'recognition'|'rules'|'local_llm'; input_hash:string; rule_version:string; model:string|null; result_json:string; created_by:number|null; created_at:Generated<string> }
 export interface DB {
+  certificate_reviews:CertificateReviewsTable;
   departments: DepartmentsTable;
   users: UsersTable;
   user_departments: UserDepartmentsTable;

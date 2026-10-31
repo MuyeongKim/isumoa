@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Dialog, DialogActions } from '@/components/ui/Dialog';
 import { Field, FormError, Input } from '@/components/ui/Field';
 import { cn, formatDateTime, requirementText } from '@/lib/format';
+import { ReviewAssist } from './ReviewAssist';
+import type { AssistSuggestion } from '@shared/reviewTools.ts';
 import { EmployeePicker } from './EmployeePicker';
 import type { EditGuard } from '@/lib/unsavedChanges';
 
@@ -108,6 +110,14 @@ export function CertificateForm({
     const ids = Object.keys(credits).map(Number);
     const each = split(value, ids.length);
     setCredits(Object.fromEntries(ids.map((id) => [id, each])));
+  }
+
+  function applySuggestions(values:AssistSuggestion[]){
+    const total=values.find(v=>v.field==='hours');const newHours=total&&typeof total.value==='number'?String(total.value):hours;
+    const targets=values.find(v=>v.field==='trainingCodes');
+    if(targets&&Array.isArray(targets.value)){const ids=targets.value.map(code=>trainings.find(t=>t.code===code)?.id).filter((id):id is number=>id!==undefined);setCredits(Object.fromEntries(ids.map(id=>[id,split(newHours,ids.length)])));}
+    else if(total)changeHours(newHours);
+    for(const value of values){if(value.field==='courseTitle'&&typeof value.value==='string')setCourseTitle(value.value);if(value.field==='provider'&&typeof value.value==='string')setProvider(value.value);if(value.field==='certNo'&&typeof value.value==='string')setCertNo(value.value);if(value.field==='completedOn'&&typeof value.value==='string')setCompletedOn(value.value);if(value.field==='hours'&&typeof value.value==='number')setHours(String(value.value));}
   }
 
   function input(): CertificateInput {
@@ -213,6 +223,7 @@ export function CertificateForm({
         </div>}
         {problems.length > 0 && <div aria-label="검수 확인 사항"><FlagList flags={problems} /></div>}
         {information.length > 0 && <details className="rounded-lg border border-line bg-paper p-2.5 text-[12.5px]"><summary className="cursor-pointer text-ink-soft">판독 안내 {information.length}개</summary><div className="mt-2"><FlagList flags={information} /></div></details>}
+        {!readOnly && <ReviewAssist recognitionRuleVersion={detail.recognitionRuleVersion} id={detail.id} input={currentInput} disabled={busy} trainings={trainings} onApply={applySuggestions}/>}
         <Button size="sm" variant="ghost" aria-haspopup="dialog" onClick={() => setEditingDetails(true)}>{readOnly ? '상세값 보기' : '상세값 수정'}</Button>
       </div>
 

@@ -2,6 +2,7 @@
 // PDF 글자층과 로컬 OCR이 같은 판독 규칙을 쓴다.
 // "성명 : 홍길동", "성 명   홍길동"처럼 "항목 이름 + 값" 형태를 찾는다.
 
+import type { RuleField } from '../../../shared/reviewTools.ts';
 import type { CertificateFlag } from '../../../shared/types.ts';
 
 export interface ParsedCertificate {
@@ -24,7 +25,7 @@ export interface ParsedCertificate {
 type Field = 'name' | 'birth' | 'org' | 'dept' | 'course' | 'period' | 'completed' | 'hours' | 'certNo' | 'provider';
 
 // 긴 이름을 먼저 둔다 ("교육과정명"이 "교육과정"보다 먼저 맞도록)
-const LABELS: [Field, string[]][] = [
+export const LABELS: [Field, string[]][] = [
   ['course', ['교육과정명', '과정명', '교육과정', '교육명', '강좌명', '연수과정', '연수명', '과정']],
   ['period', ['교육기간', '학습기간', '연수기간', '수강기간', '이수기간', '수료기간', '기간']],
   ['completed', ['이수일자', '수료일자', '교육일자', '이수일', '수료일', '교육일']],
@@ -155,10 +156,22 @@ export function parseHours(value: string): { hours: number | null; text: string;
 
 const PROVIDER_RE = /([가-힣A-Za-z0-9]{2,24}(?:원|센터|기관|연구소|학교|협회|공단|위원회|재단|아카데미))장(?![가-힣])/;
 
-export function parseCertificateText(raw: string): ParsedCertificate {
+export function parseCertificateText(raw: string, aliases:Partial<Record<RuleField,string[]>> = {}): ParsedCertificate {
+  let aliasUsed=false;
+  const escape=(v:string)=>v.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const variants=Object.entries(aliases).flatMap(([field,words])=>(words??[]).map(word=>({field:field as Field,word}))).sort((a,b)=>b.word.length-a.word.length);
+  raw=raw.split(/\r?\n/).map(line=>{
+    for(const {field,word}of variants){
+      const m=new RegExp('^\\s*'+[...word.replace(/\s/g,'')].map(escape).join('\\s*')).exec(line);if(!m)continue;
+      const rest=line.slice(m[0].length);if(rest && !/^[\s:：]/.test(rest) && !(['birth','completed','period','hours'].includes(field)&&/^\d/.test(rest)))continue;
+      const canonical=LABELS.find(([key])=>key===field)![1][0];
+      if(word.replace(/\s/g,'')===canonical)continue;
+      aliasUsed=true;return canonical+(rest.trim()? ' : '+rest.replace(/^\s*[:：]?\s*/, ''):'');
+    }return line;
+  }).join('\n');
   const lines = raw.split(/\r?\n/).map(cleanLine).map(unglue).filter((l) => l !== '');
   const values = new Map<Field, string>();
-  const notes: CertificateFlag[] = [];
+  const notes: CertificateFlag[] = aliasUsed ? [{code:'field-alias-match',level:'warning',message:'등록한 항목 이름 규칙으로 값을 읽었습니다. 원본의 항목과 값을 대조해 주세요.'}] : [];
   let pending: Field | null = null;
   for (const original of lines) {
     // 일부 PDF 변환기는 같은 줄의 값 뒤에 머리글을 붙인다. 기수로 시작하는 명확한 경우만 복구한다.

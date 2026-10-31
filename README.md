@@ -6,14 +6,14 @@ EXE를 실행해 설치하면 됩니다. Node.js나 OCR 구성요소를 따로 �
 
 ## Windows 설치 파일 받기
 
-현재 배포 버전은 **0.5.7**입니다. **Windows 10·11 64비트**, 설치 시 디스크 여유 공간 **2GB 이상**이 필요하며 자료가 쌓이면 추가 공간이 필요합니다.
+현재 배포 버전은 **0.5.8**입니다. **Windows 10·11 64비트**, 설치 시 디스크 여유 공간 **2GB 이상**이 필요하며 자료가 쌓이면 추가 공간이 필요합니다.
 
 | 받을 파일 | 용도 |
 |---|---|
-| **[Windows 설치 EXE 다운로드](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.7/isumoa-setup-0.5.7-win-x64.exe)** | **일반 사용자 권장. 실행해서 설치합니다.** |
-| [ZIP 설치판](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.7/isumoa-setup-0.5.7-win-x64.zip) | 압축을 푼 뒤 `설치.bat`을 실행합니다. |
-| [설치 안내](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.7/PC-install-guide-0.5.7.md) | 설치·실행·자료 위치·업데이트 방법 |
-| [검증 결과와 확인할 범위](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.7/validation-report-0.5.7.md) | 수행한 검증과 Windows 실기기 미확인 항목 |
+| **[Windows 설치 EXE 다운로드](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.8/isumoa-setup-0.5.8-win-x64.exe)** | **일반 사용자 권장. 실행해서 설치합니다.** |
+| [ZIP 설치판](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.8/isumoa-setup-0.5.8-win-x64.zip) | 압축을 푼 뒤 `설치.bat`을 실행합니다. |
+| [설치 안내](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.8/PC-install-guide-0.5.8.md) | 설치·실행·자료 위치·업데이트 방법 |
+| [검증 결과와 확인할 범위](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.8/validation-report-0.5.8.md) | 수행한 검증과 Windows 실기기 미확인 항목 |
 | [최신 릴리스 전체 보기](https://github.com/MuyeongKim/isumoa-releases/releases/latest) | 변경 사항과 SHA-256 체크섬 |
 
 설치 파일은 **GitHub Releases에서만 배포**합니다. GitLab에서도 위의 같은 링크를 사용하며, **GitHub 로그인 없이 다운로드**할 수 있습니다.
@@ -47,14 +47,15 @@ EXE를 실행해 설치하면 됩니다. Node.js나 OCR 구성요소를 따로 �
 
 화면의 기관·직원·수료증은 가상 자료입니다. [소개 영상 보기 (49초)](docs/promo/promo.mp4)
 
-## 0.5.7에 반영된 내용
+## 0.5.8에 반영된 내용
 
-- 기준 미충족 상태에서도 명단 엑셀을 받을 수 있습니다. 확정된 부분이수 내역을 표시하고, 교육별 완료 인원은 별도로 정확하게 계산합니다.
-- 검수함에서 선택한 인정 교육·시간과 확정·제외를 함께 표시합니다. 교육·직원·상세값은 별도 선택 창에서 수정합니다.
-- 원본 전체를 화면에 맞추거나 너비를 확대해 확인할 수 있습니다. 선택값 보호와 주제 충돌 확정 차단은 유지합니다.
-- 항목 다음 줄의 날짜를 제대로 읽고, 손상된 PDF 글자층은 이미지 OCR로 전환합니다.
-- 파일 검색 의존성의 최신 보안 공지를 반영하고 브라우저 구성요소·글꼴 라이선스 고지를 추가했습니다.
-- 직원 비교용 모의 자료와 Windows 분리 검증 절차를 준비했습니다. 실기기·직원 실측 결과는 아직 미확인입니다.
+- **설정 → 검수 규칙:** 공식 규칙 최신 확인, 사용자 규칙 추가·수정, JSON 가져오기·내보내기, 변경 미리보기와 이전 버전 복원을 제공합니다. JSON 문법을 직접 편집하지 않아도 됩니다.
+- **설정 → 로컬 AI(선택):** 같은 PC의 Ollama에 이미 설치된 로컬 생성 모델을 연결할 수 있습니다. 기본은 꺼짐이며 LLM이 없어도 기존 OCR·규칙 검수와 내보내기를 사용할 수 있습니다.
+- 검수함의 **추가 검토**에서 규칙 재검토·AI 의견을 비교하고 선택한 항목만 편집값에 반영합니다. 자동 저장·확정하지 않으며 기존 확정 기록과 기관 교육 기준을 바꾸지 않습니다.
+- 스캔 OCR에도 사용자 인식 항목 이름을 적용합니다. 프로그램 업데이트 준비 완료 표시 시점의 경합을 수정했습니다.
+- 미충족 상태의 명단 출력과 주제 충돌·중복 확정 차단을 유지합니다.
+
+[규칙 커스텀·선택형 로컬 AI 사용 안내](docs/검수규칙과로컬AI.md)
 
 ## 기관 제출 양식과 최종 명단
 
@@ -75,12 +76,13 @@ EXE를 실행해 설치하면 됩니다. Node.js나 OCR 구성요소를 따로 �
 
 ## 검증과 시범운용 범위
 
-0.5.7 소스의 **자동검증 434개와 타입 검사**를 통과했습니다. 미충족·검수 대기 상태에서 실제 UI로 16시트 XLSX를 내려받고 확정 내역·부분이수 비고·교육별 이수인원을 대조했습니다. 설치본 구성과 확인 범위는 릴리스 검증 요약에 기록합니다.
+0.5.8 소스의 **자동검증 461개와 타입 검사·빌드**를 통과했습니다. 별도 가상 DB의 실제 화면에서 규칙 편집·다운로드·가져오기·복원과 로컬 모델 추가 검토를 확인했습니다. 모델별 정확도나 Windows 실행 성능을 보장하는 결과는 아닙니다. 설치본 구성과 검증 범위는 릴리스 검증 요약에 기록합니다.
 
-**미서명 부서 시범운용용**입니다. Windows 실기기 설치·실제 업데이트·Windows Excel/한셀 열기·인쇄·기관 백신 검사는 별도 미확인입니다. 먼저 시험용 PC와 복사한 자료로 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.7/validation-report-0.5.7.md)의 항목을 확인하세요.
+**미서명 부서 시범운용용**입니다. Windows 실기기 설치·실제 업데이트·Windows Excel/한셀 열기·인쇄·기관 백신 검사는 별도 미확인입니다. 먼저 시험용 PC와 복사한 자료로 [릴리스 검증 요약](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.8/validation-report-0.5.8.md)의 항목을 확인하세요.
 
 ## 안내 문서
 
+- [규칙 커스텀·선택형 로컬 AI](docs/검수규칙과로컬AI.md)
 - [사용설명서](docs/사용설명서.md)
 - [PC 설치 안내](docs/PC설치안내.md)
 - [운영 가이드](docs/운영가이드.md)

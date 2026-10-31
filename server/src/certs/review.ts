@@ -1,3 +1,5 @@
+import { mergedAliases } from '../../../shared/reviewTools.ts';
+import { loadRuleState } from '../rules/service.ts';
 import type { Kysely } from 'kysely';
 import type {
   CertificateDetail,
@@ -14,7 +16,7 @@ import { matchEmployee, type MatchableEmployee } from './employeeMatcher.ts';
 import { computeFlags, withNotes } from './flags.ts';
 import { hasUsableText, parseCertificateText } from './parseText.ts';
 import { applicableTrainings } from './status.ts';
-import { classifyTrainings, trainingScopeConflict, unieduCertificateFlags, type ClassifiableTraining } from './trainingClassifier.ts';
+import { classifyTrainings, trainingScopeConflict, unieduCertificateFlags, configuredRuleFlags, type ClassifiableTraining } from './trainingClassifier.ts';
 
 // 이수증 검수에 필요한 DB 읽기·쓰기 모음 (처리 대기열과 검수 API가 함께 쓴다)
 
@@ -120,7 +122,8 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
   const credits = await creditsOf(db, [row.id]);
   const selected = trainings.filter((t) => credits.some((c) => c.training_id === t.id));
   const text = pageText(row);
-  const parsed = parseCertificateText(text);
+  const rules=await loadRuleState(db);
+  const parsed = parseCertificateText(text,mergedAliases(rules));
 
   const employee = row.employee_id
     ? await db
@@ -139,7 +142,7 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
   }
 
   const year = row.year ?? row.batch_year;
-  const classificationContext = { provider: row.provider ?? parsed.provider,
+  const classificationContext = { rules, provider: row.provider ?? parsed.provider,
     year: row.completed_on ? Number(row.completed_on.slice(0, 4)) : year, fullText: text, hours: row.hours };
   const inactiveMatches =
     selected.length === 0
@@ -205,7 +208,7 @@ export async function evaluateFlags(db: Kysely<DB>, row: CertificateRow, scope: 
   const checkedTitle = row.course_title ?? parsed.courseTitle;
   const conflicts = selected.map(t => trainingScopeConflict(checkedTitle, t, classificationContext)).filter((message): message is string => message !== null);
   if (conflicts.length) flags.push({ code: 'training-scope-conflict', level: 'error', message: `${conflicts.join(' ')} 인정할 교육 또는 과정명을 바로잡아 주제 충돌을 해결한 뒤 확정해 주세요.` });
-  flags.push(...unieduCertificateFlags(checkedTitle, classificationContext));
+  flags.push(...unieduCertificateFlags(checkedTitle, classificationContext),...configuredRuleFlags(checkedTitle,classificationContext));
   if (credits.some(c => !trainings.some(t => t.id === c.training_id))) {
     flags.push({ code: 'deleted-training', level: 'error', message: '삭제된 교육이 연결되어 있습니다. 교육을 복원하거나 인정 교육을 다시 골라 주세요.' });
   }
@@ -334,7 +337,9 @@ export async function getCertificateDetail(db: Kysely<DB>, row: CertificateRow, 
   const flags = row.status === 'draft' ? await evaluateFlags(db, row, scope) : (JSON.parse(row.flags) as CertificateFlag[]);
   const hideBirth = (departmentId: number | null) => scope !== null && (departmentId === null || !scope.includes(departmentId));
 
+  const trace=await db.selectFrom('certificate_reviews').select('rule_version').where('certificate_id','=',row.id).where('kind','=','recognition').orderBy('id','desc').executeTakeFirst();
   return {
+    recognitionRuleVersion:trace?.rule_version??null,
     id: row.id,
     batchId: row.batch_id,
     pageId: row.page_id,

@@ -314,6 +314,7 @@ export interface BulkExcludeResult {
 }
 
 export interface CertificateDetail extends CertificateListItem {
+  recognitionRuleVersion?:string|null;
   personBirth: string | null;
   personDept: string | null;
   courseTitle: string | null;

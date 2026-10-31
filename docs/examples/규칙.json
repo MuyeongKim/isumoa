@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "version": "my-rules-1",
+  "minimumAppVersion": "0.5.8",
+  "name": "내 사용자 규칙",
+  "rules": [
+    {
+      "id": "my-ethics-course",
+      "title": "우리 기관 공공윤리 과정",
+      "enabled": true,
+      "courseTitles": [
+        "공공윤리 실천사례"
+      ],
+      "keywords": [],
+      "excludeKeywords": [],
+      "providers": [
+        "가상교육원"
+      ],
+      "fromYear": 2026,
+      "toYear": 2026,
+      "trainingCode": "integrity",
+      "referenceHours": 2
+    }
+  ],
+  "fieldAliases": {
+    "course": [
+      "학습주제"
+    ],
+    "completed": [
+      "수강완료일"
+    ]
+  }
+}

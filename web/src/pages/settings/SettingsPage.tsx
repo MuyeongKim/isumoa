@@ -13,6 +13,8 @@ import { BackupTab } from './BackupTab';
 import { DepartmentsTab } from './DepartmentsTab';
 import { SystemTab } from './SystemTab';
 import { UpdateTab } from './UpdateTab';
+import { RulesTab } from './RulesTab';
+import { LocalAiTab } from './LocalAiTab';
 import { UsersTab } from './UsersTab';
 
 const TABS = [
@@ -23,6 +25,8 @@ const TABS = [
   { key: 'access', label: '접속기록' },
   { key: 'backup', label: '백업·보관' },
   { key: 'update', label: '업데이트' },
+  { key: 'rules', label: '검수 규칙' },
+  { key: 'local-ai', label: '로컬 AI(선택)' },
   { key: 'system', label: '시스템 점검' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -94,6 +98,8 @@ export function SettingsPage() {
       {tab === 'access' && <AccessLogTab />}
       {tab === 'backup' && <BackupTab />}
       {tab === 'update' && <UpdateTab />}
+      {tab === 'rules' && <RulesTab />}
+      {tab === 'local-ai' && <LocalAiTab />}
       {tab === 'system' && <SystemTab />}
     </>
   );

@@ -1,3 +1,4 @@
+import { mergedAliases, type RuleBundle } from '../../../shared/reviewTools.ts';
 import type { Kysely } from 'kysely';
 import type { DB } from '../db/schema.ts';
 import { maskRrn } from '../lib/privacy.ts';
@@ -13,6 +14,7 @@ export interface RecognizeDeps {
   db: Kysely<DB>;
   dataDir: string;
   ocr: OcrEngine;
+  rules?:RuleBundle;
 }
 
 export interface PageForRecognition {
@@ -36,7 +38,7 @@ export interface Recognition {
 export async function recognizePage(deps: RecognizeDeps, page: PageForRecognition): Promise<Recognition> {
   if (hasUsableText(page.text_layer)) {
     const text = page.text_layer!;
-    return { route: 'text', text, read: parseCertificateText(text) };
+    return { route: 'text', text, read: parseCertificateText(text, mergedAliases(deps.rules)) };
   }
   // 앞에서 같은 엔진으로 읽어 둔 결과가 있으면 다시 쓴다 (엔진이 바뀌었으면 새로 읽음)
   let text = page.ocr_text;
@@ -44,5 +46,5 @@ export async function recognizePage(deps: RecognizeDeps, page: PageForRecognitio
     text = maskRrn(await deps.ocr.recognize(pageImagePath(deps.dataDir, page.file_id, page.page_no, 'image')));
     await deps.db.updateTable('pages').set({ ocr_text: text, ocr_engine: deps.ocr.name }).where('id', '=', page.id).execute();
   }
-  return { route: 'ocr', text, read: parseCertificateText(text) };
+  return { route: 'ocr', text, read: parseCertificateText(text, mergedAliases(deps.rules)) };
 }

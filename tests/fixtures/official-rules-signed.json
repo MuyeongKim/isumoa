@@ -1,0 +1,1158 @@
+{
+  "pack": {
+    "schemaVersion": 1,
+    "version": "2026.10.31.2",
+    "minimumAppVersion": "0.5.8",
+    "name": "이수모아 기본 검수 규칙",
+    "rules": [
+      {
+        "id": "uniedu-2026-1",
+        "title": "통일 문제의 주요 쟁점",
+        "enabled": true,
+        "courseTitles": [
+          "통일 문제의 주요 쟁점"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-2",
+        "title": "북한의 교육제도와 직업 선택",
+        "enabled": true,
+        "courseTitles": [
+          "북한의 교육제도와 직업 선택"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-3",
+        "title": "김정은 시대 북한 외교정책의 변화",
+        "enabled": true,
+        "courseTitles": [
+          "김정은 시대 북한 외교정책의 변화"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-4",
+        "title": "북한의 재정과 예산수입",
+        "enabled": true,
+        "courseTitles": [
+          "북한의 재정과 예산수입"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-5",
+        "title": "국제정세와 한반도 통일환경",
+        "enabled": true,
+        "courseTitles": [
+          "국제정세와 한반도 통일환경"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-6",
+        "title": "북한 문화유산 답사기",
+        "enabled": true,
+        "courseTitles": [
+          "북한 문화유산 답사기"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-7",
+        "title": "DMZ가 들려주는 통일․생태이야기",
+        "enabled": true,
+        "courseTitles": [
+          "DMZ가 들려주는 통일․생태이야기"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-8",
+        "title": "코리안 디아스포라와 통일교육",
+        "enabled": true,
+        "courseTitles": [
+          "코리안 디아스포라와 통일교육"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-9",
+        "title": "우주에서 본 북한",
+        "enabled": true,
+        "courseTitles": [
+          "우주에서 본 북한"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-10",
+        "title": "북한건축과 건설정치",
+        "enabled": true,
+        "courseTitles": [
+          "북한건축과 건설정치"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-11",
+        "title": "키워드로 보는 우크라이나 전쟁",
+        "enabled": true,
+        "courseTitles": [
+          "키워드로 보는 우크라이나 전쟁"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-12",
+        "title": "AI로 그려보는 통일 미래",
+        "enabled": true,
+        "courseTitles": [
+          "AI로 그려보는 통일 미래"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-13",
+        "title": "대북제재 알아보기",
+        "enabled": true,
+        "courseTitles": [
+          "대북제재 알아보기"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-14",
+        "title": "북핵 문제와 동북아 안보 상황",
+        "enabled": true,
+        "courseTitles": [
+          "북핵 문제와 동북아 안보 상황"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-15",
+        "title": "헌법으로 본 통일",
+        "enabled": true,
+        "courseTitles": [
+          "헌법으로 본 통일"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-16",
+        "title": "이산가족으로 본 통일",
+        "enabled": true,
+        "courseTitles": [
+          "이산가족으로 본 통일"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-17",
+        "title": "디지털 경제 시대 북한의 전자상거래",
+        "enabled": true,
+        "courseTitles": [
+          "디지털 경제 시대 북한의 전자상거래"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-18",
+        "title": "중국 개혁·개방의 과정과 전망",
+        "enabled": true,
+        "courseTitles": [
+          "중국 개혁·개방의 과정과 전망"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-19",
+        "title": "반도체 전쟁",
+        "enabled": true,
+        "courseTitles": [
+          "반도체 전쟁"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-20",
+        "title": "북한군 정치사상교육과 조직생활",
+        "enabled": true,
+        "courseTitles": [
+          "북한군 정치사상교육과 조직생활"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-21",
+        "title": "북한 개발지원 과제와 한반도 경제통합",
+        "enabled": true,
+        "courseTitles": [
+          "북한 개발지원 과제와 한반도 경제통합"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-22",
+        "title": "북한 금융의 이해",
+        "enabled": true,
+        "courseTitles": [
+          "북한 금융의 이해"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-23",
+        "title": "미중 에너지 패권 경쟁",
+        "enabled": true,
+        "courseTitles": [
+          "미중 에너지 패권 경쟁"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-24",
+        "title": "우크라이나 전쟁과 중러 협력",
+        "enabled": true,
+        "courseTitles": [
+          "우크라이나 전쟁과 중러 협력"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-25",
+        "title": "북한이탈주민과 남북주민 접촉지대",
+        "enabled": true,
+        "courseTitles": [
+          "북한이탈주민과 남북주민 접촉지대"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-26",
+        "title": "통일문제, 어떻게 볼 것인가",
+        "enabled": true,
+        "courseTitles": [
+          "통일문제, 어떻게 볼 것인가"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-27",
+        "title": "북한, 어떻게 볼 것인가",
+        "enabled": true,
+        "courseTitles": [
+          "북한, 어떻게 볼 것인가"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-28",
+        "title": "북한 핵문제와 우리의 대응",
+        "enabled": true,
+        "courseTitles": [
+          "북한 핵문제와 우리의 대응"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-29",
+        "title": "한반도 통일과 법",
+        "enabled": true,
+        "courseTitles": [
+          "한반도 통일과 법"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-30",
+        "title": "한반도 기후위기와 남북환경협력",
+        "enabled": true,
+        "courseTitles": [
+          "한반도 기후위기와 남북환경협력"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-31",
+        "title": "시장을 통해 본 북한의 식의주 생활",
+        "enabled": true,
+        "courseTitles": [
+          "시장을 통해 본 북한의 식의주 생활"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 5
+      },
+      {
+        "id": "uniedu-2026-32",
+        "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅰ",
+        "enabled": true,
+        "courseTitles": [
+          "북한 인사이드 : 북한 사회와 주민 이해Ⅰ"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 6
+      },
+      {
+        "id": "uniedu-2026-33",
+        "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅱ",
+        "enabled": true,
+        "courseTitles": [
+          "북한 인사이드 : 북한 사회와 주민 이해Ⅱ"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 8
+      },
+      {
+        "id": "uniedu-2026-34",
+        "title": "북한 인사이드 : 북한 사회와 주민 이해Ⅲ",
+        "enabled": true,
+        "courseTitles": [
+          "북한 인사이드 : 북한 사회와 주민 이해Ⅲ"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 6
+      },
+      {
+        "id": "uniedu-2026-35",
+        "title": "북한의 법체계 이해",
+        "enabled": true,
+        "courseTitles": [
+          "북한의 법체계 이해"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-36",
+        "title": "중국의 국가전략과 대외 전략 그리고 한반도",
+        "enabled": true,
+        "courseTitles": [
+          "중국의 국가전략과 대외 전략 그리고 한반도"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-37",
+        "title": "북한 경제정책의 변화",
+        "enabled": true,
+        "courseTitles": [
+          "북한 경제정책의 변화"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-38",
+        "title": "독일 통일 그 이후",
+        "enabled": true,
+        "courseTitles": [
+          "독일 통일 그 이후"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-39",
+        "title": "독일통일 다시보기",
+        "enabled": true,
+        "courseTitles": [
+          "독일통일 다시보기"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 8
+      },
+      {
+        "id": "uniedu-2026-40",
+        "title": "남북의 밤하늘",
+        "enabled": true,
+        "courseTitles": [
+          "남북의 밤하늘"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 1
+      },
+      {
+        "id": "uniedu-2026-41",
+        "title": "딸과 함께 떠나는 DMZ 문화유산 답사Ⅰ",
+        "enabled": true,
+        "courseTitles": [
+          "딸과 함께 떠나는 DMZ 문화유산 답사Ⅰ"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-42",
+        "title": "딸과 함께 떠나는 DMZ 문화유산 답사Ⅱ",
+        "enabled": true,
+        "courseTitles": [
+          "딸과 함께 떠나는 DMZ 문화유산 답사Ⅱ"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 4
+      },
+      {
+        "id": "uniedu-2026-43",
+        "title": "그림으로 떠나는 금강산 여행",
+        "enabled": true,
+        "courseTitles": [
+          "그림으로 떠나는 금강산 여행"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-44",
+        "title": "패션·메이크업으로 본 북한사회 변화",
+        "enabled": true,
+        "courseTitles": [
+          "패션·메이크업으로 본 북한사회 변화"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-45",
+        "title": "디지털시대 K-Culture와 통일공공외교",
+        "enabled": true,
+        "courseTitles": [
+          "디지털시대 K-Culture와 통일공공외교"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "uniedu-2026-46",
+        "title": "이재명 정부의 한반도 평화공존 정책",
+        "enabled": true,
+        "courseTitles": [
+          "이재명 정부의 한반도 평화공존 정책"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 2
+      },
+      {
+        "id": "uniedu-2026-47",
+        "title": "평화시민성과 한반도 통일",
+        "enabled": true,
+        "courseTitles": [
+          "평화시민성과 한반도 통일"
+        ],
+        "keywords": [],
+        "excludeKeywords": [
+          "마이크로러닝",
+          "이수증 미발급",
+          "수료증 미발급"
+        ],
+        "providers": [
+          "국립통일교육원",
+          "통일교육원",
+          "국립평화통일민주교육원"
+        ],
+        "fromYear": 2026,
+        "toYear": 2026,
+        "trainingCode": "unification",
+        "referenceHours": 3
+      },
+      {
+        "id": "common-1",
+        "title": "공직자안보교육",
+        "enabled": true,
+        "courseTitles": [
+          "공직자안보교육"
+        ],
+        "keywords": [],
+        "excludeKeywords": [],
+        "providers": [],
+        "fromYear": null,
+        "toYear": null,
+        "trainingCode": "national-security",
+        "referenceHours": null
+      },
+      {
+        "id": "common-2",
+        "title": "사례로알아보는사업성별영향평가",
+        "enabled": true,
+        "courseTitles": [
+          "사례로알아보는사업성별영향평가"
+        ],
+        "keywords": [],
+        "excludeKeywords": [],
+        "providers": [],
+        "fromYear": null,
+        "toYear": null,
+        "trainingCode": "gender-impact",
+        "referenceHours": null
+      },
+      {
+        "id": "common-3",
+        "title": "인권의이해입문편",
+        "enabled": true,
+        "courseTitles": [
+          "인권의이해입문편"
+        ],
+        "keywords": [],
+        "excludeKeywords": [],
+        "providers": [],
+        "fromYear": null,
+        "toYear": null,
+        "trainingCode": "human-rights",
+        "referenceHours": null
+      },
+      {
+        "id": "common-4",
+        "title": "평등한일상폭력예방교육일반",
+        "enabled": true,
+        "courseTitles": [
+          "평등한일상폭력예방교육일반"
+        ],
+        "keywords": [],
+        "excludeKeywords": [],
+        "providers": [],
+        "fromYear": null,
+        "toYear": null,
+        "trainingCode": "violence-integrated",
+        "referenceHours": null
+      }
+    ],
+    "fieldAliases": {
+      "completed": [
+        "이수완료일자"
+      ]
+    }
+  },
+  "sha256": "7bace87ec19e7efc54ebc18ce1754bfbb0accbd25b28db29f0a5da85180e897b",
+  "signature": "HHuKGn8rQoCkJJQrRxDtIFIt+De61ZGhNiCJMlJcfTXheAgywKWnF7/PyLz2DA7EKB/MOaSou29w/tmSzLcRDQ=="
+}

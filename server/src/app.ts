@@ -1,3 +1,4 @@
+import { reviewToolRoutes } from './routes/reviewTools.ts';
 import { registerRequestBoundary } from './auth/requestBoundary.ts';
 import { updateRoutes } from './routes/updates.ts';
 import { existsSync } from 'node:fs';
@@ -75,6 +76,7 @@ export async function buildApp(deps: Deps, options: { logger?: FastifyServerOpti
   await app.register(securityRoutes, deps);
   await app.register(systemRoutes, deps);
   await app.register(updateRoutes, deps);
+  await app.register(reviewToolRoutes,deps);
 
   // 빌드된 화면이 있으면 같은 포트에서 제공한다 (개발 중에는 Vite가 따로 띄운다)
   const webDist = deps.config.webDistDir;

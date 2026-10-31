@@ -63,6 +63,12 @@ export const AUDIT_ACTIONS: Record<string, { label: string; category: AuditCateg
   'logs.verify': { label: '기록 위·변조 확인', category: 'security' },
   'accesslog.review': { label: '접속기록 월 점검', category: 'security' },
   'backup.run': { label: '백업', category: 'security' },
+  'rules.apply': {label:'검수 규칙 적용',category:'settings'},
+  'rules.restore': {label:'검수 규칙 복원',category:'settings'},
+  'rules.check': {label:'공식 검수 규칙 확인',category:'settings'},
+  'local-ai.settings': {label:'로컬 AI 설정',category:'settings'},
+  'local-ai.probe': {label:'로컬 AI 연결 검사',category:'settings'},
+  'certificate.assist': {label:'수료증 추가 검토',category:'certificate'},
   'system.update': { label: '프로그램 업데이트', category: 'settings' },
   'system.shutdown': { label: '프로그램 끄기', category: 'security' },
 };

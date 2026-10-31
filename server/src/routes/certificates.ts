@@ -45,7 +45,7 @@ const ListQuery = z.object({
 
 const text = (max: number, label: string) => z.string().max(max, `${label}은 ${max}자 이내로 입력해 주세요.`).nullable().transform((v) => cleanOrNull(v));
 
-const CertificateBody = z.object({
+export const CertificateBody = z.object({
   employeeId: z.number().int().positive().nullable(),
   credits: z
     .array(z.object({ trainingId: z.number().int().positive(), creditedHours: z.number().min(0).max(1000).nullable() }))

@@ -1,3 +1,5 @@
+import type { RuleBundle } from '../../../shared/reviewTools.ts';
+import { loadRuleState } from '../rules/service.ts';
 import type { Kysely } from 'kysely';
 import type { CertificateFlag, Training } from '../../../shared/types.ts';
 import type { DB } from '../db/schema.ts';
@@ -31,14 +33,15 @@ export async function processPage(deps: ProcessDeps, pageId: number, expectedGen
     .where('review_generation', '=', page.review_generation).executeTakeFirst();
   if (Number(started.numUpdatedRows) === 0) return;
 
-  const recognition = await recognizePage(deps, page);
+  const rules=await loadRuleState(db);
+  const recognition = await recognizePage({...deps,rules}, page);
   const scope = await scopeOfUser(db, page.created_by);
   const draft = buildDraft(recognition, {
     trainings: await loadTrainings(db),
     employees: await loadMatchables(db),
     learned: await loadLearned(db),
     scope,
-    year: page.year,
+    year: page.year, rules,
   });
   const { read, match, trainingIds } = draft;
 
@@ -84,6 +87,7 @@ export async function processPage(deps: ProcessDeps, pageId: number, expectedGen
         .values(trainingIds.map((trainingId) => ({ certificate_id: created.id, training_id: trainingId, credited_hours: credited })))
         .execute();
     }
+    await trx.insertInto('certificate_reviews').values({certificate_id:created.id,kind:'recognition',input_hash:'',rule_version:rules.version,model:null,result_json:'{}',created_by:page.created_by}).execute();
     await done();
     return created.id;
   });
@@ -119,16 +123,18 @@ export interface Draft {
 /** 읽은 값으로 직원을 찾고 교육을 정한다 (DB에 쓰지 않음 — 정확도 점검 스크립트도 쓴다) */
 export function buildDraft(
   recognition: Recognition,
-  ctx: { trainings: Training[]; employees: MatchableEmployee[]; learned: Map<string, number[]>; scope: number[] | null; year: number },
+  ctx: { trainings: Training[]; employees: MatchableEmployee[]; learned: Map<string, number[]>; scope: number[] | null; year: number; rules?:RuleBundle },
 ): Draft {
   const { read, text } = recognition;
   const match = matchEmployee({ name: read.personName, birth: read.personBirth, dept: read.personDept, text }, ctx.employees, ctx.scope);
   const classification = read.looksLikeCertificate
     ? classifyTrainings(read.courseTitle, text, classifiable(ctx.trainings, ctx.year), ctx.learned, {
-      provider: read.provider, year: read.completedOn ? Number(read.completedOn.slice(0, 4)) : ctx.year,
+      provider: read.provider, year: read.completedOn ? Number(read.completedOn.slice(0, 4)) : ctx.year, rules:ctx.rules,
     })
     : { trainingIds: [], source: null, inactiveMatches: [] };
   const notes = [...read.notes];
+  if(classification.source==='pack-custom')notes.push({code:'custom-rule-match',level:'warning',message:'사용자 규칙으로 교육 후보를 연결했습니다. 원본과 인정 범위를 확인해 주세요.'});
+  if(classification.source==='pack-official')notes.push({code:'official-rule-match',level:'info',message:'설치한 공식 규칙으로 교육 후보를 연결했습니다. 원본과 대조해 주세요.'});
   if ('scopeConflicts' in classification && classification.scopeConflicts?.length) {
     notes.push({ code: 'training-scope-conflict', level: 'warning', message: `서로 다른 주제의 기존 연결을 자동 적용하지 않았습니다. ${classification.scopeConflicts.join(' ')}` });
   }
