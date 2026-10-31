@@ -10,7 +10,9 @@ import { CertificateBody } from './certificates.ts';
 import { applyRules, checkOfficial, changes, loadRuleState, previewRules, restoreRules, verifyOfficial } from '../rules/service.ts';
 import { parseRulePack } from '../rules/schema.ts';
 import { assertLocalModel, listLocalModels, loadLocalAi, LocalAiSchema, localEndpoint } from '../assist/localAi.ts';
-import { AI_FORMAT, buildAiMessages, inputHash, privateText, reviewByRules, storeReview, validateAiReply } from '../assist/review.ts';
+import { mergedAliases } from '../../../shared/reviewTools.ts';
+import { redactPersonalText } from '../assist/privacy.ts';
+import { AI_FORMAT, buildAiMessages, inputHash, reviewByRules, storeReview, validateAiReply } from '../assist/review.ts';
 import { reviewWithLocal } from '../assist/localAi.ts';
 import { contentDisposition } from '../lib/http.ts';
 import type { RulePreview } from '../../../shared/reviewTools.ts';
@@ -32,8 +34,13 @@ export async function reviewToolRoutes(app:FastifyInstance,deps:Deps){const{db}=
   const{id}=Id.parse(req.params),user=currentUser(req),row=await getCertificateRow(db,id);if(!row)throw notFound('이수증을 찾지 못했습니다.');if(!await canViewCertificate(db,row,user))throw new HttpError(403,'볼 수 없는 이수증입니다.');if(row.status!=='draft'||isReading(row.page_state))throw new HttpError(409,'읽기가 끝난 검수 대기 자료에서 추가 검토할 수 있습니다. 확정·제외 기록은 변경하지 않습니다.');
   const input=z.object({input:CertificateBody}).strict().parse(req.body).input;const rules=await loadRuleState(db),trainings=await loadTrainings(db),text=pageText(row);let result;
   if(kind==='rules')result=reviewByRules(input,text,trainings,await loadMatchables(db),rules,scopeOf(user));else{
-   const settings=await loadLocalAi(db);const redacted=privateText(text,[row.person_name,row.person_birth,row.person_dept]);if(redacted.trim().length<20)throw badRequest('개인정보를 가린 뒤 검토할 글자가 부족합니다. 원본을 직접 확인하세요.');
-   const raw=await reviewWithLocal(settings,buildAiMessages(input,redacted,trainings,rules),AI_FORMAT,deps.localAiTransport);result={...validateAiReply(raw,input,redacted,trainings,rules),model:settings.model};
+   const settings=await loadLocalAi(db);if(!settings.enabled)throw badRequest('로컬 AI 추가 검토가 꺼져 있습니다. 규칙 검수를 사용할 수 있습니다.');
+   const selectedId=input.employeeId??row.employee_id,scope=scopeOf(user);
+   const selected=selectedId?await db.selectFrom('employees as e').leftJoin('departments as d','d.id','e.department_id').select(['e.name','e.birth_date','e.emp_no','e.department_id','d.name as department_name']).where('e.id','=',selectedId).where('e.deleted_at','is',null).executeTakeFirst():undefined;
+   if(input.employeeId&&(!selected||(scope!==null&&(selected.department_id===null||!scope.includes(selected.department_id)))))throw new HttpError(403,'선택한 직원의 자료를 검토할 권한이 없습니다.');
+   const known=[row.person_name,row.person_birth,row.person_dept,selected?.name,selected?.birth_date,selected?.emp_no,selected?.department_name];
+   const redacted=redactPersonalText(text,known,mergedAliases(rules));if(redacted.text.trim().length<20)throw badRequest('개인정보를 가린 뒤 검토할 글자가 부족합니다. 원본을 직접 확인하세요.');
+   const raw=await reviewWithLocal(settings,buildAiMessages(input,redacted.text,trainings,rules,redacted.values),AI_FORMAT,deps.localAiTransport);result={...validateAiReply(raw,input,redacted.text,trainings,rules),model:settings.model};
   }
   const current=await getCertificateRow(db,id);if(!current||current.status!=='draft'||current.updated_at!==row.updated_at||(await loadRuleState(db)).version!==rules.version)throw new HttpError(409,'검토 중 자료 또는 규칙이 변경됐습니다. 현재 입력을 유지하고 다시 요청하세요.');
   result=await storeReview(db,id,user.id,result);await audit(db,req,'certificate.assist',{type:'certificate',id},{kind,model:result.model,ruleVersion:result.ruleVersion,inputHash:inputHash(input),suggestions:result.suggestions.length,rejected:result.rejected});return result;
