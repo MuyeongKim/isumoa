@@ -28,7 +28,7 @@ export function UpdateTab(){
  const data=query.data,installer=data?.program.installer,inProgress=busy||data?.checking||['checking','downloading','installing'].includes(installer?.phase??'');
  async function refresh(){await qc.invalidateQueries({queryKey:['update-center']});}
  async function check(target:UpdateTarget){setBusy(true);setError(null);try{const next=await api.post<UpdateCenterStatus>('/system/updates/check',{target});qc.setQueryData(['update-center'],next)}catch(e){setError(errorMessage(e))}finally{setBusy(false);void refresh()}}
- async function program(path:string,body:unknown={}){setBusy(true);setError(null);try{await api.post<UpdateStatus|UpdateCenterStatus>(path,body);await refresh()}catch(e){setError(errorMessage(e))}finally{setBusy(false)}}
+ async function program(path:string,body:unknown={}){setBusy(true);setError(null);try{await api.post<UpdateStatus|UpdateCenterStatus>(path,body)}catch(e){setError(errorMessage(e))}finally{setBusy(false);void refresh()}}
  async function preview(){setBusy(true);setError(null);try{setRulesPreview(await api.post('/system/updates/rules/preview'))}catch(e){setError(errorMessage(e))}finally{setBusy(false)}}
  async function applyRules(){if(!rulesPreview)return;setBusy(true);setError(null);try{await api.post('/rules/apply',rulesPreview);setRulesPreview(null);await Promise.all([refresh(),qc.invalidateQueries({queryKey:['rules']}),qc.invalidateQueries({queryKey:['review-tools']})]);toast.success('공식 규칙을 적용했습니다. 사용자 규칙과 기존 수료증은 보존합니다.')}catch(e){setError(errorMessage(e))}finally{setBusy(false)}}
  async function localFile(){if(!file)return;const body=new FormData();body.append('sha256',sha.trim());body.append('file',file);await program('/system/update/file',body)}
