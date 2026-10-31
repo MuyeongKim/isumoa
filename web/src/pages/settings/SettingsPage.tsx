@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
+import { UpdateNotice } from '@/components/UpdateNotice';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Field, FormError, Input } from '@/components/ui/Field';
@@ -69,11 +70,11 @@ function OrgTab() {
 
 export function SettingsPage() {
   const [params, setParams] = useSearchParams();
-  const tab: TabKey = TABS.some((t) => t.key === params.get('tab')) ? (params.get('tab') as TabKey) : 'departments';
+  const tab: TabKey = TABS.some((t) => t.key === params.get('tab')) ? (params.get('tab') as TabKey) : 'update';
 
   return (
     <>
-      <PageHeader title="설정" description="부서·계정·기관 정보와 보안·백업을 관리합니다. 바꾼 내용은 감사 로그에 남습니다." />
+      <PageHeader title="설정" description="프로그램·규칙 업데이트와 부서·계정·백업을 관리합니다. 변경사항은 감사 로그에 남습니다." />
       <div className="mb-6 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
@@ -87,7 +88,7 @@ export function SettingsPage() {
               tab === t.key ? 'border-navy font-semibold text-ink' : 'border-transparent text-ink-soft hover:text-ink',
             )}
           >
-            {t.label}
+            {t.label}{t.key==='update'&&<span className="ml-2 inline-flex align-middle"><UpdateNotice/></span>}
           </button>
         ))}
       </div>

@@ -69,6 +69,8 @@ export const AUDIT_ACTIONS: Record<string, { label: string; category: AuditCateg
   'local-ai.settings': {label:'로컬 AI 설정',category:'settings'},
   'local-ai.probe': {label:'로컬 AI 연결 검사',category:'settings'},
   'certificate.assist': {label:'수료증 추가 검토',category:'certificate'},
+  'updates.check': {label:'프로그램·공식 규칙 버전 확인',category:'settings'},
+  'updates.preferences': {label:'자동 버전 확인 설정',category:'settings'},
   'system.update': { label: '프로그램 업데이트', category: 'settings' },
   'system.shutdown': { label: '프로그램 끄기', category: 'security' },
 };

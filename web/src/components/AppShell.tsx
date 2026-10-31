@@ -12,6 +12,7 @@ import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { CommandPalette, Kbd } from './CommandPalette';
 import { ConfirmDialog } from './ConfirmDialog';
 import { NAV } from './nav';
+import { UpdateNotice } from './UpdateNotice';
 import { LogoMark } from './LogoMark';
 import { Button } from './ui/Button';
 import { Dialog, DialogActions } from './ui/Dialog';
@@ -192,6 +193,7 @@ export function AppShell() {
                         <>
                           <item.icon className={cn('size-[18px] shrink-0', isActive ? 'text-navy' : 'text-ink-faint group-hover:text-ink-soft')} aria-hidden />
                           {item.label}
+                          {item.to==='/settings'&&me.role==='admin'&&<UpdateNotice/>}
                           {item.badge === 'drafts' && (overview.data?.drafts ?? 0) > 0 && (
                             <span
                               className="ml-auto min-w-6 rounded-full bg-navy px-1.5 text-center text-[12px] leading-5 font-bold text-white tabular-nums"

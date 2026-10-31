@@ -8,6 +8,7 @@ import type { OcrEngine } from './ocr/engine.ts';
 export interface Deps {
   localAiTransport?:import('./assist/localAi.ts').LocalTransport;
   ruleFetcher?:()=>Promise<{envelope:unknown;available:boolean}>;
+  updateClock?:()=>Date;
   updateRuntime?: import('./updates/service.ts').UpdateRuntime;
   db: Kysely<DB>;
   config: AppConfig;
