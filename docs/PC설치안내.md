@@ -97,4 +97,4 @@ Node.js(MIT), kordoc(MIT), PP-OCRv5 모델(Apache-2.0), ONNX Runtime(MIT), sharp
 
 프로그램은 업데이트 받기 → 검사 완료 → 업데이트 설치 → 백업 후 설치 순서로 진행합니다. 공식 규칙은 변경 미리보기 후 직접 적용합니다. 자동 확인 옵션·시도 날짜·확인 결과는 DB 백업에 포함됩니다. 인터넷이 없는 PC도 기존 업무와 직접 파일 가져오기를 사용할 수 있습니다.
 
-[통합 업데이트 상세 안내](https://github.com/MuyeongKim/isumoa/blob/v0.5.10/docs/업데이트안내.md)
+[통합 업데이트 상세 안내](https://github.com/MuyeongKim/isumoa/blob/v0.5.11/docs/업데이트안내.md)
