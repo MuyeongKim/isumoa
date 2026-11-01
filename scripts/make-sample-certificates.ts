@@ -27,7 +27,7 @@ interface Truth {
 }
 const truth: Truth[] = [];
 
-const VIOLENCE = ['sexual-harassment', 'sexual-violence', 'prostitution', 'domestic-violence'];
+import { VIOLENCE } from './fixtures/sampleTrainings.ts';
 
 interface Course {
   title: string;

@@ -2,11 +2,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import type { CertificateFlag } from '../shared/types.ts';
-import { computeFlags, withNotes } from '../server/src/certs/flags.ts';
-import { parseCertificateText } from '../server/src/certs/parseText.ts';
-import { buildDraft } from '../server/src/certs/processPage.ts';
-import { recognizePage, type Recognition } from '../server/src/certs/recognize.ts';
-import { unieduCertificateFlags } from '../server/src/certs/trainingClassifier.ts';
+import { recognizePage } from '../server/src/certs/recognize.ts';
+import { evaluateRecognition } from '../server/src/certs/evaluation.ts';
+import { loadRuleState } from '../server/src/rules/service.ts';
 import { loadMatchables, loadTrainings } from '../server/src/certs/review.ts';
 import { APP_ROOT, loadConfig } from '../server/src/config.ts';
 import { runMigrations } from '../server/src/db/migrate.ts';
@@ -49,6 +47,7 @@ const { raw, db } = openDatabase(join(config.dataDir, 'app.db'));
 runMigrations(raw, { backupDir: join(config.dataDir, 'backups') }); // 서버보다 먼저 새 버전으로 점검할 때
 const ocr = await createOcrEngine({ modelDir: join(APP_ROOT, 'vendor', 'ocr-models'), prefer: args.engine === 'tesseract' ? 'tesseract' : 'kordoc' });
 if (ocr.fallbackReason) console.log(`※ kordoc을 띄우지 못해 tesseract로 읽습니다: ${ocr.fallbackReason}`);
+const rules=await loadRuleState(db);
 const trainings = await loadTrainings(db);
 const employees = await loadMatchables(db);
 const codeOf = new Map(trainings.map((t) => [t.id, t.code]));
@@ -161,44 +160,15 @@ interface PageResult {
   silentError: boolean;
 }
 
-function flagsOf(recognition: Recognition, year: number): { draft: ReturnType<typeof buildDraft>; flags: CertificateFlag[] } {
-  const draft = buildDraft(recognition, { trainings, employees, learned: new Map(), scope: null, year });
-  const e = employees.find((x) => x.id === draft.match.employeeId);
-  const flags = computeFlags({
-    status: 'draft',
-    personName: draft.read.personName,
-    personBirth: draft.read.personBirth,
-    personDept: draft.read.personDept,
-    employee: e ? { name: e.name, departmentId: e.departmentId, departmentName: e.departmentName, birthDate: e.birthDate, status: e.status } : null,
-    ambiguousCount: e ? 0 : draft.match.candidates.length,
-    trainings: trainings.filter((t) => draft.trainingIds.includes(t.id)).map((t) => ({ name: t.name, reqType: t.reqType })),
-    inactiveMatches: [],
-    completedOn: draft.read.completedOn,
-    hours: draft.read.hours,
-    hoursText: draft.read.hoursText,
-    batchYear: year,
-    year: draft.read.completedOn ? Number(draft.read.completedOn.slice(0, 4)) : year,
-    looksLikeCertificate: parseCertificateText(recognition.text).looksLikeCertificate,
-    route: recognition.route,
-    duplicateIds: [],
-    scope: null,
-    today: new Date().toISOString().slice(0, 10),
-  });
-  flags.push(...unieduCertificateFlags(draft.read.courseTitle, {
-    provider: draft.read.provider, year: draft.read.completedOn ? Number(draft.read.completedOn.slice(0, 4)) : year,
-    hours: draft.read.hours, fullText: recognition.text,
-  }));
-  return { draft, flags: withNotes(flags, draft.notes) };
-}
 
 const results: PageResult[] = [];
 for (const [i, c] of limited.entries()) {
   const page = pages.find((p) => p.id === c.pageId)!;
   const started = Date.now();
   // 학습된 과정명 매핑은 쓰지 않는다 (확정 결과를 정답으로 쓸 때 정답이 새어 들어가므로)
-  const recognition = await recognizePage({ db, dataDir: config.dataDir, ocr }, page);
+  const recognition = await recognizePage({ db, dataDir: config.dataDir, ocr, rules }, page);
   const ms = Date.now() - started;
-  const { draft, flags } = flagsOf(recognition, c.year);
+  const { draft, flags } = evaluateRecognition(recognition, {year:c.year,trainings,employees,rules});
   const clean = flags.every((f) => f.level === 'info');
 
   const checks: PageResult['checks'] = [];

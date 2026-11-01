@@ -133,6 +133,7 @@ export function buildDraft(
     })
     : { trainingIds: [], source: null, inactiveMatches: [] };
   const notes = [...read.notes];
+  if(classification.source==='integrated')notes.push({code:'training-integrated-match',level:'info',message:'과정명에 4대 폭력 전체 범위가 명시되어 통합교육으로 연결했습니다. 직원·날짜·시간은 원본과 대조해 주세요.'});
   if(classification.source==='pack-custom')notes.push({code:'custom-rule-match',level:'warning',message:'사용자 규칙으로 교육 후보를 연결했습니다. 원본과 인정 범위를 확인해 주세요.'});
   if(classification.source==='pack-official')notes.push({code:'official-rule-match',level:'info',message:'설치한 공식 규칙으로 교육 후보를 연결했습니다. 원본과 대조해 주세요.'});
   if ('scopeConflicts' in classification && classification.scopeConflicts?.length) {

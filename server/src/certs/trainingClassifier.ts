@@ -16,7 +16,7 @@ export interface ClassifiableTraining {
 
 export interface Classification {
   trainingIds: number[];
-  source: 'pack-official' | 'pack-custom' | 'catalog' | 'learned' | 'keyword' | 'text' | 'name' | null;
+  source: 'integrated' | 'pack-official' | 'pack-custom' | 'catalog' | 'learned' | 'keyword' | 'text' | 'name' | null;
   /** 키워드는 맞지만 사용하지 않는 교육 */
   inactiveMatches: string[];
   ignoredKeywords?: string[];
@@ -57,6 +57,34 @@ const GENERIC_KEYWORDS = new Set([...GENERIC_NAMES, '긴급', '복지', '지원'
 function semanticText(text: string): string {
   return squeeze(text).replace(/[·ㆍ.,()[\]{}<>「」『』"'‘’“”:;\-_/|~!?]/g, '')
     .replace(/긴급복지지원/g, '긴급복지').replace(/장애인인식/g, '장애인식');
+}
+
+const violenceTopics=['성희롱','성매매','성폭력','가정폭력'];
+function limitedViolenceTitle(text:string):boolean {
+ const topics=violenceTopics.filter(topic=>text.includes(topic)).length;
+ return (topics>0&&topics<4)||/미포함|불포함|미이수|미수강|미수료|제외|일부|부분|아님|아닌|택(?:1|일)|중(?:1|2|3|한|두|세)|선택|중(?:성희롱|성매매|성폭력|가정폭력)|(?:성희롱|성매매|성폭력|가정폭력)(?:편|만|분야)/.test(text);
+}
+/** 제목에 4대 전체 범위가 명시된 경우만 통합교육으로 연결한다. 본문의 안내 문구는 근거로 쓰지 않는다. */
+export function isIntegratedViolenceTitle(title:string|null):boolean {
+ if(!title)return false;
+ const text=semanticText(title);
+ if(limitedViolenceTitle(text))return false;
+ return /(?:^|[^0-9])4대폭력|통합폭력예방(?:교육)?4대|폭력예방통합(?:교육)?4대/.test(text)||(/폭력예방/.test(text)&&violenceTopics.every(topic=>text.includes(topic)));
+}
+
+/** 일부 주제나 애매한 제목이 통합교육으로 학습·연결된 경우에도 확인 표시를 남긴다. */
+export function integratedViolenceFlags(title:string|null, selected:Pick<ClassifiableTraining,'code'>[],context:ClassificationContext={}):CertificateFlag[]{
+ if(!selected.some(t=>t.code==='violence-integrated'))return [];
+ // 이미 확인한 공식 과정명은 표제에 네 주제를 나열하지 않아도 기존 인정을 유지한다.
+ if(title&&!limitedViolenceTitle(semanticText(title))&&matchingConfiguredRules(title,context).official.some(r=>r.trainingCode==='violence-integrated'&&r.courseTitles.some(t=>courseTitleKey(t)===courseTitleKey(title))))return [];
+ return !isIntegratedViolenceTitle(title)?[{code:'training-integrated-check',level:'warning',message:'4대 폭력 전체의 이수 범위를 과정명에서 확인하지 못했습니다. 성희롱·성매매·성폭력·가정폭력 네 주제가 모두 포함된 수료증인지 확인해 주세요.'}]:[];
+}
+
+/** 예전 이름 비교 경고만 현재 제목·연결로 재평가한다. 저장값과 다른 확인 표시는 바꾸지 않는다. */
+export function currentTrainingNotes(notes:CertificateFlag[],status:string,title:string|null,selected:number[],trainings:ClassifiableTraining[]):CertificateFlag[]{
+ const targets=trainings.filter(t=>t.applicable&&t.code==='violence-integrated');
+ const trusted=status==='draft'&&isIntegratedViolenceTitle(title)&&targets.length===1&&selected.length===1&&selected[0]===targets[0].id;
+ return trusted?notes.filter(n=>n.code!=='training-name-suggestion'):notes;
 }
 
 // 목록의 구두점·로마 숫자 표현 차이만 정규화한다. Ⅰ/Ⅱ/Ⅲ는 서로 다른 과정으로 유지한다.
@@ -161,6 +189,8 @@ export function classifyTrainings(
   const packIds=(rules:CourseRule[])=>[...new Set(rules.flatMap(r=>trainings.filter(t=>t.applicable&&t.code===r.trainingCode&&!trainingScopeConflict(courseTitle,t,context)).map(t=>t.id)))];
   if(!officialCourse&&configured.custom.length){const ids=packIds(configured.custom);if(ids.length)return {trainingIds:ids,source:'pack-custom',inactiveMatches:[]};}
   if (isUnieduProvider(context.provider) && !officialCourse && !configured.official.length) return { trainingIds: [], source: null, inactiveMatches: [] };
+  const integrated=trainings.filter(t=>t.applicable&&t.code==='violence-integrated');
+  if(isIntegratedViolenceTitle(courseTitle)&&integrated.length===1)return {trainingIds:[integrated[0].id],source:'integrated',inactiveMatches:[]};
   const scopeConflicts: string[] = [];
   const compatible = (id: number) => {
     const training = trainings.find(t => t.id === id);

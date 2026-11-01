@@ -73,7 +73,8 @@ type CertificateBody = z.infer<typeof CertificateBody>;
 const ExcludeBody = z.object({ reason: z.string().trim().min(1, '제외 사유를 골라 주세요.').max(200) });
 
 const BulkConfirmBody = z.object({ ids: z.array(z.number().int().positive()).min(1).max(500) });
-const BulkExcludeBody = BulkConfirmBody.extend({ token: z.string().regex(/^[a-f0-9]{64}$/), reason: ExcludeBody.shape.reason });
+const BulkExcludeSelection=BulkConfirmBody.extend({onlyNonCertificates:z.boolean().optional().default(false)});
+const BulkExcludeBody = BulkExcludeSelection.extend({ token: z.string().regex(/^[a-f0-9]{64}$/), reason: ExcludeBody.shape.reason });
 const ResetScope = z.object({ batchId: z.coerce.number().int().positive().optional() });
 
 /** 확정으로 바꾸고, 다음에 같은 과정명이 오면 같은 교육으로 정하도록 기억한다 (가장 최근 확정이 기준) */
@@ -186,12 +187,14 @@ export async function certificateRoutes(app: FastifyInstance, { db }: Deps) {
   });
 
   app.post('/api/certificates/bulk-exclude-preview', { preHandler: requireUser }, async req => {
-    return previewBulkExclude(db, currentUser(req), BulkConfirmBody.parse(req.body).ids);
+    const {ids,onlyNonCertificates}=BulkExcludeSelection.parse(req.body);
+    return previewBulkExclude(db, currentUser(req), ids, onlyNonCertificates);
   });
 
   app.post('/api/certificates/bulk-exclude', { preHandler: requireUser }, async req => {
-    const { ids, token, reason } = BulkExcludeBody.parse(req.body);
-    const { result, previous } = await bulkExclude(db, currentUser(req), ids, token, reason);
+    const body = BulkExcludeBody.parse(req.body);
+    const {ids,token,onlyNonCertificates}=body; const reason=onlyNonCertificates?'이수증 아님':body.reason;
+    const { result, previous } = await bulkExclude(db, currentUser(req), ids, token, reason, onlyNonCertificates);
     for (const item of previous) await audit(db, req, 'certificate.exclude', { type: 'certificate', id: item.id }, { reason, from: item.status, bulk: true });
     await audit(db, req, 'certificate.bulk-exclude', undefined, { reason, ids: result.ids, excluded: result.excluded });
     return result;

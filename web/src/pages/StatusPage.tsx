@@ -1,3 +1,4 @@
+import { ScrollableTable } from '@/components/ScrollableTable';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -159,7 +160,7 @@ export function StatusPage() {
         <EmptyState title="대상 직원이 없습니다" description="직원 명단을 먼저 등록해 주세요." />
       ) : (
         <>
-          <section aria-label="교육별 이수율" className="overflow-x-auto rounded-2xl border border-line bg-sheet shadow-surface">
+          <ScrollableTable label="교육별 이수율" className="overflow-x-auto rounded-2xl border border-line bg-sheet shadow-surface">
             <table className="w-full border-collapse text-center text-[13.5px]">
               <thead>
                 <tr>
@@ -194,7 +195,7 @@ export function StatusPage() {
                 </tr>
               </tbody>
             </table>
-          </section>
+          </ScrollableTable>
 
           <div className="mt-8 mb-3 flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="relative w-64">
@@ -231,7 +232,7 @@ export function StatusPage() {
             </div>
           </div>
 
-          <div className="max-h-[calc(100vh-360px)] overflow-auto rounded-2xl border border-line bg-sheet shadow-surface" onMouseLeave={() => setHoverCol(null)}>
+          <ScrollableTable label="직원별 이수 현황" className="max-h-[calc(100vh-360px)] overflow-auto rounded-2xl border border-line bg-sheet shadow-surface" onMouseLeave={() => setHoverCol(null)}>
             <table className="w-full border-collapse text-[14px]">
               <thead className="sticky top-0 z-10">
                 <tr>
@@ -294,7 +295,7 @@ export function StatusPage() {
                 )}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
           <p className="mt-3 text-[13px] text-ink-faint">
             {rows.length !== data.rows.length ? `${formatNumber(data.rows.length)}명 중 ${formatNumber(rows.length)}명` : `총 ${formatNumber(data.rows.length)}명`} · 휴직·파견 중인 직원은 대상에서 뺍니다. 확정한 이수증만 셉니다.
           </p>

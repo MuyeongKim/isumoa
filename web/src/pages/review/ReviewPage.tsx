@@ -74,7 +74,7 @@ export function ReviewPage() {
   const [searchText, setSearchText] = useState(search);
   const selectionScope = JSON.stringify([batchId, status, onlyFlagged, search]);
   const [selection, setSelection] = useState<{ scope: string; ids: Set<number> }>({ scope: selectionScope, ids: new Set() });
-  const [bulkExclusion, setBulkExclusion] = useState<{ preview: BulkExcludePreview; scopeLabel: string } | null>(null);
+  const [bulkExclusion, setBulkExclusion] = useState<{ preview: BulkExcludePreview; scopeLabel: string; onlyNonCertificates?:boolean } | null>(null);
   const [bulkExcludeBusy, setBulkExcludeBusy] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -116,6 +116,7 @@ export function ReviewPage() {
     [all, status, onlyFlagged, search, trainingNames],
   );
   const clean = useMemo(() => visible.filter(isClean), [visible]);
+  const nonCertificates=useMemo(()=>visible.filter(c=>c.status==='draft'&&!c.reading&&c.flags.some(f=>f.code==='not-certificate')),[visible]);
   const selectable = visible.filter(c => c.status !== 'excluded' && !c.reading);
   const chosen = selectable.filter(c => selection.scope === selectionScope && selection.ids.has(c.id));
   const chosenIds = new Set(chosen.map(c => c.id));
@@ -361,15 +362,16 @@ export function ReviewPage() {
     if (!hasEdits) editGuard.clearPendingEdits();
   }
 
-  async function prepareBulkExclude() {
-    if (!chosen.length || hasEdits || busy) return;
+  async function prepareBulkExclude(onlyNonCertificates=false) {
+    const targets=onlyNonCertificates?nonCertificates:chosen;
+    if (!targets.length || targets.length>500 || hasEdits || busy) return;
     setBulkError(null);
-    const ids = chosen.map(c => c.id);
+    const ids = targets.map(c => c.id);
     const scopeLabel = `${batchId ? `묶음 #${batchId}` : '모든 묶음'} · ${CERTIFICATE_STATUS_LABELS[status]}${search ? ` · 검색: ${search}` : ''}${onlyFlagged ? ' · 확인할 점만' : ''}`;
     setBusy(true); setBulkExcludeBusy(true);
     try {
-      const preview = await api.post<BulkExcludePreview>('/certificates/bulk-exclude-preview', { ids });
-      setBulkExclusion({ preview, scopeLabel });
+      const preview = await api.post<BulkExcludePreview>('/certificates/bulk-exclude-preview', { ids, onlyNonCertificates });
+      setBulkExclusion({ preview, scopeLabel, onlyNonCertificates });
     } catch (err) {
       setBulkError(errorMessage(err));
       toast.error(errorMessage(err));
@@ -382,7 +384,7 @@ export function ReviewPage() {
     setBusy(true); setBulkExcludeBusy(true);
     try {
       const result = await api.post<BulkExcludeResult>('/certificates/bulk-exclude', {
-        ids: bulkExclusion.preview.ids, token: bulkExclusion.preview.token, reason,
+        ids: bulkExclusion.preview.ids, token: bulkExclusion.preview.token, reason, onlyNonCertificates:bulkExclusion.onlyNonCertificates??false,
       });
       setBulkError(null);
       setBulkExclusion(null);
@@ -457,7 +459,9 @@ export function ReviewPage() {
             정상 {formatNumber(clean.length)}건 일괄 확정
           </Button>
         )}
+        {status==='draft'&&nonCertificates.length>0&&<Button disabled={busy||hasEdits||nonCertificates.length>500} title={hasEdits?'수정값을 임시 저장한 뒤 제외해 주세요':undefined} onClick={()=>void prepareBulkExclude(true)}>이수증 아닌 쪽 {formatNumber(nonCertificates.length)}건 한 번에 제외</Button>}
       </div>
+      {nonCertificates.length>500&&<p className="mb-3 text-[13px] text-warn">한 번에 500건까지 제외할 수 있습니다. 묶음이나 검색어로 범위를 좁혀 주세요.</p>}
 
       {showList && status !== 'excluded' && <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
         <label className="flex items-center gap-2">
@@ -567,8 +571,11 @@ export function ReviewPage() {
         </div>
         </>
       )}
+      <ConfirmDialog open={bulkExclusion?.onlyNonCertificates===true} title={`이수증 아닌 쪽 ${formatNumber(bulkExclusion?.preview.ids.length??0)}건 한 번에 제외`}
+        description={<><p>{bulkExclusion?.scopeLabel}</p><p className="mt-2">현재 검색 결과 중 검수 대기에 있는 ‘이수증 아닌 쪽’만 제외합니다. 사유는 ‘이수증 아님’으로 기록합니다.</p><p className="mt-2">원본은 보존하며, 나중에 검수 대기로 되돌릴 수 있습니다.</p><ul className="mt-3 max-h-44 overflow-auto text-[13px]">{bulkExclusion?.preview.items.map(i=><li key={i.id}>#{i.id} · {i.fileName}{i.employeeName?` · ${i.employeeName}`:''}</li>)}</ul></>}
+        confirmLabel="한 번에 제외" confirmVariant="danger" busy={bulkExcludeBusy} onConfirm={()=>void excludeSelected('이수증 아님')} onClose={()=>{if(!bulkExcludeBusy)setBulkExclusion(null);}} />
       <ExcludeDialog key={excluding ? `exclude-${currentId}` : 'closed'} open={excluding !== null} fileName={current?.fileName ?? ''} hasEdits={excluding?.dirty ?? false} onClose={() => setExcluding(null)} onExclude={exclude} />
-      <ExcludeDialog key={bulkExclusion?.preview.token ?? 'bulk-closed'} open={bulkExclusion !== null} preview={bulkExclusion?.preview}
+      <ExcludeDialog key={bulkExclusion?.preview.token ?? 'bulk-closed'} open={bulkExclusion !== null&&!bulkExclusion.onlyNonCertificates} preview={bulkExclusion?.preview}
         scopeLabel={bulkExclusion?.scopeLabel} busy={bulkExcludeBusy} onClose={() => { if (!bulkExcludeBusy) setBulkExclusion(null); }}
         onExclude={reason => void excludeSelected(reason)} />
       <ConfirmDialog
