@@ -45,8 +45,8 @@ it('자기 업로드라도 다른 부서 직원에 연결된 자료는 특별 �
  for(const [url,payload] of [['/api/certificates/bulk-exclude-preview',{ids:[memo],onlyNonCertificates:true}],['/api/certificates/bulk-exclude',{ids:[memo],onlyNonCertificates:true,token:p.token,reason:'이수증 아님'}]] as const)expect((await h.app.inject({method:'POST',url,payload,headers})).statusCode).toBe(403);
  expect((await h.db.selectFrom('certificates').select('status').where('id','=',memo).executeTakeFirstOrThrow()).status).toBe('draft');
 });
-it('연도 뒤 4대 표기의 기존 대기는 목록·상세에서 파생 경고를 재평가하고 저장 기록은 보존한다',async()=>{
- const id=await page('2026 4대폭력 예방교육');
+it.each(['2026 4대폭력 예방교육','2026 ４대폭력예방교육'])('기존 대기의 목록·상세 경고를 재평가하고 저장 기록은 보존한다: %s',async title=>{
+ const id=await page(title);
  const notes=JSON.stringify([{code:'training-name-suggestion',level:'warning',message:'이전 이름 비교'}]);
  const flags=JSON.stringify([...JSON.parse(notes),{code:'training-integrated-check',level:'warning',message:'이전 전체 범위 확인'}]);
  await h.db.updateTable('certificates').set({notes,flags}).where('id','=',id).execute();

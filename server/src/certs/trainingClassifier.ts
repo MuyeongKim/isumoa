@@ -67,6 +67,7 @@ function limitedViolenceTitle(text:string):boolean {
 /** 제목에 4대 전체 범위가 명시된 경우만 통합교육으로 연결한다. 본문의 안내 문구는 근거로 쓰지 않는다. */
 export function isIntegratedViolenceTitle(title:string|null):boolean {
  if(!title)return false;
+ title=title.replace(/[０-９]/g,digit=>String.fromCharCode(digit.charCodeAt(0)-0xfee0));
  // 원문의 구분자는 경계로 남겨 연도와 4대가 합쳐지지 않게 한다. 한글 수 표기는 독립된 말만 허용한다.
  const original=title.normalize('NFC').replace(/[·ㆍ.,()[\]{}<>「」『』"'‘’“”:;\-_/|~!?]/g,' ');
  const explicit=/(?:^|[^0-9])4\s*대\s*폭\s*력|(?:^|[^0-9가-힣])사\s*대\s*폭\s*력/.test(original);
