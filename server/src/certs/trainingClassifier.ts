@@ -67,9 +67,12 @@ function limitedViolenceTitle(text:string):boolean {
 /** 제목에 4대 전체 범위가 명시된 경우만 통합교육으로 연결한다. 본문의 안내 문구는 근거로 쓰지 않는다. */
 export function isIntegratedViolenceTitle(title:string|null):boolean {
  if(!title)return false;
+ // 원문의 구분자는 경계로 남겨 연도와 4대가 합쳐지지 않게 한다. 한글 수 표기는 독립된 말만 허용한다.
+ const original=title.normalize('NFC').replace(/[·ㆍ.,()[\]{}<>「」『』"'‘’“”:;\-_/|~!?]/g,' ');
+ const explicit=/(?:^|[^0-9])4\s*대\s*폭\s*력|(?:^|[^0-9가-힣])사\s*대\s*폭\s*력/.test(original);
  const text=semanticText(title);
  if(limitedViolenceTitle(text))return false;
- return /(?:^|[^0-9])4대폭력|통합폭력예방(?:교육)?4대|폭력예방통합(?:교육)?4대/.test(text)||(/폭력예방/.test(text)&&violenceTopics.every(topic=>text.includes(topic)));
+ return explicit||/통합폭력예방(?:교육)?4대|폭력예방통합(?:교육)?4대/.test(text)||(text.includes('예방')&&violenceTopics.every(topic=>text.includes(topic)));
 }
 
 /** 일부 주제나 애매한 제목이 통합교육으로 학습·연결된 경우에도 확인 표시를 남긴다. */
@@ -80,11 +83,11 @@ export function integratedViolenceFlags(title:string|null, selected:Pick<Classif
  return !isIntegratedViolenceTitle(title)?[{code:'training-integrated-check',level:'warning',message:'4대 폭력 전체의 이수 범위를 과정명에서 확인하지 못했습니다. 성희롱·성매매·성폭력·가정폭력 네 주제가 모두 포함된 수료증인지 확인해 주세요.'}]:[];
 }
 
-/** 예전 이름 비교 경고만 현재 제목·연결로 재평가한다. 저장값과 다른 확인 표시는 바꾸지 않는다. */
+/** 예전 이름 비교·통합 범위 경고만 현재 제목·연결로 재평가한다. 저장값과 다른 확인 표시는 바꾸지 않는다. */
 export function currentTrainingNotes(notes:CertificateFlag[],status:string,title:string|null,selected:number[],trainings:ClassifiableTraining[]):CertificateFlag[]{
  const targets=trainings.filter(t=>t.applicable&&t.code==='violence-integrated');
  const trusted=status==='draft'&&isIntegratedViolenceTitle(title)&&targets.length===1&&selected.length===1&&selected[0]===targets[0].id;
- return trusted?notes.filter(n=>n.code!=='training-name-suggestion'):notes;
+ return trusted?notes.filter(n=>n.code!=='training-name-suggestion'&&n.code!=='training-integrated-check'):notes;
 }
 
 // 목록의 구두점·로마 숫자 표현 차이만 정규화한다. Ⅰ/Ⅱ/Ⅲ는 서로 다른 과정으로 유지한다.
