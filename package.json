@@ -14,6 +14,7 @@
     "build": "vite build --config web/vite.config.ts",
     "start": "node --disable-warning=ExperimentalWarning server/src/index.ts",
     "typecheck": "tsc -p server/tsconfig.json && tsc -p web/tsconfig.json",
+    "docs:check": "node --disable-warning=ExperimentalWarning scripts/check-doc-links.ts",
     "test": "vitest run",
     "verify:desktop": "node --disable-warning=ExperimentalWarning scripts/verify-windows-desktop.ts",
     "samples": "node scripts/make-sample-roster.ts",

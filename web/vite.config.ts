@@ -7,7 +7,7 @@ import { manualPage } from './manualPlugin.ts';
 
 // 화면(web) 빌드 설정. 개발 중에는 /api 요청을 서버(3000번 포트)로 넘긴다.
 // PDF 처리(pdf.js)에 필요한 한글 글꼴 표(cmaps)·표준 글꼴·WebAssembly 파일을 /pdfjs/ 아래로 함께 내보낸다.
-// 사용설명서(docs/사용설명서.md)는 /manual.html 로, 그 그림은 /manual/images/ 로 함께 내보낸다.
+// 사용설명서(docs/사용자/사용설명서.md)는 /manual.html 로, 그 그림은 /manual/images/ 로 함께 내보낸다.
 const pdfjsAsset = (dir: string) => ({
   src: `../node_modules/pdfjs-dist/${dir}/*`,
   dest: `pdfjs/${dir}`,

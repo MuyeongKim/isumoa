@@ -319,7 +319,7 @@ if (desktop) {
   writeWindowsText(join(outDir, 'setup', 'install.ps1'), readFileSync(join(source, 'install.ps1'), 'utf8'), true);
   writeWindowsText(join(outDir, '설치.bat'), readFileSync(join(source, 'install.bat'), 'utf8'), false);
   // 메모장으로 바로 열리게 .txt로
-  writeWindowsText(join(outDir, 'PC설치안내.txt'), readFileSync(join(ROOT, 'docs', 'PC설치안내.md'), 'utf8'), true);
+  writeWindowsText(join(outDir, 'PC설치안내.txt'), readFileSync(join(ROOT, 'docs', '사용자', 'PC설치안내.md'), 'utf8'), true);
   if (values.exe) {
     step('Windows EXE 실행기·설치 파일 컴파일 (NSIS 필요)');
     const exe = buildWindowsExe(ROOT, outDir, programDir, pkg.version);
@@ -353,8 +353,12 @@ for (const os of ['windows', 'linux']) {
     if (file.endsWith('.sh')) chmodSync(join(serviceDir, file), 0o755);
   }
 }
-for (const doc of ['설치가이드.md', '운영가이드.md', 'IT-확인요청서.md']) {
-  if (existsSync(join(ROOT, 'docs', doc))) copyFileSync(join(ROOT, 'docs', doc), join(outDir, doc));
+for (const [doc, source] of [
+  ['설치가이드.md', '관리자/설치가이드.md'],
+  ['운영가이드.md', '관리자/운영가이드.md'],
+  ['IT-확인요청서.md', '관리자/IT-확인요청서.md'],
+]) {
+  if (existsSync(join(ROOT, 'docs', source))) copyFileSync(join(ROOT, 'docs', source), join(outDir, doc));
 }
 
 await finish(name);

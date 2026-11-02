@@ -7,7 +7,7 @@ import { UPDATE_REPOSITORY, UPDATE_MANIFEST_URL } from '../../shared/updateChann
 import { buildApp } from '../../server/src/app.ts';
 import type { UpdateCenterStatus } from '../../shared/updateCenter.ts';
 const envelope=JSON.parse(readFileSync(new URL('../fixtures/official-rules-signed.json',import.meta.url),'utf8'));
-const custom=JSON.parse(readFileSync(new URL('../../docs/examples/규칙.json',import.meta.url),'utf8'));
+const custom=JSON.parse(readFileSync(new URL('../../docs/개발/examples/규칙.json',import.meta.url),'utf8'));
 const exe=Buffer.from('MZ only a synthetic QA installer'),sha=createHash('sha256').update(exe).digest('hex');
 const release={tag_name:'v0.5.11',draft:false,prerelease:false,body:'가상 버전 안내',published_at:'2026-11-01T00:00:00Z',assets:[{name:'isumoa-setup-0.5.11-win-x64.exe',browser_download_url:`https://github.com/${UPDATE_REPOSITORY}/releases/download/v0.5.11/isumoa-setup-0.5.11-win-x64.exe`,size:exe.length,digest:'sha256:'+sha}]};
 let h:Harness,calls:{url:string;method:string;body:unknown}[],rulesCalls:number,programFail:boolean,rulesFail:boolean,tamper:boolean,launched:number;

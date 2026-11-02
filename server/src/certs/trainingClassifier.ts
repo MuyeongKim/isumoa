@@ -145,7 +145,7 @@ export function unieduCertificateFlags(courseTitle: string | null, context: Clas
 }
 
 /** 공식 과정목록과 실제 수료증에서 확인한 서로 다른 주제. 통합과정은 제목에 양쪽 주제가 있으면 허용한다.
- * 근거: docs/research/{nhi-course-rules-2026-10-27,uniedu-course-rules-2026-10-29}.json
+ * 근거: docs/개발/research/{nhi-course-rules-2026-10-27,uniedu-course-rules-2026-10-29}.json
  */
 export function trainingScopeConflict(courseTitle: string | null, training: { name: string; code?: string }, context: ClassificationContext = {}): string | null {
   if (!courseTitle) return null;

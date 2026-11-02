@@ -4,10 +4,10 @@ import MarkdownIt from 'markdown-it';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { MARK } from './src/brand/glyphs.ts';
 
-// 사용설명서(docs/사용설명서.md)를 프로그램 안의 /manual.html 로 만든다.
+// 사용설명서(docs/사용자/사용설명서.md)를 프로그램 안의 /manual.html 로 만든다.
 // 내부망 PC는 GitHub를 볼 수 없으므로, 같은 글을 프로그램이 직접 보여 준다 (그림은 docs/images → /manual/images).
 
-const SOURCE = fileURLToPath(new URL('../docs/사용설명서.md', import.meta.url));
+const SOURCE = fileURLToPath(new URL('../docs/사용자/사용설명서.md', import.meta.url));
 const IMAGES = fileURLToPath(new URL('../docs/images/', import.meta.url));
 
 /** 그림 크기 (WebP·JPEG 머리만 읽는다). 크기를 알려 주면 그림이 늦게 떠도 글이 밀리지 않는다 */
@@ -63,7 +63,7 @@ function render(markdown: string, base: string): { html: string; toc: { id: stri
   };
   md.renderer.rules.image = (tokens, i) => {
     const token = tokens[i];
-    const src = token.attrGet('src') ?? '';
+    const src = (token.attrGet('src') ?? '').replace(/^\.\.\/images\//, 'images/');
     const alt = token.content;
     return `<figure><img src="${base}/manual/${src}" alt="${md.utils.escapeHtml(alt)}"${sizeAttrs(src)} loading="lazy"><figcaption>${md.utils.escapeHtml(alt)}</figcaption></figure>`;
   };
