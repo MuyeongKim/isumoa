@@ -12,3 +12,27 @@ foreach ($scenario in @('', 'prepare', 'install', 'verify', 'rollback')) {
   else { Assert ($script:events.Contains('rollback')) '실패 후 복구 누락'; Assert (-not $script:events.Contains('complete')) '실패를 완료로 표시'; Assert ($script:events[-1] -eq 'error') '실패 안내 누락' }
   Write-Output "PASS update flow: $scenario"
 }
+
+# 새 설치가 성공한 뒤 기동 검증에서 실패해도 안내 바로가기만 이전 바이트/미존재 상태로 되돌린다.
+$guideRoot = Join-Path ([IO.Path]::GetTempPath()) ('isumoa-guide-update-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path $guideRoot | Out-Null
+try {
+  foreach ($existed in @($false, $true)) {
+    $shortcut = Join-Path $guideRoot ("guide-$existed.lnk")
+    [byte[]]$oldBytes = @(0xEF, 0xBB, 0xBF) + [Text.Encoding]::UTF8.GetBytes('기존 안내 바로가기')
+    if ($existed) { [IO.File]::WriteAllBytes($shortcut, $oldBytes) }
+    $script:guideState = $null; $script:guideFailure = $false
+    Invoke-SafeDesktopUpdateFlow -Prepare {
+      $script:guideState = Save-InstallGuideShortcut $shortcut
+    } -Install {
+      [IO.File]::WriteAllText($shortcut, '업데이트가 추가한 안내 바로가기')
+    } -Start {} -Verify { throw '새 버전 기동 확인 실패' } -Rollback {
+      Restore-InstallGuideShortcut $script:guideState
+    } -Complete { throw '실패를 완료로 표시함' } -Failure { param($Message) $script:guideFailure = $true }
+    Assert $script:guideFailure '업데이트 기동 검증 실패가 전달되지 않음'
+    if ($existed) {
+      Assert ([Convert]::ToBase64String([IO.File]::ReadAllBytes($shortcut)) -ceq [Convert]::ToBase64String($oldBytes)) '기존 안내 바로가기 바이트 복원 실패'
+    } else { Assert (-not (Test-Path -LiteralPath $shortcut)) '업데이트가 추가한 안내 바로가기 잔류' }
+    Write-Output "PASS update guide shortcut rollback: existed=$existed"
+  }
+} finally { Remove-Item -LiteralPath $guideRoot -Recurse -Force }

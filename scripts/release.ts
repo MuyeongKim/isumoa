@@ -318,8 +318,9 @@ if (desktop) {
   mkdirSync(join(outDir, 'setup'), { recursive: true });
   writeWindowsText(join(outDir, 'setup', 'install.ps1'), readFileSync(join(source, 'install.ps1'), 'utf8'), true);
   writeWindowsText(join(outDir, '설치.bat'), readFileSync(join(source, 'install.bat'), 'utf8'), false);
-  // 메모장으로 바로 열리게 .txt로
-  writeWindowsText(join(outDir, 'PC설치안내.txt'), readFileSync(join(ROOT, 'docs', '사용자', 'PC설치안내.md'), 'utf8'), true);
+  // EXE는 program 폴더만 담는다. 두 경로 모두 manifest를 만들기 전에 메모장용 .txt를 넣는다.
+  const installGuide = readFileSync(join(ROOT, 'docs', '사용자', 'PC설치안내.md'), 'utf8');
+  for (const directory of [outDir, programDir]) writeWindowsText(join(directory, 'PC설치안내.txt'), installGuide, true);
   if (values.exe) {
     step('Windows EXE 실행기·설치 파일 컴파일 (NSIS 필요)');
     const exe = buildWindowsExe(ROOT, outDir, programDir, pkg.version);

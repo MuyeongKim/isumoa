@@ -20,6 +20,18 @@ function Invoke-SafeDesktopUpdateFlow([scriptblock]$Prepare, [scriptblock]$Insta
     & $Failure $message
   }
 }
+function Save-InstallGuideShortcut([string]$Path) {
+  return @{ Path = $Path; Bytes = if (Test-Path -LiteralPath $Path) { [IO.File]::ReadAllBytes($Path) } else { $null } }
+}
+function Restore-InstallGuideShortcut([hashtable]$State) {
+  if ($null -eq $State) { return }
+  if ($null -eq $State.Bytes) {
+    if (Test-Path -LiteralPath $State.Path) { Remove-Item -LiteralPath $State.Path -Force }
+  } else {
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $State.Path) | Out-Null
+    [IO.File]::WriteAllBytes($State.Path, $State.Bytes)
+  }
+}
 if ($DefinitionsOnly) { return }
 . (Join-Path $PSScriptRoot 'common.ps1')
 $req = Get-Content -LiteralPath $Request -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -38,11 +50,13 @@ function Save-UpdateStatus([string]$Phase, [string]$Message = '') {
 $recovery = Join-Path (Split-Path -Parent $Request) 'recovery'
 $oldProgram = Join-Path $recovery 'program'
 $script:backup = $null
+$script:guideShortcut = $null
 Start-Sleep -Seconds 2
 Invoke-SafeDesktopUpdateFlow -Prepare {
   $preparationGate = Enter-DesktopOperation
   try {
   if ((Get-FileHash -LiteralPath $req.installer -Algorithm SHA256).Hash -ine $req.sha256) { throw '설치 파일이 변경되었습니다.' }
+  $script:guideShortcut = Save-InstallGuideShortcut (Join-Path (Join-Path ([Environment]::GetFolderPath('Programs')) $AppName) "$AppName 설치 안내.lnk")
   Stop-Server
   # 원래 앱을 종료한 뒤 자료를 보관하므로 종료 직전 저장값까지 포함한다.
   $env:ECP_CONFIG = $ConfigFile
@@ -73,6 +87,7 @@ Invoke-SafeDesktopUpdateFlow -Prepare {
   Remove-Tree $AppHome
   Copy-ProgramPayload $oldProgram $AppHome
   Assert-ProgramPayload $AppHome
+  Restore-InstallGuideShortcut $script:guideShortcut
   $env:ECP_CONFIG = $ConfigFile
   & (Join-Path $AppHome 'node/node.exe') --disable-warning=ExperimentalWarning (Join-Path $AppHome 'app/scripts/restore.ts') --apply $script:backup.file --yes
   if ($LASTEXITCODE -ne 0) { throw "자료 복원 실패. 복구 폴더: $recovery" }

@@ -18,7 +18,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $Package 'common.ps1'))) {
 
 function Register-Program {
   $version = (Get-Content -LiteralPath (Join-Path $AppHome 'VERSION') -Raw).Trim()
-  # 바로가기: 바탕화면, 시작 메뉴(실행·제거)
+  # 바로가기: 바탕화면, 시작 메뉴(실행·제거·설치 안내)
   $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
   $icon = Join-Path $AppHome 'app.ico'
   $shell = New-Object -ComObject WScript.Shell
@@ -41,6 +41,13 @@ function Register-Program {
   New-Shortcut (Join-Path ([Environment]::GetFolderPath('Desktop')) "$AppName.lnk") 'launch.ps1' '이수모아 열기 (법정교육 이수증 종합 플랫폼)'
   New-Shortcut (Join-Path $menu "$AppName.lnk") 'launch.ps1' '이수모아 열기 (법정교육 이수증 종합 플랫폼)'
   New-Shortcut (Join-Path $menu "$AppName 제거.lnk") 'uninstall.ps1' '이수모아 프로그램 제거'
+  # 텍스트 파일은 PowerShell 인수 없이 연결된 편집기로 연다.
+  $guide = $shell.CreateShortcut((Join-Path $menu "$AppName 설치 안내.lnk"))
+  $guide.TargetPath = Join-Path $AppHome 'PC설치안내.txt'
+  $guide.Arguments = ''
+  $guide.WorkingDirectory = $AppHome
+  $guide.Description = '이수모아 설치·문제 해결 안내'
+  $guide.Save()
 
   # Windows 설정 > 앱 목록에 보이도록 (내 사용자 계정에만)
   New-Item -Path $UninstallKey -Force | Out-Null
@@ -88,7 +95,7 @@ try {
   }
   $menu = Join-Path ([Environment]::GetFolderPath('Programs')) $AppName
   foreach ($path in @((Join-Path ([Environment]::GetFolderPath('Desktop')) "$AppName.lnk"),
-      (Join-Path $menu "$AppName.lnk"), (Join-Path $menu "$AppName 제거.lnk"))) {
+      (Join-Path $menu "$AppName.lnk"), (Join-Path $menu "$AppName 제거.lnk"), (Join-Path $menu "$AppName 설치 안내.lnk"))) {
     $registration.Shortcuts[$path] = if (Test-Path -LiteralPath $path) { [System.IO.File]::ReadAllBytes($path) } else { $null }
   }
 

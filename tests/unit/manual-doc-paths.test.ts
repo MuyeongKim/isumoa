@@ -23,7 +23,10 @@ it.each(['/', '/kmy/edu-cert/'])('문서 이동 후에도 설명서 그림 주�
   }
   expect(html).not.toContain('/manual/../');
   expect(html).not.toContain('버전 0.3');
-  expect(html).toContain('배포 ZIP을 푼 폴더의 <strong>PC설치안내.txt');
+  expect(html.match(/<strong>시작 메뉴 → 이수모아 → 이수모아 설치 안내<\/strong>/g)).toHaveLength(2);
+  expect(html).toContain('ZIP 설치판은 압축을 푼 폴더의 PC설치안내.txt에도 있습니다.');
+  expect(html).toContain('<strong>7. 문제가 생겼을 때</strong>');
+  expect(html).not.toContain('배포 ZIP을 푼 폴더의 <strong>PC설치안내.txt');
   expect(html).toContain('href="#1-처음-시작하기"');
   expect(html).not.toContain('소개·모의자료·핵심 사용 흐름');
   const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
