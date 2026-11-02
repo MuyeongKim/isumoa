@@ -8,9 +8,9 @@ EXE로 설치하며 Node.js·OCR 구성요소를 따로 설치하지 않습니�
 
 ## 다운로드·접속 주소
 
-**0.5.11** — [Windows EXE](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.11/isumoa-setup-0.5.11-win-x64.exe) | [모의자료 ZIP](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.11/demo-samples-0.5.11.zip) | [전체 릴리즈](https://github.com/MuyeongKim/isumoa-releases/releases/latest)
+**0.5.12** — [Windows EXE](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/isumoa-setup-0.5.12-win-x64.exe) | [Windows ZIP](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/isumoa-setup-0.5.12-win-x64.zip) | [모의자료 ZIP](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/demo-samples-0.5.12.zip) | [전체 릴리즈](https://github.com/MuyeongKim/isumoa-releases/releases/latest)
 이수모아를 처음 실행하면 브라우저가 열립니다. 기본 접속 주소는 PC 내부 주소인 `http://127.0.0.1:47210`입니다.
-최근 변경: [0.5.11 릴리즈 노트](docs/검증기록/releases/0.5.11.md)
+최근 변경: [0.5.12 릴리즈 노트](docs/검증기록/releases/0.5.12.md)
 
 ## 해결하려는 문제와 개발 경위
 
@@ -119,7 +119,7 @@ samples/       # 저장소에는 정답만 보관. PDF는 생성하거나 모의
 - 사용자: [사용설명서](docs/사용자/사용설명서.md), [PC 설치](docs/사용자/PC설치안내.md), [업데이트](docs/사용자/업데이트안내.md), [규칙·로컬 AI](docs/사용자/검수규칙과로컬AI.md)
 - 관리자·IT: [운영](docs/관리자/운영가이드.md), [서버 설치](docs/관리자/설치가이드.md), [정보화 담당 확인](docs/관리자/IT-확인요청서.md)
 - 개발: [개발·배포 안내](docs/개발/개발안내.md)
-- 검증기록: [릴리즈 검증](docs/검증기록/releases/0.5.11.md)
+- 검증기록: [릴리즈 검증](docs/검증기록/releases/0.5.12.md)
 - 세션1: [제출 준비](docs/session1/README.md)
 ## 제작자·라이선스
 

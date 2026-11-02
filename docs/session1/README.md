@@ -4,7 +4,7 @@
 
 ## 현재 배포본과 실행 안내
 
-현재 Windows 배포본은 **0.5.11**입니다. [프로젝트 소개·설치·활용방법](../../README.md)에 참가 안내서의 README 요구사항과 양식 2-1의 실행 환경·설치 절차·LLM 연결·모의데이터·사용 순서·제약·개발 경위를 정리했습니다. [가상 모의자료 ZIP](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.11/demo-samples-0.5.11.zip)으로 직원 120명과 11개 파일·50쪽을 재현할 수 있습니다.
+현재 Windows 배포본은 **0.5.12**입니다. [프로젝트 소개·설치·활용방법](../../README.md)에 참가 안내서의 README 요구사항과 양식 2-1의 실행 환경·설치 절차·LLM 연결·모의데이터·사용 순서·제약·개발 경위를 정리했습니다. [가상 모의자료 ZIP](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/demo-samples-0.5.12.zip)으로 직원 120명과 11개 파일·50쪽을 재현할 수 있습니다.
 
 최신 소스·배포판의 공개와 공모 최종 제출은 구분합니다. 구동안내서 PDF·참가신청·동의·서명·마감 시점 제출본 고정은 별도입니다.
 
