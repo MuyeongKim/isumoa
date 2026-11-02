@@ -39,6 +39,19 @@ it('검색에 쓸 원본 과정명을 목록에도 제공한다', async () => {
   expect(list).toHaveLength(4);
   expect(list.every((c: { courseTitle: string }) => c.courseTitle === '공직자 청렴교육')).toBe(true);
 });
+it('같은 스캔 묶음의 제외 대상을 실제 쪽 번호로 보여 주고 확인 토큰으로 함께 처리한다', async () => {
+  const file=(await h.uploadFile(batch,Buffer.concat([PDF,Buffer.from('scanned-pages')]),'스캔묶음_가상부서.pdf',3)).json().fileId;
+  for(const pageNo of [1,3])await h.uploadPage(file,pageNo,'이번 교육자료 표지와 메모입니다.');
+  expect(await h.drainQueue()).toEqual([]);
+  const selected=(await h.db.selectFrom('certificates as c').innerJoin('pages as p','p.id','c.page_id').select('c.id').where('p.file_id','=',file).orderBy('p.page_no').execute()).map(r=>r.id);
+  for(const onlyNonCertificates of [false,true]){
+    const res=await h.send('POST','/api/certificates/bulk-exclude-preview',{ids:selected,onlyNonCertificates});
+    expect(res.statusCode).toBe(200);
+    const p=res.json() as BulkExcludePreview;
+    expect(p.items.map(i=>({fileName:i.fileName,pageNo:i.pageNo}))).toEqual([{fileName:'스캔묶음_가상부서.pdf',pageNo:1},{fileName:'스캔묶음_가상부서.pdf',pageNo:3}]);
+    if(onlyNonCertificates)expect((await h.send('POST','/api/certificates/bulk-exclude',{ids:p.ids,token:p.token,reason:'이수증 아님',onlyNonCertificates})).json()).toEqual({excluded:2,ids:selected});
+  }
+});
 it('선택한 대기·확정 자료만 함께 제외하고 원본·인정 연결·다른 기록·과거 확정 정보를 보존한다', async () => {
   const before = await rows();
   const credits = await h.db.selectFrom('certificate_trainings').selectAll().execute();
@@ -92,6 +105,14 @@ it('확인창 이후 수동 수정이나 인정시간 변경이 있으면 새 �
   await h.db.updateTable('certificate_trainings').set({ credited_hours: 1 }).where('certificate_id', '=', ids[0]).execute();
   expect((await apply(next)).statusCode).toBe(409);
   expect((await rows()).every(c => c.status !== 'excluded' || c.id === ids[2])).toBe(true);
+});
+it('확인창 이후 쪽 번호가 바뀌어도 이전 토큰으로 제외하지 않는다',async()=>{
+  const p=await preview();const before=await rows();
+  await h.db.updateTable('pages').set({page_no:2}).where('id','=',before[0].page_id).execute();
+  expect((await apply(p)).statusCode).toBe(409);
+  expect(await rows()).toEqual(before);
+  const next=await preview();expect(next.items[0].pageNo).toBe(2);
+  expect((await apply(next)).statusCode).toBe(200);
 });
 it('빈 사유·빈 선택·500건 초과·미인증 요청을 거부한다', async () => {
   const p = await preview();

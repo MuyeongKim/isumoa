@@ -41,6 +41,7 @@ function isJpeg(buf: Buffer | undefined): buf is Buffer {
 
 /** RFC 5987: 한글 파일 이름으로 내려받기 */
 export async function uploadRoutes(app: FastifyInstance, { db, config, worker }: Deps) {
+  const receivingBatches = new Map<number, number>();
   /** 묶음을 다룰 수 있는지: 관리자이거나 올린 사람 */
   async function ownedBatch(user: SessionUser, batchId: number) {
     const batch = await db.selectFrom('batches').selectAll().where('id', '=', batchId).executeTakeFirst();
@@ -82,6 +83,22 @@ export async function uploadRoutes(app: FastifyInstance, { db, config, worker }:
       .executeTakeFirstOrThrow();
     await audit(db, req, 'batch.create', { type: 'batch', id: batch.id }, { year: body.year });
     return { id: batch.id };
+  });
+
+  // 중복만 골랐거나 원본을 하나도 올리지 못한 새 묶음 정리. 관리자를 포함해 본인이 만든 빈 묶음만 지운다.
+  app.delete('/api/batches/:id/empty', { preHandler: requireUser }, async (req) => {
+    const user = currentUser(req);
+    const { id } = IdParams.parse(req.params);
+    const batch = await ownedBatch(user, id);
+    if (batch.created_by !== user.id) throw new HttpError(403, '내가 만든 빈 묶음만 정리할 수 있습니다.');
+    // 수신 중에는 보류한다. 삭제된 마지막 번호가 재사용되어 진행 중 원본이 다른 묶음에 들어가는 것도 막는다.
+    if (receivingBatches.has(id)) return { deleted: false };
+    // 파일 개수 조회 뒤 지우면 그 사이 업로드된 파일도 함께 지워질 수 있어 DELETE 조건에서 다시 확인한다.
+    const result = await db.deleteFrom('batches').where('id', '=', id).where('created_by', '=', user.id)
+      .where(eb => eb.not(eb.exists(eb.selectFrom('files').select('id').whereRef('files.batch_id', '=', 'batches.id')))).executeTakeFirst();
+    const deleted = Number(result.numDeletedRows) === 1;
+    if (deleted) await audit(db, req, 'batch.empty-delete', { type: 'batch', id }, { year: batch.year });
+    return { deleted };
   });
 
   app.get('/api/batches', { preHandler: requireUser }, async (req): Promise<BatchSummary[]> => {
@@ -179,82 +196,97 @@ export async function uploadRoutes(app: FastifyInstance, { db, config, worker }:
   app.post('/api/batches/:id/files', { preHandler: requireUser }, async (req): Promise<FileUploadResult> => {
     const user = currentUser(req);
     const { id: batchId } = IdParams.parse(req.params);
-    await ownedBatch(user, batchId);
+    receivingBatches.set(batchId, (receivingBatches.get(batchId) ?? 0) + 1);
+    try {
+      await ownedBatch(user, batchId);
+      const part = await req.file({ limits: { fileSize: MAX_FILE_BYTES } });
+      if (!part) throw badRequest('파일을 골라 주세요.');
+      const field = (name: string) => {
+        const f = part.fields[name];
+        return f && !Array.isArray(f) && f.type === 'field' ? String(f.value) : undefined;
+      };
+      const pageCount = z.coerce.number().int().min(1).max(2000).parse(field('pageCount'));
+      const force = field('force') === '1';
 
-    const part = await req.file({ limits: { fileSize: MAX_FILE_BYTES } });
-    if (!part) throw badRequest('파일을 골라 주세요.');
-    const field = (name: string) => {
-      const f = part.fields[name];
-      return f && !Array.isArray(f) && f.type === 'field' ? String(f.value) : undefined;
-    };
-    const pageCount = z.coerce.number().int().min(1).max(2000).parse(field('pageCount'));
-    const force = field('force') === '1';
-
-    await mkdir(filesDir(config.dataDir), { recursive: true });
-    const tmp = originalPath(config.dataDir, `.upload-${randomUUID()}`);
-    const hash = createHash('sha256');
-    let head = Buffer.alloc(0);
-    let size = 0;
-    await pipeline(
-      part.file,
-      new Transform({
-        transform(chunk: Buffer, _enc, done) {
-          if (head.length < 8) head = Buffer.concat([head, chunk.subarray(0, 8)]);
-          hash.update(chunk);
-          size += chunk.length;
-          done(null, chunk);
-        },
-      }),
-      createWriteStream(tmp),
-    );
-    const discard = () => rm(tmp, { force: true });
-    if (part.file.truncated) {
-      await discard();
-      throw new HttpError(413, '파일이 너무 큽니다 (300MB까지).');
-    }
-    const type = detectUploadType(head);
-    if (!type) {
-      await discard();
-      throw badRequest('PDF, JPG, PNG 파일만 올릴 수 있습니다.');
-    }
-    const sha256 = hash.digest('hex');
-
-    // 같은 묶음에 같은 파일이 있으면 이어 올리기
-    const same = await db.selectFrom('files').select('id').where('batch_id', '=', batchId).where('sha256', '=', sha256).executeTakeFirst();
-    if (same) {
-      await discard();
-      const pages = await db.selectFrom('pages').select('page_no').where('file_id', '=', same.id).execute();
-      return { fileId: same.id, duplicateOf: null, uploadedPages: pages.map((p) => p.page_no) };
-    }
-    if (!force) {
-      const earlier = await db
-        .selectFrom('files')
-        .select(['batch_id', 'original_name', 'created_at'])
-        .where('sha256', '=', sha256)
-        .orderBy('id')
-        .executeTakeFirst();
-      if (earlier) {
+      await mkdir(filesDir(config.dataDir), { recursive: true });
+      const tmp = originalPath(config.dataDir, `.upload-${randomUUID()}`);
+      const hash = createHash('sha256');
+      let head = Buffer.alloc(0);
+      let size = 0;
+      await pipeline(
+        part.file,
+        new Transform({
+          transform(chunk: Buffer, _enc, done) {
+            if (head.length < 8) head = Buffer.concat([head, chunk.subarray(0, 8)]);
+            hash.update(chunk);
+            size += chunk.length;
+            done(null, chunk);
+          },
+        }),
+        createWriteStream(tmp),
+      );
+      const discard = () => rm(tmp, { force: true });
+      if (part.file.truncated) {
         await discard();
-        return { fileId: null, duplicateOf: { batchId: earlier.batch_id, fileName: earlier.original_name, createdAt: earlier.created_at }, uploadedPages: [] };
+        throw new HttpError(413, '파일이 너무 큽니다 (300MB까지).');
       }
-    }
+      const type = detectUploadType(head);
+      if (!type) {
+        await discard();
+        throw badRequest('PDF, JPG, PNG 파일만 올릴 수 있습니다.');
+      }
+      const sha256 = hash.digest('hex');
 
-    const storedName = `${randomUUID()}.${type.ext}`;
-    await rename(tmp, originalPath(config.dataDir, storedName));
-    const created = await db
-      .insertInto('files')
-      .values({
-        batch_id: batchId,
-        original_name: part.filename.normalize('NFC'),
-        stored_name: storedName,
-        mime: type.mime,
-        size,
-        sha256,
-        page_count: type.mime === 'application/pdf' ? pageCount : 1,
-      })
-      .returning('id')
-      .executeTakeFirstOrThrow();
-    return { fileId: created.id, duplicateOf: null, uploadedPages: [] };
+      // 같은 묶음에 같은 파일이 있으면 이어 올리기
+      const same = await db.selectFrom('files').select('id').where('batch_id', '=', batchId).where('sha256', '=', sha256).executeTakeFirst();
+      if (same) {
+        await discard();
+        const pages = await db.selectFrom('pages').select('page_no').where('file_id', '=', same.id).execute();
+        return { fileId: same.id, duplicateOf: null, uploadedPages: pages.map((p) => p.page_no) };
+      }
+      if (!force) {
+        const earlier = await db
+          .selectFrom('files')
+          .select(['batch_id', 'original_name', 'created_at'])
+          .where('sha256', '=', sha256)
+          .orderBy('id')
+          .executeTakeFirst();
+        if (earlier) {
+          await discard();
+          return { fileId: null, duplicateOf: { batchId: earlier.batch_id, fileName: earlier.original_name, createdAt: earlier.created_at }, uploadedPages: [] };
+        }
+      }
+
+      const storedName = `${randomUUID()}.${type.ext}`;
+      const storedPath = originalPath(config.dataDir, storedName);
+      try {
+        // 파일을 받는 동안 빈 묶음이 정리되었을 수 있다. 이때 임시·원본 파일도 남기지 않는다.
+        await ownedBatch(user, batchId);
+        await rename(tmp, storedPath);
+        const created = await db
+          .insertInto('files')
+          .values({
+            batch_id: batchId,
+            original_name: part.filename.normalize('NFC'),
+            stored_name: storedName,
+            mime: type.mime,
+            size,
+            sha256,
+            page_count: type.mime === 'application/pdf' ? pageCount : 1,
+          })
+          .returning('id')
+          .executeTakeFirstOrThrow();
+        return { fileId: created.id, duplicateOf: null, uploadedPages: [] };
+      } catch (err) {
+        await discard();
+        await rm(storedPath, { force: true });
+        throw err;
+      }
+    } finally {
+      const remaining = (receivingBatches.get(batchId) ?? 1) - 1;
+      if (remaining) receivingBatches.set(batchId, remaining);
+      else receivingBatches.delete(batchId);
+    }
   });
 
   // 쪽 하나: 큰 이미지(image), 작은 이미지(thumb), PDF 글자층(text)

@@ -128,6 +128,8 @@ export function UploadPage() {
       if (added.length === 0) return;
       // 처음 올릴 때 묶음을 만든다. 같은 화면에서 더 올리면 같은 묶음에 넣는다
       let id = batchId;
+      const createdBatch = id === null;
+      let uploadedFiles = 0;
       if (id === null) {
         id = (await api.post<{ id: number }>('/batches', { year, title: title.trim() || null })).id;
         setBatchId(id);
@@ -139,12 +141,17 @@ export function UploadPage() {
           const outcome = await uploadFile(id, file, (done, total) => update(item.key, { kind: 'uploading', done, total }));
           if (outcome.kind === 'duplicate') update(item.key, { kind: 'duplicate', fileName: outcome.fileName, batchId: outcome.batchId });
           else if (outcome.skipped === outcome.pages) update(item.key, { kind: 'duplicate', fileName: item.name, batchId: id });
-          else update(item.key, outcome);
+          else { uploadedFiles++; update(item.key, outcome); }
         } catch (err) {
           update(item.key, { kind: 'error', message: errorMessage(err) });
         }
         void queryClient.invalidateQueries({ queryKey: ['batches'] });
         void queryClient.invalidateQueries({ queryKey: ['processing'] });
+      }
+      if (createdBatch && uploadedFiles === 0) {
+        const { deleted } = await api.delete<{ deleted: boolean }>(`/batches/${id}/empty`);
+        if (deleted) setBatchId(null);
+        void queryClient.invalidateQueries({ queryKey: ['batches'] });
       }
     } catch (err) {
       const message = errorMessage(err);

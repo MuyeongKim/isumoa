@@ -26,7 +26,7 @@ export function ExcludeDialog({ open, fileName = '', hasEdits = false, preview, 
           {preview.confirmed > 0 && <p className="rounded-lg border border-warn/40 bg-warn-soft p-3">이미 확정한 {preview.confirmed}건도 이수 현황 합산에서 제외됩니다. 대상과 사유를 확인해 주세요.</p>}
           <ul className="max-h-40 divide-y divide-line overflow-y-auto rounded-lg border border-line bg-paper" aria-label="선택 제외 대상">
             {preview.items.map(item => <li key={item.id} className="px-3 py-2">
-              <span className="block font-medium break-all">#{item.id} · {item.employeeName ?? '직원 미정'} · {item.fileName}</span>
+              <span className="block font-medium break-all">{item.fileName} {item.pageNo}쪽 · {item.employeeName ?? '직원 미정'}</span>
               <span className="block text-[12px] break-all text-ink-soft">{item.status === 'confirmed' ? '확정' : '검수 대기'} · {item.courseTitle ?? '과정명 미정'}</span>
             </li>)}
           </ul>

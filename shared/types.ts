@@ -305,7 +305,7 @@ export interface BulkExcludePreview {
   drafts: number;
   confirmed: number;
   token: string;
-  items: { id: number; status: CertificateStatus; employeeName: string | null; fileName: string; courseTitle: string | null }[];
+  items: { id: number; status: CertificateStatus; employeeName: string | null; fileName: string; pageNo: number; courseTitle: string | null }[];
 }
 
 export interface BulkExcludeResult {

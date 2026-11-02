@@ -36,7 +36,7 @@ export async function previewBulkExclude(db: Kysely<DB>, user: SessionUser, ids:
   return { ids: selected.ids, drafts: selected.rows.filter(r => r.status === 'draft').length,
     confirmed: selected.rows.filter(r => r.status === 'confirmed').length, token: selected.token,
     items: selected.rows.map(r => ({ id: r.id, status: r.status, employeeName: names.get(r.employee_id ?? 0) ?? r.person_name,
-      fileName: r.original_name, courseTitle: r.course_title })) };
+      fileName: r.original_name, pageNo: r.page_no, courseTitle: r.course_title })) };
 }
 
 /** 대상과 권한을 다시 확인하고 모두 함께 제외한다. 원본·인정 연결·과거 확정 정보는 그대로 둔다. */

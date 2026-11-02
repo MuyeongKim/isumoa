@@ -572,7 +572,7 @@ export function ReviewPage() {
         </>
       )}
       <ConfirmDialog open={bulkExclusion?.onlyNonCertificates===true} title={`이수증 아닌 쪽 ${formatNumber(bulkExclusion?.preview.ids.length??0)}건 한 번에 제외`}
-        description={<><p>{bulkExclusion?.scopeLabel}</p><p className="mt-2">현재 검색 결과 중 검수 대기에 있는 ‘이수증 아닌 쪽’만 제외합니다. 사유는 ‘이수증 아님’으로 기록합니다.</p><p className="mt-2">원본은 보존하며, 나중에 검수 대기로 되돌릴 수 있습니다.</p><ul className="mt-3 max-h-44 overflow-auto text-[13px]">{bulkExclusion?.preview.items.map(i=><li key={i.id}>#{i.id} · {i.fileName}{i.employeeName?` · ${i.employeeName}`:''}</li>)}</ul></>}
+        description={<><p>{bulkExclusion?.scopeLabel}</p><p className="mt-2">현재 검색 결과 중 검수 대기에 있는 ‘이수증 아닌 쪽’만 제외합니다. 사유는 ‘이수증 아님’으로 기록합니다.</p><p className="mt-2">원본은 보존하며, 나중에 검수 대기로 되돌릴 수 있습니다.</p><ul className="mt-3 max-h-44 overflow-auto text-[13px]">{bulkExclusion?.preview.items.map(i=><li key={i.id} className="break-all">{i.fileName} {i.pageNo}쪽{i.employeeName?` · ${i.employeeName}`:''}</li>)}</ul></>}
         confirmLabel="한 번에 제외" confirmVariant="danger" busy={bulkExcludeBusy} onConfirm={()=>void excludeSelected('이수증 아님')} onClose={()=>{if(!bulkExcludeBusy)setBulkExclusion(null);}} />
       <ExcludeDialog key={excluding ? `exclude-${currentId}` : 'closed'} open={excluding !== null} fileName={current?.fileName ?? ''} hasEdits={excluding?.dirty ?? false} onClose={() => setExcluding(null)} onExclude={exclude} />
       <ExcludeDialog key={bulkExclusion?.preview.token ?? 'bulk-closed'} open={bulkExclusion !== null&&!bulkExclusion.onlyNonCertificates} preview={bulkExclusion?.preview}
