@@ -29,7 +29,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { ZipArchive } from 'archiver';
-import { buildWindowsExe, writeProgramManifest } from './windows-exe.ts';
+import { buildWindowsExe, cleanWindowsPayload, writeProgramManifest } from './windows-exe.ts';
+import { assertNoZipSymlinks } from './windows-zip.ts';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const TARGETS = ['win-x64', 'linux-x64', 'darwin-arm64', 'darwin-x64'] as const;
@@ -290,6 +291,13 @@ for (const script of ['eval-ocr.ts', 'restore.ts', 'desktop-update-backup.ts']) 
 step(`실행에 필요한 라이브러리만 설치 (개발 도구 제외, ${targetOs}-${targetCpu}용 네이티브 모듈)`);
 const platform = [`--os=${targetOs}`, `--cpu=${targetCpu}`, ...(targetOs === 'linux' ? ['--libc=glibc'] : [])];
 run('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', ...platform], appDir);
+if (desktop) {
+  const cleaned = cleanWindowsPayload(programDir);
+  for (const path of cleaned.removedBinDirectories) console.log(`  실행에 쓰지 않는 .bin 폴더 제거: ${path}`);
+  for (const link of cleaned.removedLinks) console.log(`  링크 제거: ${link.path} → ${link.target}`);
+  for (const link of cleaned.materializedLinks) console.log(`  링크를 실제 내용으로 복사: ${link.path} → ${link.target}`);
+  console.log(`  Windows 프로그램 링크 정리: 제거 ${cleaned.removedLinks.length}개 · 복사 ${cleaned.materializedLinks.length}개`);
+}
 pruneOtherPlatforms(join(appDir, 'node_modules'));
 checkNativeModules(join(appDir, 'node_modules'));
 console.log(`  타입 선언·소스맵 ${pruneDevFiles(join(appDir, 'node_modules'))}개 뺌`);
@@ -369,6 +377,7 @@ async function finish(root: string | false) {
   const zipPath = join(releaseDir, `${name}.zip`);
   rmSync(zipPath, { force: true });
   await zip(outDir, zipPath, root);
+  if (desktop) console.log(`  ZIP 최종 검사: ${await assertNoZipSymlinks(zipPath)}개 항목 · 심볼릭 링크 0개`);
   const sha256 = createHash('sha256').update(readFileSync(zipPath)).digest('hex');
   console.log(`\n완료: ${zipPath}\n  크기 ${(statSync(zipPath).size / 1024 ** 2).toFixed(1)}MB · SHA-256 ${sha256}`);
 }
