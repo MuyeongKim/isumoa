@@ -22,4 +22,11 @@ it.each(['/', '/kmy/edu-cert/'])('문서 이동 후에도 설명서 그림 주�
     expect(readFileSync(file).length).toBeGreaterThan(0);
   }
   expect(html).not.toContain('/manual/../');
+  expect(html).not.toContain('버전 0.3');
+  expect(html).toContain('배포 ZIP을 푼 폴더의 <strong>PC설치안내.txt');
+  expect(html).toContain('href="#1-처음-시작하기"');
+  expect(html).not.toContain('소개·모의자료·핵심 사용 흐름');
+  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
+  for (const link of html.matchAll(/href="#([^"]+)"/g)) expect(ids.has(decodeURIComponent(link[1])), `설명서 내부 링크: #${link[1]}`).toBe(true);
+  expect(html).not.toContain('class="doc-ref"');
 });
