@@ -4,6 +4,14 @@
 
 설치 파일에 판독에 필요한 구성요소가 들어 있습니다. 프로그램을 열면 브라우저에서 명단을 등록하고 수료증을 검수할 수 있습니다.
 
+[0.5.13 Windows 배포판](https://github.com/MuyeongKim/isumoa-releases/releases/tag/v0.5.13) · [이수모아 소개페이지](https://isumoa-intro.vercel.app/)
+
+## 소개영상 · 49초
+
+[![이수모아 49초 소개영상 재생](https://isumoa-intro.vercel.app/assets/video/isumoa-intro-poster.jpg)](https://isumoa-intro.vercel.app/#intro-video)
+
+수료증 판독부터 원본 검수, 이수 현황과 명단 출력까지 업무 흐름을 소개합니다. [49초 소개영상 보기](https://isumoa-intro.vercel.app/#intro-video)
+
 ![가상 자료로 원본과 인정 교육을 대조하는 검수함](docs/images/review.webp)
 
 ## 다운로드·접속 주소
@@ -92,11 +100,15 @@ Windows EXE의 SHA-256은 `f0458be39f80057b90576ceb2b2b9764f86193bdfe11d4f48614b
 3. **중복·충돌 확인**. 확정한 파일을 다시 올려 중복 건너뛰기를 확인합니다. 주제 충돌이 표시되면 원본을 확인해 교육 연결을 바로잡습니다.
 4. **현황·출력**. **이수 현황**의 대상은 휴직 1명과 파견 1명을 뺀 **118명**입니다. 현황 칸에서 근거 수료증을 열고 **내보내기 → 수료자 명단(16시트)**에서 XLSX를 받습니다. 합본 PDF와 개별 ZIP도 내보낼 수 있습니다.
 
-### 실제 앱 시연영상과 검증 범위
+### Windows 실기기 시연영상 · 2분 46초
 
-제출용 **2분 15초 MP4**는 Windows PC에서 이수모아 0.5.13을 설치하고 처음 실행하는 장면부터 시작합니다. 가상 직원 120명과 8개 부서를 등록하고 PDF 11개·50쪽을 판독했습니다. 정상 자료 48건을 확정하고 이수증이 아닌 2쪽을 제외했습니다. 이수 현황의 대상은 118명입니다.
+[![이수모아 0.5.13 Windows 실기기 시연영상 재생](https://isumoa-intro.vercel.app/assets/video/isumoa-app-demo-0.5.13-windows-final-poster.jpg)](https://isumoa-intro.vercel.app/#demo-video)
 
-영상의 1분 51초부터 Microsoft Excel 화면이 나옵니다. Windows에서 내보낸 명단을 복구 안내 없이 열고 교육별 16시트와 수료자 행을 확인했습니다. 이번 확인은 Windows PC 1대와 가상 자료를 사용했습니다. Windows 업데이트, 한셀 열기·인쇄, 기관 보안 프로그램, 수기 대비 소요 시간 및 LLM 모델 비교는 별도 확인 항목입니다. [Windows 확인 결과와 재현 절차](docs/session1/WINDOWS.md)
+[2분 46초 시연영상 보기](https://isumoa-intro.vercel.app/#demo-video)
+
+Windows 11에서 이수모아 0.5.13을 설치하고 가상 직원 120명과 8개 부서를 등록했습니다. PDF 11개·50쪽을 판독하고 48건을 확정하고 2쪽을 제외했습니다. 이수 현황의 대상은 118명입니다. 별도 가상자료 시험에서는 동일 PDF를 건너뛰고 재저장한 PDF의 중복 확정을 차단하는 화면을 확인했습니다.
+
+영상의 **2분 18초**부터 Microsoft Excel에서 복구 안내 없이 열린 16시트 명단과 수료자 행을 볼 수 있습니다. 이번 확인은 Windows PC 1대와 가상 자료를 사용했습니다. Windows 업데이트, 한셀 열기·인쇄, 기관 보안 프로그램, 수기 대비 작업 시간 및 LLM 모델 비교는 별도 확인 항목입니다. [Windows 확인 결과와 재현 절차](docs/session1/WINDOWS.md)
 
 ## 자료 처리와 제약사항
 
