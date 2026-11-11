@@ -9,6 +9,7 @@ import { getSetting } from '../db/seed.ts';
 import { loadWorkbook } from '../forms/analyze.ts';
 import { loadRecords } from './records.ts';
 import { loadStatusReport, type ReportScope } from './statusReport.ts';
+import './excelDuplicateRules.ts';
 
 const normalized = (s: string) => s.normalize('NFC').replace(/\s/g, '').toLowerCase();
 

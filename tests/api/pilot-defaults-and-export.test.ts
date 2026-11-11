@@ -3,11 +3,48 @@ import { readFileSync } from 'node:fs';
 import { multipart } from './harness.ts';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
+import JSZip from 'jszip';
 import { createHarness, PDF, type Harness } from './harness.ts';
 import { seedDefaults } from '../../server/src/db/seed.ts';
 import { DEPLOYMENT_TRAININGS } from '../../shared/deploymentCatalog.ts';
 import { certificateInputOf } from '../../shared/certificateInput.ts';
 import type { CertificateDetail, FinalExportCheck } from '../../shared/types.ts';
+
+async function readOfficialDuplicateRules(file: Buffer): Promise<string[]> {
+  // ExcelJS accepts the empty conditionalFormatting elements Excel rejects.
+  // Inspect the written worksheet XML and resolve style IDs in that same file.
+  const zip = await JSZip.loadAsync(file);
+  const styles = await zip.file('xl/styles.xml')!.async('string');
+  const dxfs = Array.from(styles.matchAll(/<dxf(?:\s*\/>|\b[^>]*>[\s\S]*?<\/dxf>)/g), match => match[0].replace(/\s+\/>/g, '/>'));
+  const sheets = zip.file(/^xl\/worksheets\/sheet\d+\.xml$/);
+  expect(sheets).toHaveLength(16);
+  const rules: string[] = [];
+  for (const sheet of sheets) {
+    const xml = await sheet.async('string');
+    const formats = Array.from(xml.matchAll(/<conditionalFormatting\s+sqref="([^"]+)"\s*>([\s\S]*?)<\/conditionalFormatting>/g));
+    expect(formats).toHaveLength(9);
+    for (const [, range, content] of formats) {
+      const entries = Array.from(content.matchAll(/<cfRule\b[^>]*>/g));
+      expect(entries.length).toBeGreaterThan(0);
+      for (const [entry] of entries) {
+        expect(entry).toContain('type="duplicateValues"');
+        const priority = entry.match(/\bpriority="(\d+)"/)?.[1];
+        const styleId = Number(entry.match(/\bdxfId="(\d+)"/)?.[1]);
+        expect(priority).toBeDefined();
+        expect(dxfs[styleId]).toBeDefined();
+        rules.push(JSON.stringify([range, priority, dxfs[styleId]]));
+      }
+    }
+  }
+  expect(rules).toHaveLength(192);
+  return rules.sort();
+}
+
+async function expectOfficialDuplicateRules(output: Buffer) {
+  const template = readFileSync(new URL('../../vendor/forms/statutory-2026.xlsx', import.meta.url));
+  expect(await readOfficialDuplicateRules(output)).toEqual(await readOfficialDuplicateRules(template));
+}
+
 let h:Harness,employee:number,department:number;
 beforeEach(async()=>{h=await createHarness();await h.db.deleteFrom('course_mappings').execute();await h.db.deleteFrom('trainings').execute();await seedDefaults(h.db);department=(await h.db.insertInto('departments').values({name:'총무과'}).returning('id').executeTakeFirstOrThrow()).id;employee=(await h.db.insertInto('employees').values({name:'홍길동',name_key:'홍길동',emp_no:'001',department_id:department,position:'소방교',birth_date:'1981-03-02'}).returning('id').executeTakeFirstOrThrow()).id;});
 afterEach(async()=>{await h.close()});
@@ -16,7 +53,13 @@ async function complete(){const batch=(await h.send('POST','/api/batches',{year:
 describe('시범운용 기본값과 공식 양식',()=>{
  it('새 설치는 16개와 공통 매핑을 제공하며 기존 기준을 덮어쓰지 않는다',async()=>{const rows=await h.db.selectFrom('trainings').selectAll().execute();expect(rows).toHaveLength(16);expect(rows.find(t=>t.code==='privacy')).toMatchObject({req_type:'hours',req_value:1});expect(await h.db.selectFrom('course_mappings').selectAll().execute()).toHaveLength(4);await h.db.updateTable('trainings').set({req_value:2}).where('code','=','privacy').execute();await seedDefaults(h.db);expect((await h.db.selectFrom('trainings').select('req_value').where('code','=','privacy').executeTakeFirstOrThrow()).req_value).toBe(2);});
  it('빈 명단 템플릿은 예시 직원을 포함하지 않고 앞자리0·드롭다운을 제공한다',async()=>{const res=await h.send('GET','/api/employees/import/template');expect(res.statusCode).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.rawPayload as never);const ws=wb.worksheets[0];expect(ws.name).toBe('직원명단');expect(ws.getRow(1).values).toContain('성명');expect(ws.getCell('A2').numFmt).toBe('@');expect(ws.getCell('G2').dataValidation.formulae).toEqual(['"재직,휴직,파견,퇴직"']);expect(ws.getCell('B2').value).toBeNull();});
- it('확정 내역이 없는 미충족 상태에서도 빈 16시트 명단을 받을 수 있다',async()=>{const result=(await h.send('GET','/api/exports/statutory/check?year=2026')).json() as FinalExportCheck;expect(result.ready).toBe(false);expect(result.blockers).toHaveLength(16);expect((await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출')).statusCode).toBe(200);});
+ it('확정 내역이 없는 미충족 상태에서도 빈 16시트 명단과 원본 중복 표시 규칙을 받을 수 있다',async()=>{
+   const result=(await h.send('GET','/api/exports/statutory/check?year=2026')).json() as FinalExportCheck;
+   expect(result.ready).toBe(false);expect(result.blockers).toHaveLength(16);
+   const output=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');
+   expect(output.statusCode).toBe(200);
+   await expectOfficialDuplicateRules(output.rawPayload);
+ });
  it('모든 기준 충족 후 16시트에 기관·부서·번호를 정확히 쓰고 여러 증서의 인원은1명이다',async()=>{await complete();const pre=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(pre).toMatchObject({ready:true,employees:1,drafts:0,blockers:[],missingTrainings:[]});const out=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(out.statusCode, out.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(out.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const ws of wb.worksheets){expect(ws.getCell('B9').value).toBe('가람시');expect(ws.getCell('C9').value).toBe('총무과');expect(ws.getCell('D9').value).toBe('소방교');expect(ws.getCell('J9').value).toMatch(/^FINAL-/);expect(ws.getCell('B4').value).toBeNull();expect(ws.getCell('K4').value).toBe(1);expect(ws.getCell('E4').formula).toBe('IF(B4>0,K4/B4,"")');expect(ws.pageSetup.orientation).toBe('portrait');}const clean=wb.getWorksheet('반부패청렴')!;expect(Number(clean.getCell('H9').value)+Number(clean.getCell('H10').value)).toBe(5);expect(clean.getCell('J9').value).not.toBe(clean.getCell('J10').value);await h.db.updateTable('certificates').set({status:'excluded'}).where('id','=',1).execute();const partial=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=제출');expect(partial.statusCode).toBe(200);const after=new ExcelJS.Workbook();await after.xlsx.load(partial.rawPayload as never);expect(after.getWorksheet('개인정보보호')!.getCell('E9').value).toBeNull();expect(after.getWorksheet('감염병예방')!.getCell('E9').value).toBe('홍길동');});
  it('양식 기본값과 다른 기준은 경고하고 현재 기준에 맞는 제목으로 출력한다',async()=>{await h.db.updateTable('trainings').set({req_type:'count'}).where('code','=','privacy').execute();const check=(await h.send('GET','/api/exports/statutory/check?year=2026')).json();expect(check.missingTrainings).toEqual([]);expect(check.criteriaWarnings).toContain('개인정보보호 교육');const res=await h.send('GET','/api/exports/statutory.xlsx?year=2026&reason=검증');expect(res.statusCode).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(res.rawPayload as never);expect(wb.getWorksheet('개인정보보호')!.getCell('B2').value).toContain('연 1회');});
  it('인증과 출력 범위를 확인한다',async()=>{expect((await h.app.inject({url:'/api/employees/import/template'})).statusCode).toBe(401);expect((await h.app.inject({url:'/api/exports/statutory/check?year=2026'})).statusCode).toBe(401);expect((await h.send('GET','/api/exports/statutory/check?year=2026&departmentId=9999')).statusCode).toBe(404);});
@@ -30,6 +73,7 @@ describe('저장한 기관보고 양식',()=>{
    const form=(await h.send('POST','/api/forms',{name:'기관보고16시트',departmentId:null,uploadId:analysis.uploadId,layout:analysis.layout,columns:analysis.columns,markStyle:'ox'})).json();expect(form.workbookKind).toBe('statutory16');
    const url='/api/exports/form?year=2026&reason=제출&formId='+form.id;expect((await h.send('GET',url)).statusCode).toBe(200);
    await complete();const result=await h.send('GET',url);expect(result.statusCode,result.body).toBe(200);const wb=new ExcelJS.Workbook();await wb.xlsx.load(result.rawPayload as never);expect(wb.worksheets).toHaveLength(16);for(const sheet of wb.worksheets){expect(sheet.getCell('E9').value).toBe('홍길동');expect(sheet.getCell('J9').value).toMatch(/^FINAL-/);expect(sheet.getCell('B4').value).toBeNull();}expect((await h.send('GET',url+'&onlyMissing=1')).statusCode).toBe(400);
+   await expectOfficialDuplicateRules(result.rawPayload);
  });
 });
 

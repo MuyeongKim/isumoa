@@ -145,12 +145,14 @@ VIAddVersionKey "FileDescription" "이수모아 설치 ${version}"
 !insertmacro MUI_LANGUAGE "Korean"
 
 Section "이수모아 설치"
+!insertmacro MUI_HEADER_TEXT "1/2 설치 파일 풀기" "임시 폴더에 설치 파일을 풉니다."
 InitPluginsDir
 SetOutPath "$PLUGINSDIR\\program"
 File /r "${path(programDir)}/*"
 SetOutPath "$PLUGINSDIR\\setup"
 File "${path(join(outDir, 'setup', 'install.ps1'))}"
-DetailPrint "프로그램 설치 중… 기존 자료는 보존합니다."
+!insertmacro MUI_HEADER_TEXT "2/2 프로그램 설치 및 확인" "파일을 복사하고 검증한 뒤 바로가기를 등록합니다."
+DetailPrint "설치 파일의 복사와 무결성 확인에 시간이 걸릴 수 있습니다."
 ${powershell}
 ClearErrors
 ExecWait '\"$0\" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"$PLUGINSDIR\\setup\\install.ps1\" -FromExe' $1
