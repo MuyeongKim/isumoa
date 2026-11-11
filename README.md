@@ -8,13 +8,15 @@
 
 ## 다운로드·접속 주소
 
-공공 GitLab 릴리스에서 Windows 64비트용 `isumoa-setup-0.5.12-win-x64.exe`를 받으세요. GitLab에 로그인한 뒤 프로젝트를 열람할 권한이 있어야 다운로드할 수 있습니다. [공공 GitLab v0.5.12 릴리스](https://gitlab.aigov.go.kr/tenmoo/isumoa/-/releases/v0.5.12) · [설치 EXE 바로 받기](https://gitlab.aigov.go.kr/tenmoo/isumoa/-/package_files/4036/download)
+세션 1 심사용 Windows 64비트 설치 파일은 공공 GitLab에서 받습니다. 프로젝트 열람 권한이 있는 계정으로 로그인하고 릴리스에서 `isumoa-setup-0.5.13-win-x64.exe`와 가상 모의자료 `isumoa-session1-sample-data.zip`을 받으세요. [공공 GitLab v0.5.13 릴리스](https://gitlab.aigov.go.kr/tenmoo/isumoa/-/releases/v0.5.13)
 
-Windows EXE의 SHA-256은 `a691e7e825f7c8b0aa8f9c1441288e8b947433a2c6903307d47e8f72b02e9021`입니다.
+일반 사용자는 공개 배포 페이지에서 같은 버전의 EXE 또는 `isumoa-setup-0.5.13-win-x64.zip`을 받을 수 있습니다. [GitHub v0.5.13 공개 배포](https://github.com/MuyeongKim/isumoa-releases/releases/tag/v0.5.13)
 
-압축 설치판과 모의자료는 같은 버전의 공개 배포본을 사용하세요. [Windows 설치 ZIP(GitHub)](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/isumoa-setup-0.5.12-win-x64.zip) · [가상 모의자료 ZIP(GitHub)](https://github.com/MuyeongKim/isumoa-releases/releases/download/v0.5.12/demo-samples-0.5.12.zip)
+Windows EXE의 SHA-256은 `f0458be39f80057b90576ceb2b2b9764f86193bdfe11d4f48614b77a17255737`입니다.
 
 이수모아를 실행하면 설치한 PC의 브라우저에서 `http://127.0.0.1:47210`이 열립니다.
+
+0.5.13은 수료자 명단을 내보낼 때 원본 서식의 증서번호 중복 표시 규칙을 보존하고, Windows 설치 화면에 파일 풀기와 프로그램 설치·확인 단계를 표시합니다.
 
 ## 해결하려는 문제와 개발 경위
 
@@ -22,7 +24,7 @@ Windows EXE의 SHA-256은 `a691e7e825f7c8b0aa8f9c1441288e8b947433a2c6903307d47e8
 
 수료증은 발급기관마다 양식이 다릅니다. 여러 장을 한 PDF로 스캔해 제출하면 담당자는 한 장씩 열어 이름, 교육명, 날짜, 시간을 옮겨 적고 직원 명단과 교육 기준을 대조해야 합니다. 중복으로 들어온 수료증이나 비슷한 이름의 교육도 따로 확인합니다.
 
-이수모아는 이 과정에서 반복해서 입력하고 자료를 모으는 일을 줄이기 위해 만들었습니다. 먼저 수료증의 글자를 읽어 교육 기준과 대조합니다. 담당자는 검수함에서 원본을 보며 어떤 교육으로 인정할지 결정합니다. 확정한 자료는 직원별 이수 현황과 기관 제출 자료로 이어집니다. 현재는 부서 시범운용 단계입니다.
+부서 서무가 직원별 법정 사이버 의무교육 이수증을 열어 이수번호를 엑셀에 옮겨 적는 모습을 보고 이수모아를 만들었습니다. 같은 업무를 맡은 다른 부서에서도 쓸 수 있도록, 이수증 판독부터 집계까지 한 흐름으로 연결했습니다. 프로그램이 수료증을 읽어 교육 기준과 대조하면 담당자가 검수함에서 원본을 보고 인정할 교육을 정합니다. 확정한 자료는 직원별 이수 현황과 기관 제출 자료에 반영됩니다.
 
 ## 주요 기능
 
@@ -49,7 +51,7 @@ Windows EXE의 SHA-256은 `a691e7e825f7c8b0aa8f9c1441288e8b947433a2c6903307d47e8
 
 ## 설치·실행 방법
 
-1. 공공 GitLab에서 Windows EXE를 받습니다. 다운로드한 폴더에서 PowerShell을 열고 `Get-FileHash .\isumoa-setup-0.5.12-win-x64.exe -Algorithm SHA256`을 실행합니다. 결과가 위에 적힌 SHA-256과 같으면 EXE를 실행하세요. ZIP 설치판을 받았다면 압축을 모두 풀고 `설치.bat`을 실행합니다.
+1. 위 릴리스에서 Windows EXE를 받습니다. 다운로드한 폴더에서 PowerShell을 열고 `Get-FileHash .\isumoa-setup-0.5.13-win-x64.exe -Algorithm SHA256`을 실행합니다. 결과가 위에 적힌 SHA-256과 같으면 EXE를 실행하세요. ZIP 설치판을 받았다면 압축을 모두 풀고 `설치.bat`을 실행합니다.
 2. 바탕화면의 **이수모아**를 열고 기관명과 관리자 계정을 만듭니다. 기존 업무 자료와 분리된 환경에서 모의 시연을 진행하세요.
 3. **직원 명단 → 일괄 등록 → 빈 양식 다운로드**의 엑셀을 채워 올리고 미리보기를 확인합니다.
 4. **교육 기준**에서 16개 기본 교육을 기관 지침에 맞춥니다. 개인정보보호 기본값은 연 1시간입니다.
@@ -59,7 +61,7 @@ Windows EXE의 SHA-256은 `a691e7e825f7c8b0aa8f9c1441288e8b947433a2c6903307d47e8
 
 업무 자료는 `%LOCALAPPDATA%\isumoa`에 저장합니다. **설정 → 백업·보관**에서 백업을 만들 수 있습니다. 복원 순서는 설치 안내를 참고하세요. [PC 설치 안내](docs/사용자/PC설치안내.md)
 
-시범운용 배포본에는 코드 서명이 없습니다. SmartScreen이나 기관 보안 프로그램에서 설치를 막으면 파일 출처와 SHA-256, 차단 화면을 정보화 담당자에게 전달해 확인받으세요.
+이 설치본에는 코드 서명이 없습니다. SmartScreen이나 기관 보안 프로그램에서 설치를 막으면 파일 출처와 SHA-256, 차단 화면을 정보화 담당자에게 전달해 확인받으세요.
 
 ## AI 구성과 LLM 설정
 
@@ -92,10 +94,9 @@ Windows EXE의 SHA-256은 `a691e7e825f7c8b0aa8f9c1441288e8b947433a2c6903307d47e8
 
 ### 실제 앱 시연영상과 검증 범위
 
-제출용 **2분 41초 MP4**에서는 이수모아 0.5.12에 가상 직원 명단을 등록하고 수료증을 검수한 뒤 16시트 XLSX를 내려받습니다. 촬영은 macOS 개발 환경에서 진행했습니다. 스캔본 40쪽은 로컬 OCR로 읽고 글자층이 있는 10쪽에서는 텍스트를 추출했습니다. 내려받은 XLSX는 Numbers에서 열었습니다.
+제출용 **2분 15초 MP4**는 Windows PC에서 이수모아 0.5.13을 설치하고 처음 실행하는 장면부터 시작합니다. 가상 직원 120명과 8개 부서를 등록하고 PDF 11개·50쪽을 판독했습니다. 정상 자료 48건을 확정하고 이수증이 아닌 2쪽을 제외했습니다. 이수 현황의 대상은 118명입니다.
 
-- **미확인**. Windows 10/11 실기기 설치·실행·업데이트, Excel/한셀 열기·인쇄, 기관 백신 결과
-- **미실시**. 직원 독립 사용과 엑셀 수기 작업의 소요 시간 비교, 실제 2종 LLM 비교
+영상의 1분 51초부터 Microsoft Excel 화면이 나옵니다. Windows에서 내보낸 명단을 복구 안내 없이 열고 교육별 16시트와 수료자 행을 확인했습니다. 이번 확인은 Windows PC 1대와 가상 자료를 사용했습니다. Windows 업데이트, 한셀 열기·인쇄, 기관 보안 프로그램, 수기 대비 소요 시간 및 LLM 모델 비교는 별도 확인 항목입니다. [Windows 확인 결과와 재현 절차](docs/session1/WINDOWS.md)
 
 ## 자료 처리와 제약사항
 
@@ -127,7 +128,7 @@ samples/       # 저장소에는 정답만 보관. PDF는 생성하거나 모의
 - 사용자: [사용설명서](docs/사용자/사용설명서.md), [PC 설치](docs/사용자/PC설치안내.md), [업데이트](docs/사용자/업데이트안내.md), [규칙·로컬 AI](docs/사용자/검수규칙과로컬AI.md)
 - 관리자·IT: [운영](docs/관리자/운영가이드.md), [서버 설치](docs/관리자/설치가이드.md), [정보화 담당 확인](docs/관리자/IT-확인요청서.md)
 - 개발: [개발·배포 안내](docs/개발/개발안내.md)
-- 검증기록: [릴리즈 검증](docs/검증기록/releases/0.5.12.md)
+- 검증기록: [0.5.13 Windows 확인](docs/session1/WINDOWS.md), [이전 0.5.12 릴리스](docs/검증기록/releases/0.5.12.md)
 - 세션 1: [AI와 자료 처리](docs/session1/AI-DATA.md), [Windows 검증 절차](docs/session1/WINDOWS.md)
 
 ## 제작자·라이선스
